@@ -1,0 +1,211 @@
+
+; Preprosessing
+
+include                  =                   ; include directories in topology
+define                   = -DPOSRES_BUF                  ; control options in topology, ie. -DPOSRES
+
+
+
+; Run control 
+
+integrator               = md                ; md, md-vv, steep, cg ...
+tinit                    = 0                 ; starting time for run (0)
+dt                       = 0.002             ; timestep [ps] (0.001)
+nsteps                   = 5000000          ; number of steps (0)
+init-step                = 0                 ; starting step (0)
+simulation-part          = 0                 ; if simulation consists of multiple parts (0)
+comm-mode                = Linear            ; mode for center of mass motion removal
+nstcomm                  = 10                ; number of steps for center of mass motion  removal (100)
+comm-grps                =      ; group(s) for center of mass motion removal (all)
+
+
+
+; Langevin dynamics
+
+bd-fric                  = 0                 ; brownian dynamics friction coefficient in [amu/ps] (0)
+ld-seed                  = -1                ; random seed (-1, pseudo random seed)
+
+
+
+; Energy minimization options 
+
+emtol                    = 10                ; force tolerance [kJ/mol.nm] (10.0)
+emstep                   = 0.01              ; initial step-size [nm] (0.01)
+nstcgsteep               = 1000              ; frequency of steepest descents steps when doing CG (1000)
+nbfgscorr                = 10                ; number of correction steps for L-BFGS (10)
+niter                    = 20                ; max number of iterations in relax_shells (20)
+fcstep                   = 0                 ; step size (ps^2) for minimization of flexible constraints (0)
+
+
+
+; Output control options 
+
+nstxout                  = 50000               ; output frequency for coords x (0)
+nstvout                  = 50000               ; output frequency for velocities v (0)
+nstfout                  = 0                 ; output frequency for forces f (0)
+nstlog                   = 50000               ; output frequency for energies to log file (1000)
+nstcalcenergy            = 1                 ; frequency for calculating energies (100)
+nstenergy                = 10000               ; output frequency for energies to energy file (1000)
+nstxout-compressed       = 50000                 ; output frequency for writing x using lossy compression (0)
+compressed-x-precision   = 1000              ; precision with which to write to compressed trajectory (1000)
+compressed-x-grps        =                   ; groups to write to compressed trajectory 
+energygrps               =                   ; selection of energy groups
+
+
+
+; Neighbor searching parameters
+cutoff-scheme            = Verlet            ; verlet or group
+nstlist                  = 10             ; neighbor list update frequency (10)
+ns-type                  = grid              ; ns algorithm (simple or grid)
+pbc                      = xyz               ; periodic boundary conditions: xyz, no, xy
+periodic_molecules       = no                ; no = finite molecules, yes = molecules couple through pbc
+verlet-buffer-tolerance  = 0.005             ; only with verlet, sets indirectly rlists (0.005)
+rlist                    = 1.0               ; nblist cut-off (ignored if verlet, buffer sets it) [nm] (1) 
+
+
+
+; Options for electrostatics 
+
+coulombtype              = PME               ; method for doing electrostatics (PME standard)
+coulomb-modifier         = potential-shift-verlet ; use with verlet, selects none for group scheme
+rcoulomb-switch          = 0                 ; where to start switching coulomb potential if it's on [nm] (0)
+rcoulomb                 = 1.0               ; distance for coulomb cut-off [nm] (1)
+epsilon_r                = 1                 ; relative dielectric constant (1)
+epsilon-rf               = 78                ; relative dielectric constant for reaction-field (1)
+
+
+
+; Options for van der Waals 
+
+vdwtype                  = cut-off           ; method for doing van der Waals  
+vdw-modifier             = ;potential-shift-verlet ; use with verlet, selects none for group scheme
+rvdw-switch              = 0                 ; where to start switching LJ potential if it's on [nm] (0)
+rvdw                     = 1.0               ; distance for LJ cut-off [nm] (1)
+DispCorr                 = no                ; apply long range dispersion corrections for energy, pressure
+table-extension          = 1.0               ; extension of the potential lookup tables beyond the cut-off
+energygrp_table          =                   ; separate tables between energy group pairs
+
+
+
+; Ewald Ewald, PME, PPPM parameters
+
+fourierspacing           = 0.12              ; Spacing for the PME/PPPM FFT grid
+fourier_nx               = 0                 ; FFT grid size, when a value is 0 fourierspacing will be used
+fourier_ny               = 0
+fourier_nz               = 0
+pme_order                = 4                 ; interpolation order, 4 is cubic interpolation (4)    
+ewald_rtol               = 1e-06             ; relative strenght of Ewald-shifted direct potential (1e-05)
+ewald_geometry           = 3d                ; performed in all three dimensions
+epsilon_surface          = 0                 ; controls dipole correction 
+
+
+
+; Temperature coupling
+
+tcoupl                   = v-rescale         ; temperature coupling (no, berendsen, v-rescale, nose-hoover)
+nsttcouple               = -1                ; frequency for coupling temperature (-1, sets equal to nstlist)
+nh-chain-length          = 10                ; number of chained nose-hoover thermostats for vv (10) 
+tc-grps                  = Protein Water_and_ions            ; groups to couple separately (water, protein)
+tau-t                    = 0.1  0.1            ; time constant [ps] for each group
+ref-t                    = 300  300             ; reference temperature [K] for each group   
+
+
+
+; Pressure coupling
+ 
+pcoupl                   = parrinello-rahman         ; pressure coupling (no, berendse, parrinello-rahman) 
+Pcoupltype               = isotropic         ; usually isotropic, semiisotropic
+nstpcouple               = -1                ; frequency for coupling pressure (-1, sets equal to nstlist)
+tau-p                    = 1.0               ; time constant [ps]
+compressibility          = 4.5e-5            ; compressibility [1/bar]
+ref-p                    = 1.0               ; reference P [bar]
+refcoord_scaling         = No                ; scaling of reference coordinates, No, All or COM
+
+
+
+; Simulated annealing
+
+
+
+; Generate velocities 
+
+gen-vel                  = yes               ; if changed, also change 'continuation'
+gen-temp                 = 300               ; temperature for Maxwell distribution [K] (300)
+gen-seed                 = 173529            ; if set to (-1), pseudo random seed is used
+
+
+
+; Options for bonds   
+ 
+constraints              = h-bonds           ; none, h-bonds, all-bonds
+constraint-algorithm     = lincs             ; type of constraint algorithm (lincs, shake)
+continuation             = no                ; whether to constrain the start configuration
+shake-tol                = 0.0001            ; relative tolerance of shake (0.0001)
+lincs-order              = 4                 ; highest order in expansion of constraint coupling matrix (4) 
+lincs-iter               = 1                 ; number of iterations in the final step of LINCS (1) 
+lincs-warnangle          = 30                ; lincs warning if a bond rotates more [deg] (30)
+morse                    = no                ; convert harmonic bonds to morse potentials
+
+
+
+; Energy group exclusion
+
+energygrp-excl           =                   ; pairs of energy groups that non-bonded interactions excluded
+
+
+
+; Walls             
+ 
+nwall                    = 0                 ; number of walls (0)
+wall_atomtype            =                   ; atom types for each wall
+wall_type                = 9-3               ; wall type (9-3, 10-4, 12-6)
+table                    =                   ; user-defined potentials
+wall_r_linpot            = -1                ; below this distance potential continues linearly [nm] (-1)
+wall_density             =                   ; number density of atoms [nm^3/nm^-2]
+wall_ewald_zfac          = 3                 ; box-z scale factor for Ewald (3)
+
+
+
+; COM pulling   
+      
+pull                     = no                ; choose no, umbrella, constraint or constant_force
+
+
+
+; Enforced rotation
+
+rotation                 = no                ; enforce rotation of a group of atoms
+
+
+
+; Free energy control 
+
+free-energy              = no              ; yes = interpolated between topology A and B
+init-lambda              = 0                 ; starting value for lambda, only for slow growth
+delta-lambda             = 0                 ; increment per time step for lambda
+init-lambda-state        = -1                ; which column of lambda vector should be used (-1)
+
+; lambda values for which dh values are determined, values between 0 and 1 (fep for both coul and vdw)
+fep-lambdas              =                   
+coul-lambdas             = 
+vdw-lambdas              =
+calc-lambda-neighbors    = 1                 ; number of neighbor lambdas for which dh will be calculated (1)
+sc-alpha                 = 0                 ; soft-core alpha parameter, (0) results in linear interpolation
+sc-r-power               = 6                 ; power of radial term in soft-core, values 6 or 48 (6)
+sc-coul                  = no                ; whether to apply soft-core to coulomb (no)
+sc-power                 = 0                 ; power for lambda in soft-core function, values 1 and 2 (0)
+sc-sigma                 = 0.3               ; soft core sigma [nm] (0.3)
+couple-moltype           =                   ; molecule type for solvation of coupling energies
+couple-lambda0           = vdw-q             ; which interactions are on at lambda=0 (vdw-q/vdw/q/none)
+couple-lambda1           = vdw-q             ; which interactions are on at lambda=1 (vdw-q/vdw/q/none)
+couple-intramol          = no                ; replace intra-molecular interactions by exclusions
+nstdhdl                  = 10                ; frequency for writing dH/dlambda to dhdl.xvg (100)
+dhdl-derivatives         = yes               ; write out derivatives of hamiltonian
+dhdl-print-energy        = no                ; include potential or total energy in dhdl file
+separate-dhdl-file       = yes               ; write dhdls to a separate file, by default dhdl.xvg
+dh_hist_size             = 0                 ; nonzero value speifies size of histogram for dhdl values
+dh_hist_spacing          = 0.1               ; bin width of the histograms in energy units
+
+lambda-dynamics          = yes
+
+

@@ -1,0 +1,86 @@
+ph = 4.5
+nr_residues = 3
+nr_lambdagroups = 3
+
+m_lambda = 10.0
+T_lambda = 300
+tau = 0.1
+thermostat = v-rescale
+nst_lambda = 100
+charge_constraint = no
+N_buffers = 1
+m_buf = 10.0
+multistate_constraint = no
+n_multigroups = 1
+
+residue = GLU
+n_coeffs = 4
+dvdl_coeffs = 24.685 -577.05 137.39 -172.69                        
+ref_pka = 4.25
+
+residue = ASP
+n_coeffs = 4
+dvdl_coeffs = 37.822 -566.01 117.97 -158.79        
+ref_pka = 3.65
+
+residue = BUF
+n_coeffs = 4
+dvdl_coeffs = 2010.3 -2023.2 249.56 -450.63
+ref_pka = 4.25
+
+name = GLU
+residue_number = 17
+initial_lambda = 0.5
+barrier = 7.5
+n_atoms = 5
+index = 276 279 280 281 282
+
+276     -0.21   -0.28 
+279      0.75    0.62 
+280     -0.55   -0.76 
+281     -0.61   -0.76 
+282      0.44    0.00 
+
+name = ASP
+residue_number = 42
+initial_lambda = 0.5
+barrier = 7.5
+n_atoms = 5
+index = 688 691 692 693 694
+
+688     -0.21   -0.28
+691      0.75    0.62
+692     -0.55   -0.76
+693     -0.61   -0.76
+694      0.44    0.00
+
+name = ASP
+residue_number = 59
+initial_lambda = 0.5
+barrier = 7.5
+n_atoms = 5
+index = 938 941 942 943 944
+
+938     -0.21   -0.28
+941      0.75    0.62
+942     -0.55   -0.76
+943     -0.61   -0.76
+944      0.44    0.00
+
+name = BUF
+residue_number = 1
+initial_lambda = 0.5
+barrier = 0.0
+n_atoms = 9
+index = 994 995 996 997 998 999 1000 1001 1002
+
+994   -0.0656  -0.8476
+995    0.5328   0.4238
+996    0.5328   0.4238
+997   -0.0656  -0.8476
+998    0.5328   0.4238
+999    0.5328   0.4238
+1000  -0.0656  -0.8476
+1001   0.5328   0.4238
+1002   0.5328   0.4238
+
