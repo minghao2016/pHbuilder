@@ -1,25 +1,64 @@
 #!/bin/python3
 
 import os
-from pythonlib import PDB
+from lib import PDB
 
-# Select MODEL 1 and remove header
 protein = PDB()
-protein.load("1cvo.pdb", 1)
-protein.setTitle("CARDIOTOXIN V in water")
-protein.write("1cvo_new.pdb", False)
 
-model_ff    = "charmm36-mar2019"
-model_water = "tip3p"
+# PARAMS #######################################################################
+
+pdbName    = "1cvo"
+pdbDescrip = "CARDIOTOXIN V in water"
+
+gromPath   = "/home/anton/GIT/phbuilder/grom"   # relative path to grom dir
+modelFF    = "charmm36-mar2019"
+modelWater = "tip3p"
+
+startProtonated = True                  # ASP and GLU will be neutral
+
+protein.loadpdb("%s.pdb" % (pdbName))
+
+# PATH STUFF ###################################################################
+
+# Create symbolic link to force field dir for GROMACS (cause it's large).
+if os.path.islink("%s.ff" % (modelFF)):
+    os.remove("%s.ff" % modelFF)
+
+os.symlink("%s/%s.ff" % (gromPath, modelFF), "%s.ff" % (modelFF))
+
+# Copy files from grom to our working dir.
+os.system("cp %s/* ." % (gromPath))
+
+# GMX PDB2GMX ##################################################################
+
+protein.setTitle(pdbDescrip)
+protein.writepdb("%s_PR1.pdb" % (pdbName))
+
+countASP  = protein.countRes("ASP")
+countGLU  = protein.countRes("GLU")
+countACID = countASP + countGLU
+
+# Print how many acidic residues were found
+print("Detected %s acidic residues (%s ASP and %s GLU)..." % (countACID, countASP, countGLU))
+
+# Create EOF string required for pdb2gmx
+xstr = "<< EOF"
+for idx in range(0, countACID):
+    xstr += "\n%s" % (int(startProtonated))
+xstr += "\nEOF"
 
 # Generate topology and protonate (make neutral) all GLU and ASP:
-os.system("gmx pdb2gmx -f 1cvo_new.pdb -o 1cvo_new2.pdb -asp -glu -ignh -ff %s -water %s << EOF\n1\n1\n1\nEOF" % (model_ff, model_water))
+os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s -water %s %s" % (
+    pdbName, pdbName, modelFF, modelWater, xstr))
 
-# Add periodic box and put in center:
-os.system("gmx editconf -f 1cvo_new2.pdb -o 1cvo_new3.pdb -c -d 1.0 -bt cubic")
+# GMX EDITCONF #################################################################
 
-# Add buffer waters to .pdb file:
-os.system("gmx insert-molecules -f 1cvo_new3.pdb -o 1cvo_new4.pdb -ci buffer.pdb -nmol 3")
+os.system("gmx editconf -f %s_PR2.pdb -o %s_BOX.pdb -c -d 1.0 -bt cubic" % (pdbName, pdbName))
+
+# GMX INSERT-MOLECULES (ADD BUFFER) ############################################
+
+os.system("gmx insert-molecules -f %s_BOX.pdb -o %s_BUF.pdb -ci buffer.pdb -nmol %s" %
+         (pdbName, pdbName, countACID))
 
 # Add the buffer water's topology to our .top file:
 topList = []
@@ -35,54 +74,43 @@ with open("topol.top", "w+") as file:
             file.write("\n; Include buffer topology\n")
             file.write("#include \"buffer.itp\"\n")
 
-    file.write("BUF\t\t\t\t\t  %s\n" % (3))
+    file.write("BUF\t\t\t\t\t  %s\n" % (countACID))
 topList.clear()
 
-# Add normal waters:
-os.system("gmx solvate -cp 1cvo_new4.pdb -o 1cvo_new5.pdb -p topol.top")
+# GMX SOLVATE (ADD WATER) ######################################################
 
-# Add ions:
-os.system("gmx grompp -f ions.mdp -c 1cvo_new5.pdb -p topol.top -o ions.tpr")
-os.system("gmx genion -s ions.tpr -o 1cvo_new6.pdb -p topol.top -pname NA -nname CL -neutral << EOF\nSOL\nEOF")
+os.system("gmx solvate -cp %s_BUF.pdb -o %s_SOL.pdb -p topol.top" % (pdbName, pdbName))
 
-# Generate .ndx file
+# GMX GENION (ADD IONS) ########################################################
 
+os.system("gmx grompp -f ions.mdp -c %s_SOL.pdb -p topol.top -o ions.tpr" % (pdbName))
+os.system("gmx genion -s ions.tpr -o %s_ION.pdb -p topol.top -pname NA -nname CL -neutral << EOF\nSOL\nEOF" % pdbName)
 
+# CREATE INDEX FILE ############################################################
 
+group_AA  = [
+    'ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 
+    'LEU', 'LYS', 'MET', 'PRO', 'SER', 'THR', 'VAL', 'PHE', 'TYR', 'TRP']
+group_BUF = ['BUF']
+group_SOL = ['SOL']
+group_ION = [' NA', ' CL']
+group_SYS = group_AA  + group_BUF + group_SOL + group_ION
+group_ISO = group_SOL + group_ION
+# group_BASE   = ['ARG', 'LYS']
+# group_ACID   = ['ASP', 'GLU']
 
+protein2 = PDB()
+protein2.loadpdb("%s_ION.pdb" % (pdbName))
 
+protein2.writendx("index.ndx", "SYSTEM"    , group_SYS )
+protein2.writendx("index.ndx", "PROTEIN"   , group_AA  )
+protein2.writendx("index.ndx", "BUFFER"    , group_BUF )
+protein2.writendx("index.ndx", "WATER"     , group_SOL )
+protein2.writendx("index.ndx", "IONS"      , group_ION )
+protein2.writendx("index.ndx", "WATER_IONS", group_ISO )
+protein2.writendx("index.ndx", "ZZZ", ['ZZZ'] )
 
+# ENERGY MINIMIZATION ##########################################################
 
-
-
-
-
-
-
-
-# pdbName     = "cardio"
-# watermodel  = "spce"
-
-# # Generate topology (9 = charmm36-mar2019.ff)
-# os.system("echo 9 | gmx pdb2gmx -f %s.pdb -o %s_processed.pdb -asp -glu -ignh -water %s" % (pdbName, pdbName, watermodel))
-
-# # gmx pdb2gmx -f cardio.pdb -o cardio_processed.pdb -asp -glu -ignh -water spce
-
-# # Configure simulation box
-# os.system("gmx editconf -f %s_processed.pdb -o %s_newbox.pdb -c -d 1.0 -bt cubic")
-
-# 1. detect number of protonatable residues (ASP and GLU)
-
-# 1. Fill box with water.
-# 
-
-# CHANGE .PDBtools FILE ############################################################
-
-# Cardiotoxin:
-#   By itself has a charge of 
-#   62x residues
-#   3x  H20 molecules of 3 atoms each (9 total) in buffer group
-#   Bunch of water molecules
-#   12x CL ion for neutral charge?
-
-# CHANGE/GENERATE .TOP FILE
+# gmx grompp -f minim.mdp -c cardio_ions.pdb -p topol.top -o em.tpr
+# gmx mdrun -s em.tpr -c em.pdb
