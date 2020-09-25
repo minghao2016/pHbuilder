@@ -1,56 +1,50 @@
 import os
 
-headRecords = [
-    "HEADER", "COMPND", "SOURCE", "KEYWDS", "EXPDTA", "AUTHOR", "NUMMDL", 
-    "REVDAT", "JRNL  ", "REMARK", "DBREF ", "SEQRES", "SHEET ", "SSBOND", 
-    "CRYST1", "ORIGX1", "ORIGX2", "ORIGX3", "SCALE1", "SCALE2", "SCALE3",
-    "SEQADV", "HET   ", "HETNAM", "HETSYN", "FORMUL", "HELIX ", "SITE  ",]
-
-# Object for storing a single residue's data. ##################################
-class Residue:
-    # CONSTRUCTOR
-    def __init__(self, atoms, ali, resname, chain, resid, x, y, z):
-        self.d_atoms   = atoms      # list
-        self.d_ali     = ali        # list
-        self.d_resname = resname    # string
-        self.d_chain   = chain      # string
-        self.d_resid   = resid      # int
-        self.d_x       = x          # list
-        self.d_y       = y          # list
-        self.d_z       = z          # list
-
-    # Print Residue data.
-    def inspect(self):
-        print ("inspectRes : resname = %s, resid = %s, chain = %s" % 
-              (self.d_resname, self.d_resid, self.d_chain))
-            
-        for idx in range(0, len(self.d_atoms)):
-            print ("           :{:^4s}{:1s}{:8.3f} {:8.3f} {:8.3f}".format(
-                    self.d_atoms[idx], 
-                    self.d_ali[idx], 
-                    self.d_x[idx], 
-                    self.d_y[idx], 
-                    self.d_z[idx]
-                  ))
-
-# Main object for reading, editing, and writing .pdb files. ####################
+# For doing all kinds of stuff related to .pdb files.
 class PDB:
-    # CONSTRUCTOR
-    def __init__(self):
-        self.d_model  = 1        # int       stores selected model.
-        self.d_ALI    = "A"      # string    stores alternate loc. indicator.
-        self.d_chainl = ["all"]  # list      stores which chain(s) to load.
-        self.d_title  = ""       # string    stores TITLE line.
+    # Data.
+    headRecords = [ 
+        "HEADER", "COMPND", "SOURCE", "KEYWDS", "EXPDTA", "AUTHOR", "NUMMDL", 
+        "REVDAT", "JRNL  ", "REMARK", "DBREF ", "SEQRES", "SHEET ", "SSBOND", 
+        "CRYST1", "ORIGX1", "ORIGX2", "ORIGX3", "SCALE1", "SCALE2", "SCALE3",
+        "SEQADV", "HET   ", "HETNAM", "HETSYN", "FORMUL", "HELIX ", "SITE  ",]
 
-        self.d_atomLines = []    # list      stores atom lines.
-        self.d_headLines = []    # list      stores header lines.
-        self.d_residues  = []    # list      stores Residue objects.
+     # Stores a single residue's data.
+    class Residue:
+        def __init__(self, atoms, ali, resname, chain, resid, x, y, z):
+            self.d_atoms   = atoms      # list
+            self.d_ali     = ali        # list
+            self.d_resname = resname    # string
+            self.d_chain   = chain      # string
+            self.d_resid   = resid      # int
+            self.d_x       = x          # list
+            self.d_y       = y          # list
+            self.d_z       = z          # list
 
-    # Load a .pdb file.
-    def loadpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
+        # Print Residue data.
+        def __inspect(self):
+            print ("inspectRes : resname = %s, resid = %s, chain = %s" % 
+                (self.d_resname, self.d_resid, self.d_chain))
+                
+            for idx in range(0, len(self.d_atoms)):
+                print ("           :{:^4s}{:1s}{:8.3f} {:8.3f} {:8.3f}".format(
+                        self.d_atoms[idx], 
+                        self.d_ali[idx], 
+                        self.d_x[idx], 
+                        self.d_y[idx], 
+                        self.d_z[idx]
+                    ))
+
+    def __init__(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
+        self.d_fname  = fname    # Store the name of the file that was loaded
         self.d_model  = MODEL    # set MODEL number to load (MODEL 1 = default)
         self.d_ALI    = ALI      # set which ALI letter to load (A = default)
         self.d_chainl = CHAIN    # set which chain(s) to load (all = default)
+
+        self.d_title     = ""    # string    stores TITLE line.
+        self.d_atomLines = []    # list      stores atom lines.
+        self.d_headLines = []    # list      stores header lines.
+        self.d_residues  = []    # list      stores Residue objects.
         
         # PRINT USER INFO ######################################################
         print("loadpdb    : importing MODEL=%s, ALI=%s, chain(s)=" % (
@@ -77,7 +71,7 @@ class PDB:
                     self.d_title = line[10:(len(line) - 1)]
 
                 # Store all header lines in d_headLines.
-                if (line[0:6]) in headRecords:
+                if (line[0:6]) in PDB.headRecords:
                     self.d_headLines.append(line)
 
                 # This is to make sure we only import the specified MODEL.
@@ -119,7 +113,7 @@ class PDB:
             if (self.d_atomLines[idx][22:26] != self.d_atomLines[idx + 1][22:26]):
 
                 self.d_residues.append(
-                    Residue
+                    PDB.Residue
                     (
                         atoms, 
                         ali,
@@ -142,8 +136,8 @@ class PDB:
         
         # PRINT USER INFO ######################################################
         print("writepdb   : writing \"%s\" to \"%s\"..." % (self.d_title, fname))
-        
-        print("writepdb   : info : residues=%s, MODEL=%s, ALI=%s, chain(s)=" % 
+
+        print("           : info : residues=%s, MODEL=%s, ALI=%s, chain(s)=" % 
              (len(self.d_residues), self.d_model, self.d_ALI), end='')
         
         if self.d_chainl[0] == "all":
@@ -184,12 +178,14 @@ class PDB:
     def writendx(self, fname, name, group):
         # Warn user if the energy group already exists
         if (os.path.isfile(fname)):
-            print("writendx   : detected existing file \"%s\", will append [ %s ]..." % (fname, name))
+            print("writendx   : Detected existing file %s, will append [ %s ]..." % (fname, name))
 
             with open("index.ndx", "r") as file:
                 if name in file.read():
-                    print("writendx   : warning : [ %s ]  in \"%s\" already exists. aborting..." % (name, fname))
+                    print("           : Warning : [ %s ] in %s already exists. aborting..." % (name, fname))
                     return
+        else:
+            print("writendx   : No existing file %s was found. Will create..." % (fname))
 
         with open("index.ndx", "a+") as file:
             file.write("[ %s ]\n" % (name))
@@ -212,9 +208,9 @@ class PDB:
             file.write("\n\n")
         
         if (xxx):
-            print("writendx   : wrote group [ %s ] to \"%s\"" % (name, fname))
+            print("           : Wrote group [ %s ] from %s to %s" % (name, self.d_fname, fname))
         else:
-            print("writendx   : warning : no atoms beloning to [ %s ] were found" % (name))
+            print("           : Warning : no atoms beloning to [ %s ] were found" % (name))
 
     # VARIOUS FUNCTIONS ########################################################
 
@@ -222,39 +218,10 @@ class PDB:
     def inspectRes(self, resid, CHAIN = 'A'):
         for residue in self.d_residues:
             if (residue.d_resid == resid and residue.d_chain == CHAIN):
-                residue.inspect()
+                residue.__inspect()
                 return
         else:
-            print("inspectRes : cannot find residue with resid=%s and/or chain=%s" % (resid, CHAIN))
-
-    # Returns total charge of protein (at neutral pH).
-    def charge(self):
-        charge = 0
-        for residue in self.d_residues:
-            if residue.d_resname in ["ARG", "LYS"]:
-                charge += 1
-            
-            if residue.d_resname in ["ASP", "GLU"]:
-                charge -= 1
-        
-        return charge
-
-    # Return the title.
-    def title(self):
-        return self.d_title
-
-    # Return the selected MODEL number.
-    def model(self):
-        return self.d_model
-
-    # Set a (new) title.
-    def setTitle(self, newTitle):
-        self.d_title = newTitle
-
-    # Print the header.
-    def printHeader(self):
-        for line in self.d_headLines:
-            print(line, end = '')
+            print("inspectRes : Cannot find residue with resid=%s and/or chain=%s" % (resid, CHAIN))
 
     # Returns the number of residues of a specific type in the protein.
     def countRes(self, resname):
@@ -265,3 +232,84 @@ class PDB:
                 count += 1
         
         return count
+
+    # Return the file name (with/without extensions)
+    def fname(self, ext = True):
+        if (ext):
+            return self.d_fname
+        else:
+            return self.d_fname[0:len(self.d_fname)-4]
+
+
+
+# def addParam(fname, name, value, comment = "NUL"):
+#     with open(fname, "a+") as file:
+#         if (comment == "NUL"):
+#             file.write("{:16s} = {:13s}\n".format(name, value))
+#         else:
+#             file.write("{:16s} = {:13s} ; {:13s}\n".format(name, value, comment))
+
+# class mdpGen:
+#     def __init__(self, fname):
+#         self.d_fname = fname
+
+#         addParam(self.d_fname, 'integrator', 'steep', 'our integrator')
+#         addParam(self.d_fname, 'emtol', '1000', 'energy tolerance')
+
+def addParam(fname, name, value, comment = "NUL"):
+    with open(fname, "a+") as file:
+        if (comment == "NUL"):
+            file.write("{:16s} = {:13s}\n".format(name, value))
+        else:
+            file.write("{:16s} = {:13s} ; {:13s}\n".format(name, value, comment))
+
+class mdpGen:
+    def __init__(self, fname):
+        first = True
+        file  = open(fname, "w+")
+
+        def addParam(name, value, comment = "NUL"):
+            if (comment == "NUL"):
+                file.write("{:16s} = {:13s}\n".format(name, value))
+            else:
+                file.write("{:16s} = {:13s} ; {:13s}\n".format(name, value, comment))    
+
+        def addTitle(title=""):
+            if (first):
+                file.write("; %s\n" % (title.upper()))
+            else:
+                file.write("\n; %s\n" % (title.upper()))
+
+        addTitle("Run control parameters")
+        addParam('integrator', 'steep', 'our integrator')
+        addParam('emtol', '1000', 'energy tolerance')
+
+        addTitle("Run control parameters")
+        addParam('pbc', 'xyz', 'periodic boundary condition')
+
+        file.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+# LOOSE FUNCTIONS ##############################################################
+
+def backupFile(fname):
+    if os.path.isfile(fname):
+        num = 1
+        while (True):
+            if os.path.isfile("#%s.%s#" % (fname, num)):
+                num += 1
+                continue
+
+            os.system("mv %s '#%s.%s#'" % (fname, fname, num))
+            break
