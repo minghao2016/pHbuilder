@@ -240,22 +240,6 @@ class PDB:
         else:
             return self.d_fname[0:len(self.d_fname)-4]
 
-
-
-# def addParam(fname, name, value, comment = "NUL"):
-#     with open(fname, "a+") as file:
-#         if (comment == "NUL"):
-#             file.write("{:16s} = {:13s}\n".format(name, value))
-#         else:
-#             file.write("{:16s} = {:13s} ; {:13s}\n".format(name, value, comment))
-
-# class mdpGen:
-#     def __init__(self, fname):
-#         self.d_fname = fname
-
-#         addParam(self.d_fname, 'integrator', 'steep', 'our integrator')
-#         addParam(self.d_fname, 'emtol', '1000', 'energy tolerance')
-
 def addParam(fname, name, value, comment = "NUL"):
     with open(fname, "a+") as file:
         if (comment == "NUL"):
@@ -265,41 +249,96 @@ def addParam(fname, name, value, comment = "NUL"):
 
 class mdpGen:
     def __init__(self, fname):
-        first = True
+        self.firstLine = True
         file  = open(fname, "w+")
 
         def addParam(name, value, comment = "NUL"):
             if (comment == "NUL"):
-                file.write("{:16s} = {:13s}\n".format(name, value))
+                file.write("{:16s} = {:13s}\n".format(name, str(value)))
             else:
-                file.write("{:16s} = {:13s} ; {:13s}\n".format(name, value, comment))    
+                file.write("{:16s} = {:13s} ; {:13s}\n".format(name, str(value), comment))    
 
         def addTitle(title=""):
-            if (first):
+            if (self.firstLine):
                 file.write("; %s\n" % (title.upper()))
+                self.firstLine = False
             else:
                 file.write("\n; %s\n" % (title.upper()))
 
-        addTitle("Run control parameters")
-        addParam('integrator', 'steep', 'our integrator')
-        addParam('emtol', '1000', 'energy tolerance')
+        # Run control parameters
+        addTitle("Run control")
 
-        addTitle("Run control parameters")
-        addParam('pbc', 'xyz', 'periodic boundary condition')
+        if (fname == "EM.mdp"):
+            addParam('integrator', 'steep', 'Use steep for EM')
+            addParam('emtol', 1000)
+            addParam('emstep', 0.0005)
+            
+        else:
+            addParam('integrator', 'md')
+            addParam('dt', 0.002, 'time step (ps)')
+            addParam('nsteps', 500000, 'dt * nsteps = 1 ns')
+        
+        # addParam('comm-mode', 'Linear')       # find out of this is necessary
+        # addParam('nstcomm', 10)               # find out of this is necessary
+
+        # Output control
+        addTitle("Output control")
+        addParam('nstxout', 5000, 'output one frame every ... ns')
+
+        # Bond parameters       # is this whole section even necessary?
+        addTitle("Bonds")
+        addParam('constraint_algorithm', 'lincs', 'holotomic constraints')
+
+        # Neighbour searching parameters
+        addTitle("Neighbour searching")
+        addParam('cutoff-scheme', 'Verlet')
+        addParam('nstlist', 10)
+        # addParam('ns_type', 'grid', 'neighbour searching algorithm (simple or grid)')
+        # Apparently ns_type is obsolete
+        addParam('rlist', 1.0, 'nblist cut-off ')
+
+        # Electrostatics parameters
+        addTitle("Electrostatics")
+        addParam('coulombtype', 'PME')
+        addParam('rcoulomb', 1.0, 'coulomb cutoff radius (nm)')
+        addParam('epsilon_r', 80, 'relative dielectric constant for the medium')
+
+        # Van der Waals
+        addTitle("Van der Waals")
+        addParam('vdwtype', 'cut-off')
+        addParam('rvdw', 1.0)
+
+        if (not fname == "EM.mdp"):  # No temperature or pressure coupling when
+            # Temperature coupling      we are running EM
+            addTitle("Temperature coupling")
+            addParam('tcoupl', 'v-rescale')
+            addParam('tc-grps', 'PROTEIN WATER_IONS', 'groups to couple seperately')
+            addParam('tau-t', '0.1 0.1', 'time constant')
+            addParam('ref-t', '300 3000', 'reference temperature (K)')
+
+        # Pressure coupling
+            addTitle('Pressure coupling')
+            
+            addParam('pcoupl', 'parrinello-rahman')
+            addParam('pcoupltype', 'isotropic', 'uniform scaling of box')
+            addParam('tau_p', '2.0', 'time constant (ps)')
+            addParam('ref_p', 1.0, 'reference pressure (bar)')
+            addParam('compressibility', 4.5e-5, 'isothermal compressbility of water')
+
+        # Lambda parameters
+        addTitle("Lambda/constant-pH")
+
+        # Periodic boundary conditions
+        addTitle("Periodic boundary condition")
+        addParam('pbc', 'xyz', 'to keep molecule(s) in box')
+
+        # Generate velocities for startup
+        addTitle('Generate velocities for startup')
+        addParam('gen_vel', 'yes')
+        addParam('gen_temp', 300)
+        addParam('gen_seed', -1)
 
         file.close()
-
-
-
-
-
-
-
-
-
-
-
-
 
 # LOOSE FUNCTIONS ##############################################################
 

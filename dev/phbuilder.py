@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/python3
 
 import os
 from lib import *
@@ -126,10 +126,10 @@ protein2.writendx("index.ndx", "WATER_IONS", group_ISO )
 
 mdpGen("EM.mdp")
 
-# print("pHbuilder  : Running gmx grompp to create EM.tpr...")
+print("pHbuilder  : Running gmx grompp to create EM.tpr...")
 
-# os.system("gmx grompp -f EM.mdp -c %s_ION.pdb -p topol.top -o EM.tpr  >> builder.log 2>&1" % (pdbName))
+os.system("gmx grompp -f EM.mdp -c %s_ION.pdb -p topol.top -n index.ndx -o EM.tpr  >> builder.log 2>&1" % (pdbName))
 
-# print("           : Running gmx mdrun (energy minimization) to create %s_EM.pdb..." % (pdbName))
+print("           : Running gmx mdrun (energy minimization) to create %s_EM.pdb..." % (pdbName))
 
-# os.system("gmx mdrun -s EM.tpr -c %s_EM.pdb >> builder.log 2>&1" % (pdbName))
+os.system("gmx mdrun -s EM.tpr -c %s_EM.pdb >> builder.log 2>&1" % (pdbName))
