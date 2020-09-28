@@ -240,23 +240,16 @@ class PDB:
         else:
             return self.d_fname[0:len(self.d_fname)-4]
 
-def addParam(fname, name, value, comment = "NUL"):
-    with open(fname, "a+") as file:
-        if (comment == "NUL"):
-            file.write("{:16s} = {:13s}\n".format(name, value))
-        else:
-            file.write("{:16s} = {:13s} ; {:13s}\n".format(name, value, comment))
-
 class mdpGen:
-    def __init__(self, fname):
+    def __init__(self, fname, Type, dt, nsteps, output, tgroups):
         self.firstLine = True
-        file  = open(fname, "w+")
+        file = open(fname, "w+")
 
         def addParam(name, value, comment = "NUL"):
             if (comment == "NUL"):
-                file.write("{:16s} = {:13s}\n".format(name, str(value)))
+                file.write("{:20s} = {:13s}\n".format(name, str(value)))
             else:
-                file.write("{:16s} = {:13s} ; {:13s}\n".format(name, str(value), comment))    
+                file.write("{:20s} = {:13s} ; {:13s}\n".format(name, str(value), comment))    
 
         def addTitle(title=""):
             if (self.firstLine):
@@ -265,78 +258,115 @@ class mdpGen:
             else:
                 file.write("\n; %s\n" % (title.upper()))
 
-        # Run control parameters
+        # PRINT UPDATE
+        print("mdpGen     : writing %s..." % (fname))
+
+        # POSITION RESTRAIN
+        if (Type in ['NVT', 'NPT']): # position restrain temp and press coupling
+            addTitle('Position restrain')
+            addParam('define', '-DPOSRES', 'Position restrain protein.')
+
+        # RUN CONTROL
         addTitle("Run control")
 
-        if (fname == "EM.mdp"):
-            addParam('integrator', 'steep', 'Use steep for EM')
-            addParam('emtol', 1000)
-            addParam('emstep', 0.0005)
-            
-        else:
+        if (Type == 'EM'): # emtol hardcored, pretty typical for normal MD.
+            addParam('integrator', 'steep', 'Use steep for EM.')
+            addParam('emtol', 1000, 'Stop when max force < 1000 kJ/mol/nm.')
+            addParam('emstep', dt, 'Time step (ps).')
+
+        if (Type in ['NVT', 'NPT', 'MD']):
             addParam('integrator', 'md')
-            addParam('dt', 0.002, 'time step (ps)')
-            addParam('nsteps', 500000, 'dt * nsteps = 1 ns')
+            addParam('dt', dt, 'Time step (ps).')
         
-        # addParam('comm-mode', 'Linear')       # find out of this is necessary
-        # addParam('nstcomm', 10)               # find out of this is necessary
+        addParam('nsteps', nsteps, '%.3f ns' % ((dt * nsteps)/1000.0))
 
-        # Output control
+        # OUTPUT CONTROL
         addTitle("Output control")
-        addParam('nstxout', 5000, 'output one frame every ... ns')
 
-        # Bond parameters       # is this whole section even necessary?
-        addTitle("Bonds")
-        addParam('constraint_algorithm', 'lincs', 'holotomic constraints')
+        if (output):
+            addParam('nstxout',   output, 'Write frame every %s ps.' % int(dt * output))
+            addParam('nstenergy', output, 'Write frame every %s ps.' % int(dt * output))
+            addParam('nstlog',    output, 'Write frame every %s ps.' % int(dt * output))
 
-        # Neighbour searching parameters
+        if (not output):
+            addParam('nstxout',   0, 'Only write last frame to .trr.')
+            addParam('nstenergy', 0, 'Only write last frame to .edr.')
+            addParam('nstlog',    0, 'Only write last frame to .log.')
+
+        # NEIGHBOUR SEARCHING PARAMETERS
         addTitle("Neighbour searching")
-        addParam('cutoff-scheme', 'Verlet')
-        addParam('nstlist', 10)
-        # addParam('ns_type', 'grid', 'neighbour searching algorithm (simple or grid)')
-        # Apparently ns_type is obsolete
-        addParam('rlist', 1.0, 'nblist cut-off ')
+        addParam('cutoff-scheme', 'Verlet', 'Related params are inferred by Gromacs.')
+        # addParam('rlist', 1.0, 'nblist cut-off radius (nm).')
+        # addParam('nstlist', 10, 'Minimum update period of neighbour list.')
 
-        # Electrostatics parameters
-        addTitle("Electrostatics")
-        addParam('coulombtype', 'PME')
-        addParam('rcoulomb', 1.0, 'coulomb cutoff radius (nm)')
-        addParam('epsilon_r', 80, 'relative dielectric constant for the medium')
+        # BONDED
+        if (Type in ['NVT', 'NPT', 'MD']):
+            addTitle("Bond parameters")
+            addParam('constraints', 'h-bonds', 'Constrain h-bond vibrations.')
+            addParam('constraint_algorithm', 'lincs', 'Holonomic constraints.')
+            addParam('lincs_iter', 1, 'Related to accuracy of LINCS.')
+            addParam('lincs_order', 4, 'Related to accuracy of LINCS.')
 
-        # Van der Waals
+        # ELECTROSTATICS
+        addTitle("Electrostatics and van der Waals")
+        addParam('coulombtype', 'PME', 'Use Particle Mesh Ewald.')
+        addParam('rcoulomb', 1.0, 'Coulomb cut-off radius (nm).')
+        # addParam('epsilon_r', 80, 'Relative dielectric constant.')
+        # addParam('pme_order', 4)
+        # addParam('fourierspacing', 0.16)
+
+        # VAN DER WAALS
         addTitle("Van der Waals")
-        addParam('vdwtype', 'cut-off')
-        addParam('rvdw', 1.0)
+        addParam('vdwtype', 'cut-off', 'Twin range cut-off with nblist cut-off.')
+        addParam('rvdw', 1.0, 'Van der Waals cut-off radius (nm).')
 
-        if (not fname == "EM.mdp"):  # No temperature or pressure coupling when
-            # Temperature coupling      we are running EM
+        # TEMPERATURE COUPLING
+        if (Type in ['NVT', 'NPT', 'MD']):
             addTitle("Temperature coupling")
             addParam('tcoupl', 'v-rescale')
-            addParam('tc-grps', 'PROTEIN WATER_IONS', 'groups to couple seperately')
-            addParam('tau-t', '0.1 0.1', 'time constant')
-            addParam('ref-t', '300 3000', 'reference temperature (K)')
 
-        # Pressure coupling
+            string1 = ""; string2 = ""; string3 = ""
+            for group in tgroups:
+                string1 += group[0]      + ' '
+                string2 += str(group[1]) + ' '
+                string3 += str(group[2]) + ' '
+
+            addParam('tc-grps', string1)
+            addParam('tau-t', string2, 'Time constant (ps) (for each group).')
+            addParam('ref-t', string3, 'Reference temp. (K) (for each group).')
+
+        # PRESSURE COUPLING
+        if (Type in ['NPT', 'MD']):
             addTitle('Pressure coupling')
             
-            addParam('pcoupl', 'parrinello-rahman')
-            addParam('pcoupltype', 'isotropic', 'uniform scaling of box')
-            addParam('tau_p', '2.0', 'time constant (ps)')
-            addParam('ref_p', 1.0, 'reference pressure (bar)')
-            addParam('compressibility', 4.5e-5, 'isothermal compressbility of water')
+            if (Type == 'NPT'):
+                addParam('pcoupl', 'Berendsen', 'Use Berendsen for NPT.')
+            else:
+                addParam('pcoupl', 'Parrinello-Rahman')
+            
+            addParam('pcoupltype', 'isotropic', 'Uniform scaling of box.')
+            addParam('tau_p', 2.0, 'Time constant (ps).')
+            addParam('ref_p', 1.0, 'Reference pressure (bar).')
+            addParam('compressibility', 4.5e-5, 'Isothermal compressbility of water.')
+
+            if (Type == 'NPT'): # Required when restraining.
+                addParam('refcoord_scaling', 'com', 'Required when -DPOSRES.')
+
+        # PERIODIC BOUNDARY CONDITIONS
+        addTitle("Periodic boundary condition")
+        addParam('pbc', 'xyz', 'To keep molecule(s) in box.')
+
+        # GENERATE VELOCITIES FOR STARTUP
+        if (Type == 'NVT'):
+            # This is only meaningful with integrator 'md', and we don't want
+            # to use this while we have pressure coupling.
+            addTitle('Generate velocities for startup')
+            addParam('gen_vel', 'yes')
+            addParam('gen_temp', 300, 'Optional argument, default is also 300K.')
+            addParam('gen_seed', -1, 'Optional argument, default is also -1.')
 
         # Lambda parameters
-        addTitle("Lambda/constant-pH")
-
-        # Periodic boundary conditions
-        addTitle("Periodic boundary condition")
-        addParam('pbc', 'xyz', 'to keep molecule(s) in box')
-
-        # Generate velocities for startup
-        addTitle('Generate velocities for startup')
-        addParam('gen_vel', 'yes')
-        addParam('gen_temp', 300)
-        addParam('gen_seed', -1)
+        # addTitle("Lambda/constant-pH")
 
         file.close()
 
