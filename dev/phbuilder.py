@@ -13,8 +13,6 @@ modelWater = "tip3p"
 
 startProto = True                               # ASP and GLU will be neutral
 
-
-
 # PATH AND FILE STUFF ##########################################################
 
 # Copy files from grom to our working dir.
@@ -112,24 +110,71 @@ group_BUF = ['BUF']
 group_SOL = ['SOL']
 group_ION = [' NA', ' CL']
 group_SYS = group_AA  + group_BUF + group_SOL + group_ION
-group_ISO = group_SOL + group_ION
+group_ISO = group_BUF + group_SOL + group_ION
 
 protein2 = PDB("%s_ION.pdb" % (pdbName))
-protein2.writendx("index.ndx", "SYSTEM"    , group_SYS )
-protein2.writendx("index.ndx", "PROTEIN"   , group_AA  )
-protein2.writendx("index.ndx", "BUFFER"    , group_BUF )
-protein2.writendx("index.ndx", "WATER"     , group_SOL )
-protein2.writendx("index.ndx", "IONS"      , group_ION )
-protein2.writendx("index.ndx", "WATER_IONS", group_ISO )
+protein2.writendx("index.ndx", "SYSTEM"     , group_SYS )
+protein2.writendx("index.ndx", "PROTEIN"    , group_AA  )
+protein2.writendx("index.ndx", "BUFFER"     , group_BUF )
+protein2.writendx("index.ndx", "WATER"      , group_SOL )
+protein2.writendx("index.ndx", "IONS"       , group_ION )
+protein2.writendx("index.ndx", "NON_PROTEIN", group_ISO )
 
-# # ENERGY MINIMIZATION ##########################################################
+# CREATE .MDP FILES ############################################################
 
-mdpGen("EM.mdp")
+mdpGen("EM.mdp", Type='EM', dt=0.01, nsteps=10000, output=0,
+       tgroups=[['PROTEIN', 0.1, 300], ['NON_PROTEIN', 0.1, 300]])
+
+mdpGen("NVT.mdp", Type='NVT', dt=0.002, nsteps=25000, output=0,
+       tgroups=[['PROTEIN', 0.1, 300], ['NON_PROTEIN', 0.1, 300]])
+
+mdpGen("NPT.mdp", Type='NPT', dt=0.002, nsteps=25000, output=0,
+       tgroups=[['PROTEIN', 0.1, 300], ['NON_PROTEIN', 0.1, 300]])
+
+mdpGen("MD.mdp", Type='MD', dt=0.002, nsteps=500000, output=1000,
+       tgroups=[['PROTEIN', 0.1, 300], ['NON_PROTEIN', 0.1, 300]])
+
+# ENERGY MINIMIZATION ##########################################################
 
 print("pHbuilder  : Running gmx grompp to create EM.tpr...")
 
-os.system("gmx grompp -f EM.mdp -c %s_ION.pdb -p topol.top -n index.ndx -o EM.tpr  >> builder.log 2>&1" % (pdbName))
+os.system("gmx grompp -f EM.mdp -c %s_ION.pdb -p topol.top -n index.ndx \
+           -o EM.tpr >> builder.log 2>&1" % (pdbName))
 
 print("           : Running gmx mdrun (energy minimization) to create %s_EM.pdb..." % (pdbName))
 
-os.system("gmx mdrun -s EM.tpr -c %s_EM.pdb >> builder.log 2>&1" % (pdbName))
+os.system("gmx mdrun -s EM.tpr -o EM.trr -c %s_EM.pdb -g EM.log -e EM.edr \
+           >> builder.log 2>&1" % (pdbName))
+
+# TEMPERATURE COUPLING #########################################################
+
+print("pHbuilder  : Running gmx grompp to create NVT.tpr...")
+
+os.system("gmx grompp -f NVT.mdp -c %s_EM.pdb -p topol.top -n index.ndx \
+           -o NVT.tpr -r %s_EM.pdb >> builder.log 2>&1" % (pdbName, pdbName))
+
+print("           : Running gmx mdrun (temperature coupling) to create %s_NVT.pdb..." % (pdbName))
+
+os.system("gmx mdrun -s NVT.tpr -o NVT.trr -c %s_NVT.pdb -g NVT.log -e NVT.edr \
+           >> builder.log 2>&1" % (pdbName))
+
+# PRESSURE COUPLING ############################################################
+
+print("pHbuilder  : Running gmx grompp to create NPT.tpr...")
+
+os.system("gmx grompp -f NPT.mdp -c %s_NVT.pdb -p topol.top -n index.ndx \
+           -o NPT.tpr -r %s_NVT.pdb >> builder.log 2>&1" % (pdbName, pdbName))
+
+print("           : Running gmx mdrun (pressure coupling) to create %s_NPT.pdb..." % (pdbName))
+
+os.system("gmx mdrun -s NPT.tpr -o NPT.trr -c %s_NPT.pdb -g NPT.log -e NPT.edr \
+           >> builder.log 2>&1" % (pdbName))
+
+# PRODUCTION RUN ###############################################################
+
+print("pHbuilder  : Running gmx grompp to create MD.tpr...")
+
+os.system("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx \
+           -o MD.tpr >> builder.log 2>&1" % (pdbName))
+
+os.system("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr" % (pdbName))
