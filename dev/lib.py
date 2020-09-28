@@ -76,7 +76,7 @@ class PDB:
 
                 # This is to make sure we only import the specified MODEL.
                 if (line[0:6]) == "MODEL ":
-                    if str(self.d_model) in line:
+                    if ("MODEL {:8d}".format(self.d_model)) in line:
                         read = True
                     else:
                         read = False
@@ -110,8 +110,9 @@ class PDB:
             yCoord.append(float(self.d_atomLines[idx][38:46]))
             zCoord.append(float(self.d_atomLines[idx][46:54]))
 
+            # If the resid of the next line is different, we are at the end, so
             if (self.d_atomLines[idx][22:26] != self.d_atomLines[idx + 1][22:26]):
-
+                # put the data in a Residue object and append to d_residues:
                 self.d_residues.append(
                     PDB.Residue
                     (
@@ -359,16 +360,64 @@ class mdpGen:
         # GENERATE VELOCITIES FOR STARTUP
         if (Type == 'NVT'):
             # This is only meaningful with integrator 'md', and we don't want
-            # to use this while we have pressure coupling.
+            # to use this while we have pressure coupling or doing MD.
             addTitle('Generate velocities for startup')
             addParam('gen_vel', 'yes')
             addParam('gen_temp', 300, 'Optional argument, default is also 300K.')
             addParam('gen_seed', -1, 'Optional argument, default is also -1.')
 
-        # Lambda parameters
-        # addTitle("Lambda/constant-pH")
-
         file.close()
+
+# Object that generates the required constant_ph_input.dat file, and appends
+# the required lambda parameters to our existing MD.mdp file.
+def lambdaGen(pdbFname, mdpFname, pH):
+    protein   = PDB(pdbFname)
+
+    countASP  = protein.countRes("ASP")
+    countGLU  = protein.countRes("GLU")
+    countACID = countASP + countGLU
+
+    # WRITE constant_ph_input.dat
+    file = open("constant_ph_input.dat", "w+")
+
+    def addParam(name, value):
+        file.write("%s = %s\n" % (name, value))
+
+    def addRes1(name, n_coeffs, dvdl_coeffs, ref_pka):
+        addParam('residue', name)
+        addParam('n_coeffs', n_coeffs)
+
+        file.write('dvdl_coeffs = ')
+        for coeff in dvdl_coeffs:
+            file.write('%s ' % (coeff))
+        file.write('\n')
+
+        addParam('ref_pka', ref_pka)
+        file.write('\n')
+
+    # PDB-DEPENDENT PARAMETERS
+    addParam('ph', pH)
+    addParam('nr_residues', countACID)
+    addParam('nr_lambdagroups', countACID)
+    file.write('\n')
+
+    addParam('m_lambda', 10.0)
+    addParam('T_lambda', 300)
+    addParam('tau', 0.1)
+    addParam('thermostat', 'v-rescale')
+    addParam('nst_lambda', 100)
+    addParam('charge_constraint', 'no')
+    addParam('N_buffers', 1)
+    addParam('m_buf', 10.0)
+    addParam('multistate_constraint', 'no')
+    addParam('n_multigroups', 1)
+    file.write('\n')
+
+    addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25)
+    addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65)
+    addRes1('BUF', 4, [2010.3, -2023.2, 249.56, -450.63], 4.25)
+
+    file.close()
 
 # LOOSE FUNCTIONS ##############################################################
 
