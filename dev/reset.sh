@@ -1,8 +1,5 @@
 #!/bin/bash
 
 rm -rf \_\_py* charmm*
-rm -f posre.itp topol.top mdout.mdp 1cvo_*.pdb buffer.* charmm36* *.mdp *.tpr *.log
+rm -f *.itp *.top *.mdp 1cvo_*.pdb *.tpr *.log *.ndx *.edr *.trr *.cpt
 rm -f \#*\#
-rm -f *.ndx
-rm -f *.edr *.trr *.cpt
-

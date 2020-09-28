@@ -5,7 +5,7 @@ from lib import *
 
 # PARAMS #######################################################################
 
-protein    = PDB("1cvo.pdb")            # Additional options when importing
+protein    = PDB("1cvo.pdb")
 
 gromPath   = "/home/anton/GIT/phbuilder/grom"   # relative path to grom dir
 modelFF    = "charmm36-mar2019"
@@ -64,18 +64,25 @@ os.system("gmx insert-molecules -quiet -f %s_BOX.pdb -o %s_BUF.pdb -ci buffer.pd
            -nmol %s >> builder.log 2>&1" % (pdbName, pdbName, countACID))
 
 # Add the buffer water's topology to our .top file:
+# This piece of code is kind of a hoax but it works.
 topList = []
 with open("topol.top", "r") as file:
     for line in file.readlines():
         topList.append(line)
 
 with open("topol.top", "w+") as file:
-    for idx in range(0, len(topList)):
-        file.write(topList[idx])
+    try:
+        for idx in range(0, len(topList)):
+            file.write(topList[idx])
 
-        if topList[idx] == "#endif\n" and topList[idx-1] == "#include \"posre.itp\"\n":
-            file.write("\n; Include buffer topology\n")
-            file.write("#include \"buffer.itp\"\n")
+            # If we see that the next line is this:
+            if topList[idx + 1] == "; Include water topology\n":
+                # Then insert the buffer topology before that line:
+                file.write("; Include buffer topology\n")
+                file.write("#include \"buffer.itp\"\n\n")            
+
+    except IndexError:
+        pass
 
     file.write("BUF\t\t\t\t\t  %s\n" % (countACID))
 topList.clear()
@@ -101,24 +108,22 @@ os.system("gmx genion -s IONS.tpr -o %s_ION.pdb -p topol.top -pname NA \
 
 # CREATE INDEX FILE ############################################################
 
-print("pHbuilder  : Creating index file...")
-
-group_AA  = [
-    'ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 
-    'LEU', 'LYS', 'MET', 'PRO', 'SER', 'THR', 'VAL', 'PHE', 'TYR', 'TRP']
-group_BUF = ['BUF']
-group_SOL = ['SOL']
-group_ION = [' NA', ' CL']
-group_SYS = group_AA  + group_BUF + group_SOL + group_ION
-group_ISO = group_BUF + group_SOL + group_ION
+group_PROTEIN     = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY',
+                     'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PRO', 'SER', 'THR',
+                     'VAL', 'PHE', 'TYR', 'TRP']
+group_BUFFER      = ['BUF']
+group_WATER       = ['SOL']
+group_IONS        = [' NA', ' CL']
+group_NON_PROTEIN = group_BUFFER + group_WATER + group_IONS
+group_SYSTEM      = group_PROTEIN + group_NON_PROTEIN
 
 protein2 = PDB("%s_ION.pdb" % (pdbName))
-protein2.writendx("index.ndx", "SYSTEM"     , group_SYS )
-protein2.writendx("index.ndx", "PROTEIN"    , group_AA  )
-protein2.writendx("index.ndx", "BUFFER"     , group_BUF )
-protein2.writendx("index.ndx", "WATER"      , group_SOL )
-protein2.writendx("index.ndx", "IONS"       , group_ION )
-protein2.writendx("index.ndx", "NON_PROTEIN", group_ISO )
+protein2.writendx("index.ndx", "SYSTEM"     , group_SYSTEM      )
+protein2.writendx("index.ndx", "PROTEIN"    , group_PROTEIN     )
+protein2.writendx("index.ndx", "BUFFER"     , group_BUFFER      )
+protein2.writendx("index.ndx", "WATER"      , group_WATER       )
+protein2.writendx("index.ndx", "IONS"       , group_IONS        )
+protein2.writendx("index.ndx", "NON_PROTEIN", group_NON_PROTEIN )
 
 # CREATE .MDP FILES ############################################################
 
@@ -133,6 +138,8 @@ mdpGen("NPT.mdp", Type='NPT', dt=0.002, nsteps=25000, output=0,
 
 mdpGen("MD.mdp", Type='MD', dt=0.002, nsteps=500000, output=1000,
        tgroups=[['PROTEIN', 0.1, 300], ['NON_PROTEIN', 0.1, 300]])
+
+lambdaGen('%s_ION.pdb' % (pdbName), 'MD.mdp', 4.5)
 
 # ENERGY MINIMIZATION ##########################################################
 
