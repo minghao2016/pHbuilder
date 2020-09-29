@@ -5,7 +5,7 @@ from lib import *
 
 # PARAMS #######################################################################
 
-protein    = PDB("1cvo.pdb")
+protein    = PDB("2khm.pdb", CHAIN='A')
 
 gromPath   = "/home/anton/GIT/phbuilder/grom"   # relative path to grom dir
 modelFF    = "charmm36-mar2019"
@@ -18,12 +18,14 @@ startProto = True                               # ASP and GLU will be neutral
 # Copy files from grom to our working dir.
 os.system("cp -r %s/* ." % gromPath)
 
-# Backup previous builder.log file (if it exists)
+# Backup previous builder.log file and index.ndx (if exists)
 backupFile("builder.log")
+backupFile("index.ndx")
 
 # GMX PDB2GMX ##################################################################
 
 pdbName = protein.fname(ext = 0)
+# protein.resetResId()
 protein.writepdb("%s_PR1.pdb" % (pdbName))
 
 countASP  = protein.countRes("ASP")
@@ -128,18 +130,18 @@ protein2.writendx("index.ndx", "NON_PROTEIN", group_NON_PROTEIN )
 # CREATE .MDP FILES ############################################################
 
 mdpGen("EM.mdp", Type='EM', dt=0.01, nsteps=10000, output=0,
-       tgroups=[['PROTEIN', 0.1, 300], ['NON_PROTEIN', 0.1, 300]])
+       tgroups=[['SYSTEM', 0.5, 300]])
 
 mdpGen("NVT.mdp", Type='NVT', dt=0.002, nsteps=25000, output=0,
-       tgroups=[['PROTEIN', 0.1, 300], ['NON_PROTEIN', 0.1, 300]])
+       tgroups=[['SYSTEM', 0.5, 300]])
 
 mdpGen("NPT.mdp", Type='NPT', dt=0.002, nsteps=25000, output=0,
-       tgroups=[['PROTEIN', 0.1, 300], ['NON_PROTEIN', 0.1, 300]])
+       tgroups=[['SYSTEM', 0.5, 300]])
 
 mdpGen("MD.mdp", Type='MD', dt=0.002, nsteps=500000, output=1000,
-       tgroups=[['PROTEIN', 0.1, 300], ['NON_PROTEIN', 0.1, 300]])
+       tgroups=[['SYSTEM', 0.5, 300]])
 
-lambdaGen('%s_ION.pdb' % (pdbName), 'MD.mdp', 4.5)
+lambdaGen('%s_ION.pdb' % (pdbName), 4.5)
 
 # ENERGY MINIMIZATION ##########################################################
 
@@ -179,9 +181,11 @@ os.system("gmx mdrun -s NPT.tpr -o NPT.trr -c %s_NPT.pdb -g NPT.log -e NPT.edr \
 
 # PRODUCTION RUN ###############################################################
 
-print("pHbuilder  : Running gmx grompp to create MD.tpr...")
+# print("pHbuilder  : Running gmx grompp to create MD.tpr...")
 
-os.system("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx \
-           -o MD.tpr >> builder.log 2>&1" % (pdbName))
+# os.system("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx \
+#            -o MD.tpr >> builder.log 2>&1" % (pdbName))
 
-os.system("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr" % (pdbName))
+# os.system("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr" % (pdbName))
+
+# OUR bug with 2khm.pdb is because of calibration, we use wrong ddlv values
