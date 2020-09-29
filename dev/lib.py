@@ -234,6 +234,14 @@ class PDB:
         
         return count
 
+    # Resets the numbering of residues. For example, we keep counting instead 
+    # of starting 1 if we go from chain A to chain B.
+    def resetResId(self):
+        num = 1
+        for residue in self.d_residues:
+            residue.d_resid = num
+            num += 1
+
     # Return the file name (with/without extensions)
     def fname(self, ext = True):
         if (ext):
@@ -544,3 +552,4 @@ def backupFile(fname):
 
             os.system("mv %s '#%s.%s#'" % (fname, fname, num))
             break
+ 
