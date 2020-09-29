@@ -297,8 +297,6 @@ class mdpGen:
         # NEIGHBOUR SEARCHING PARAMETERS
         addTitle("Neighbour searching")
         addParam('cutoff-scheme', 'Verlet', 'Related params are inferred by Gromacs.')
-        # addParam('rlist', 1.0, 'nblist cut-off radius (nm).')
-        # addParam('nstlist', 10, 'Minimum update period of neighbour list.')
 
         # BONDED
         if (Type in ['NVT', 'NPT', 'MD']):
@@ -309,17 +307,19 @@ class mdpGen:
             addParam('lincs_order', 4, 'Related to accuracy of LINCS.')
 
         # ELECTROSTATICS
-        addTitle("Electrostatics and van der Waals")
+        addTitle("Electrostatics")
         addParam('coulombtype', 'PME', 'Use Particle Mesh Ewald.')
-        addParam('rcoulomb', 1.0, 'Coulomb cut-off radius (nm).')
+        addParam('rcoulomb', 1.2, 'Berk: CHARMM was calibrated for 1.2 nm.')
+        addParam('fourierspacing', 0.14, 'Berk: set this to 0.14 for CHARMM.')
         # addParam('epsilon_r', 80, 'Relative dielectric constant.')
         # addParam('pme_order', 4)
-        # addParam('fourierspacing', 0.16)
 
         # VAN DER WAALS
         addTitle("Van der Waals")
         addParam('vdwtype', 'cut-off', 'Twin range cut-off with nblist cut-off.')
-        addParam('rvdw', 1.0, 'Van der Waals cut-off radius (nm).')
+        addParam('rvdw', 1.2, 'Berk: CHARMM was calibrated for 1.2 nm.')
+        addParam('vdw-modifier', 'force-switch', 'Berk: specific for CHARMM.')
+        addParam('rvdw-switch', 1.0, 'Berk: specific for CHARMM.')
 
         # TEMPERATURE COUPLING
         if (Type in ['NVT', 'NPT', 'MD']):
@@ -333,7 +333,7 @@ class mdpGen:
                 string3 += str(group[2]) + ' '
 
             addParam('tc-grps', string1)
-            addParam('tau-t', string2, 'Time constant (ps) (for each group).')
+            addParam('tau-t', string2, 'Berk: change from 0.1 to 0.5.')
             addParam('ref-t', string3, 'Reference temp. (K) (for each group).')
 
         # PRESSURE COUPLING
@@ -346,7 +346,7 @@ class mdpGen:
                 addParam('pcoupl', 'Parrinello-Rahman')
             
             addParam('pcoupltype', 'isotropic', 'Uniform scaling of box.')
-            addParam('tau_p', 2.0, 'Time constant (ps).')
+            addParam('tau_p', 5.0, 'Berk: better to change from 2.0 to 5.0.')
             addParam('ref_p', 1.0, 'Reference pressure (bar).')
             addParam('compressibility', 4.5e-5, 'Isothermal compressbility of water.')
 
@@ -366,36 +366,32 @@ class mdpGen:
             addParam('gen_temp', 300, 'Optional argument, default is also 300K.')
             addParam('gen_seed', -1, 'Optional argument, default is also -1.')
 
+        # ENABLE PH
+        if (Type == 'MD'):
+            addTitle('Constant pH')
+            addParam('lambda-dynamics', 'yes', 'Enable constant pH.')
+
         file.close()
 
-# Object that generates the required constant_ph_input.dat file, and appends
-# the required lambda parameters to our existing MD.mdp file.
-def lambdaGen(pdbFname, mdpFname, pH):
+# Object that generates the required constant_ph_input.dat file.
+def lambdaGen(pdbFname, pH):
+    # IMPORT THE RELEVANT .PDB FILE
     protein   = PDB(pdbFname)
 
+    # COMPUTE HOW MANY PH-SENSITIVE RESIDUES WE HAVE
     countASP  = protein.countRes("ASP")
     countGLU  = protein.countRes("GLU")
     countACID = countASP + countGLU
 
-    # WRITE constant_ph_input.dat
     file = open("constant_ph_input.dat", "w+")
 
+    # PART 1 ###################################################################
+
+    # FORMATTING FUNCTION (PART 1)
     def addParam(name, value):
-        file.write("%s = %s\n" % (name, value))
+        file.write("{:21s} = {:13s}\n".format(name, str(value)))
 
-    def addRes1(name, n_coeffs, dvdl_coeffs, ref_pka):
-        addParam('residue', name)
-        addParam('n_coeffs', n_coeffs)
-
-        file.write('dvdl_coeffs = ')
-        for coeff in dvdl_coeffs:
-            file.write('%s ' % (coeff))
-        file.write('\n')
-
-        addParam('ref_pka', ref_pka)
-        file.write('\n')
-
-    # PDB-DEPENDENT PARAMETERS
+    # WRITE PDB-DEPENDENT PARAMETERS AND .MDD OPTIONS (PART 1)
     addParam('ph', pH)
     addParam('nr_residues', countACID)
     addParam('nr_lambdagroups', countACID)
@@ -413,9 +409,126 @@ def lambdaGen(pdbFname, mdpFname, pH):
     addParam('n_multigroups', 1)
     file.write('\n')
 
+    # PART 2 ###################################################################
+
+    # FORMATTING FUNCTION (PART 2)
+    def addRes1(name, n_coeffs, dvdl_coeffs, ref_pka):
+        addParam('residue', name)
+        addParam('n_coeffs', n_coeffs)
+
+        file.write("{:21s} = ".format('dvdl_coeffs'))
+        for coeff in dvdl_coeffs:
+            file.write('%s ' % (coeff))
+        file.write('\n')
+
+        addParam('ref_pka', ref_pka)
+        file.write('\n')
+
+    # WRITE BIAS POTENTIAL PARAMETERS (PART 2)
     addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25)
     addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65)
     addRes1('BUF', 4, [2010.3, -2023.2, 249.56, -450.63], 4.25)
+
+    # PART 3 ###################################################################
+
+    # DATA
+    ASP_atoms   = [' CB ', ' CG ', ' OD1', ' OD2', ' HD2']
+    ASP_charge1 = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ]
+    ASP_charge2 = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ]
+
+    GLU_atoms   = [' CG ', ' CD ', ' OE1', ' OE2', ' HE2']
+    GLU_charge1 = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ]
+    GLU_charge2 = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ]
+
+    # BUF_atoms = [' OW ' , ' HW1', ' HW2']
+    BUF_charge1 = [-0.0656, 0.5328, 0.5328]
+    BUF_charge2 = [-0.8476, 0.4238, 0.4328]
+
+    # FORMATTING FUNCTIONS FOR PART 3
+    def writeIndexLine(indexList):
+        file.write("{:21s} = ".format('index'))
+
+        for num in indexList:
+            file.write('%s ' % num)
+
+        file.write('\n\n')
+
+    count = 1
+    for residue in protein.d_residues:
+
+        indexList = []
+
+        if (residue.d_resname == 'ASP'):
+            addParam('name', 'ASP')                         # hardcoded
+            addParam('residue_number', residue.d_resid)     # pull from .pdb
+            addParam('initial_lambda', '0.5')               # hardcoded
+            addParam('barrier', 7.5)                        # parameter
+            addParam('n_atoms', '5')                        # hardcoded
+            
+            for atom in residue.d_atoms:
+                if atom in ASP_atoms:
+                    indexList.append(count)
+
+                count += 1
+
+            writeIndexLine(indexList)
+
+            for idx in range(0, len(indexList)):
+                file.write("{:<7d} {:7.3f}  {:7.3f}\n".format(
+                    indexList[idx], ASP_charge1[idx], ASP_charge2[idx]))
+            
+            file.write('\n')
+
+        elif (residue.d_resname == 'GLU'):
+            addParam('name', 'GLU')                         # hardcoded
+            addParam('residue_number', residue.d_resid)     # pull from .pdb
+            addParam('initial_lambda', '0.5')               # hardcoded
+            addParam('barrier', 7.5)                        # parameter
+            addParam('n_atoms', '5')                        # hardcoded
+            
+            for atom in residue.d_atoms:
+                if atom in GLU_atoms:
+                    indexList.append(count)
+
+                count += 1
+
+            writeIndexLine(indexList)
+
+            for idx in range(0, len(indexList)):
+                file.write("{:<7d} {:7.3f}  {:7.3f}\n".format(
+                    indexList[idx], GLU_charge1[idx], GLU_charge2[idx]))
+            
+            file.write('\n')
+
+        else:
+            for atom in residue.d_atoms:
+                count += 1
+
+    # WRITE BUFFER HEAD
+    addParam('name', 'BUF')                         # hardcoded
+    addParam('residue_number', 1)                   # !!!
+    addParam('initial_lambda', '0.5')               # hardcoded
+    addParam('barrier', 0.0)                        # !!!
+    addParam('n_atoms', 3 * countACID)              # !!!
+
+    # GET INDEXLIST FOR BUFFER
+    indexList = []; count = 1
+    
+    for residue in protein.d_residues:
+        for atom in residue.d_atoms:
+
+            if (residue.d_resname == 'BUF'):
+                indexList.append(count)
+                
+            count += 1
+
+    # WRITE INDEXLIST FOR BUFFER
+    writeIndexLine(indexList)
+
+    # WRITE CHARGES FOR BUFFER ATOMS
+    for idx in range(0, len(indexList)):
+        file.write("{:<7d} {:7.3f}  {:7.3f}\n".format(
+                    indexList[idx], BUF_charge1[idx % 3], BUF_charge2[idx % 3]))
 
     file.close()
 
