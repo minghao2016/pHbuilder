@@ -319,8 +319,6 @@ class mdpGen:
         addParam('coulombtype', 'PME', 'Use Particle Mesh Ewald.')
         addParam('rcoulomb', 1.2, 'Berk: CHARMM was calibrated for 1.2 nm.')
         addParam('fourierspacing', 0.14, 'Berk: set this to 0.14 for CHARMM.')
-        # addParam('epsilon_r', 80, 'Relative dielectric constant.')
-        # addParam('pme_order', 4)
 
         # VAN DER WAALS
         addTitle("Van der Waals")
@@ -371,8 +369,8 @@ class mdpGen:
             # to use this while we have pressure coupling or doing MD.
             addTitle('Generate velocities for startup')
             addParam('gen_vel', 'yes')
-            addParam('gen_temp', 300, 'Optional argument, default is also 300K.')
-            addParam('gen_seed', -1, 'Optional argument, default is also -1.')
+            # addParam('gen_temp', 300)         # Default is also 300K.
+            # addParam('gen_seed', -1)          # Default is also -1 (random).
 
         # ENABLE PH
         if (Type == 'MD'):
@@ -381,46 +379,44 @@ class mdpGen:
 
         file.close()
 
-# Object that generates the required constant_ph_input.dat file.
+# Function that generates the required constant_ph_input.dat file.
+################################################################################
 def lambdaGen(pdbFname, pH):
-    # IMPORT THE RELEVANT .PDB FILE
-    protein   = PDB(pdbFname)
-
-    # COMPUTE HOW MANY PH-SENSITIVE RESIDUES WE HAVE
-    countASP  = protein.countRes("ASP")
+    protein   = PDB(pdbFname)                    # import relevant .pdb file
+    
+    countASP  = protein.countRes("ASP") 
     countGLU  = protein.countRes("GLU")
     countACID = countASP + countGLU
 
     file = open("constant_ph_input.dat", "w+")
 
-    # PART 1 ###################################################################
+    ############ PART 1 - GENERAL INPUT SETTINGS FOR CONSTANT PH MD ############
 
-    # FORMATTING FUNCTION (PART 1)
-    def addParam(name, value):
+    def addParam(name, value): # Formatting function for parameters.
         file.write("{:21s} = {:13s}\n".format(name, str(value)))
 
-    # WRITE PDB-DEPENDENT PARAMETERS AND .MDD OPTIONS (PART 1)
-    addParam('ph', pH)
-    addParam('nr_residues', countACID)
-    addParam('nr_lambdagroups', countACID)
+    addParam('ph', pH)                          # simulation pH
+    addParam('nr_residues', countACID)          # amount of acidic residues
+    addParam('nr_lambdagroups', countACID)      # amount of lambda groups
     file.write('\n')
 
-    addParam('m_lambda', 10.0)
-    addParam('T_lambda', 300)
-    addParam('tau', 0.1)
-    addParam('thermostat', 'v-rescale')
-    addParam('nst_lambda', 100)
-    addParam('charge_constraint', 'no')
-    addParam('N_buffers', 1)
-    addParam('m_buf', 10.0)
-    addParam('multistate_constraint', 'no')
-    addParam('n_multigroups', 1)
+    addParam('m_lambda', 10.0)                  # mass of l-particles
+    addParam('T_lambda', 300)                   # ref. temp. of l-particles
+    addParam('tau', 0.1)                        # time constant for thermostat
+    addParam('thermostat', 'v-rescale')         # 'v-rescale' or 'langevin'
+    addParam('nst_lambda', 100)                 # numSteps between output
+    addParam('charge_constraint', 'yes')  # should be (hardcoded) yes as
+        # this is what we want and we have buffer to transfer charge to.
+
+    addParam('N_buffers', 1)                    # number of collective buffers
+    addParam('m_buf', 10.0)                     # mass of buffer particles
+    addParam('multistate_constraint', 'no')     # ???
+    addParam('n_multigroups', 1)                # ???
     file.write('\n')
 
-    # PART 2 ###################################################################
+    ################ PART 2 - RESIDUE-TYPE SPECIFIC PARAMETERS #################
 
-    # FORMATTING FUNCTION (PART 2)
-    def addRes1(name, n_coeffs, dvdl_coeffs, ref_pka):
+    def addRes1(name, n_coeffs, dvdl_coeffs, ref_pka):  # formatting function.
         addParam('residue', name)
         addParam('n_coeffs', n_coeffs)
 
@@ -432,28 +428,26 @@ def lambdaGen(pdbFname, pH):
         addParam('ref_pka', ref_pka)
         file.write('\n')
 
-    # WRITE BIAS POTENTIAL PARAMETERS (PART 2)
+    #   resName  numParams  params for ref. potential   refpKa
     addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25)
     addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65)
     addRes1('BUF', 4, [2010.3, -2023.2, 249.56, -450.63], 4.25)
 
-    # PART 3 ###################################################################
+    ################## PART 3 - RESIDUE-SPECIFIC PARAMETERS ####################
 
-    # DATA
-    ASP_atoms   = [' CB ', ' CG ', ' OD1', ' OD2', ' HD2']
-    ASP_charge1 = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ]
-    ASP_charge2 = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ]
+    ASP_atoms   = [' CB ', ' CG ', ' OD1', ' OD2', ' HD2'] # atoms part of model
+    ASP_charge1 = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
+    ASP_charge2 = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
 
-    GLU_atoms   = [' CG ', ' CD ', ' OE1', ' OE2', ' HE2']
-    GLU_charge1 = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ]
-    GLU_charge2 = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ]
+    GLU_atoms   = [' CG ', ' CD ', ' OE1', ' OE2', ' HE2'] # atoms part of model
+    GLU_charge1 = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
+    GLU_charge2 = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
 
-    # BUF_atoms = [' OW ' , ' HW1', ' HW2']
-    BUF_charge1 = [-0.0656, 0.5328, 0.5328]
-    BUF_charge2 = [-0.8476, 0.4238, 0.4328]
+    # BUF_atoms = [' OW ' , ' HW1', ' HW2'] # atoms in buffer (water) molecule
+    BUF_charge1 = [-0.0656, 0.5328, 0.5328] # protonated charge
+    BUF_charge2 = [-0.8476, 0.4238, 0.4328] # deprotonated charge
 
-    # FORMATTING FUNCTIONS FOR PART 3
-    def writeIndexLine(indexList):
+    def writeIndexLine(indexList): # formatting function.
         file.write("{:21s} = ".format('index'))
 
         for num in indexList:
@@ -462,19 +456,19 @@ def lambdaGen(pdbFname, pH):
         file.write('\n\n')
 
     count = 1
-    for residue in protein.d_residues:
+    for residue in protein.d_residues:      # loop through all residues
 
         indexList = []
 
-        if (residue.d_resname == 'ASP'):
+        if (residue.d_resname == 'ASP'):    # if we find an ASP
             addParam('name', 'ASP')                         # hardcoded
             addParam('residue_number', residue.d_resid)     # pull from .pdb
             addParam('initial_lambda', '0.5')               # hardcoded
             addParam('barrier', 7.5)                        # parameter
             addParam('n_atoms', '5')                        # hardcoded
             
-            for atom in residue.d_atoms:
-                if atom in ASP_atoms:
+            for atom in residue.d_atoms:    # Add indices of relevant atoms
+                if atom in ASP_atoms:       # of ASP to list
                     indexList.append(count)
 
                 count += 1
@@ -552,4 +546,3 @@ def backupFile(fname):
 
             os.system("mv %s '#%s.%s#'" % (fname, fname, num))
             break
- 

@@ -5,13 +5,13 @@ from lib import *
 
 # PARAMS #######################################################################
 
-protein    = PDB("2khm.pdb", CHAIN='A')
+protein    = PDB("1cvo.pdb")
 
 gromPath   = "/home/anton/GIT/phbuilder/grom"   # relative path to grom dir
 modelFF    = "charmm36-mar2019"
 modelWater = "tip3p"
 
-startProto = True                               # ASP and GLU will be neutral
+startProto = True  # TODO: should not be a user option. It must always be true.
 
 # PATH AND FILE STUFF ##########################################################
 
