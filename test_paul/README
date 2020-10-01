@@ -1,0 +1,8 @@
+For changes in command-line options of gmx mdrun see:
+
+/src/gromacs/mdrun/legacymdrunoptions.h
+
+For the parameters that were moved from .dat to .mdp, see:
+
+/src/gromacs/mdlib/constant_ph.cpp      the "init_constantph" function
+/src/gromacs/gmxpreprocess/readir.cpp
