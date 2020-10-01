@@ -5,18 +5,26 @@ from lib import *
 
 # PARAMS #######################################################################
 
-protein    = PDB("1cvo.pdb")
+gromPath    = "/home/anton/GIT/phbuilder/grom"
+modelFF     = "charmm36-mar2019"
+modelWater  = "tip3p"
 
-gromPath   = "/home/anton/GIT/phbuilder/grom"   # relative path to grom dir
-modelFF    = "charmm36-mar2019"
-modelWater = "tip3p"
+protein     = PDB("1cvo.pdb")
+# protein     = PDB("2khm.pdb")
 
-startProto = True  # TODO: should not be a user option. It must always be true.
+# CONSTANT-PH OPTIONS
+
+pH          = 4.5
+qqConstrain = True         # Constrain charge in the constant-pH simulation?
 
 # PATH AND FILE STUFF ##########################################################
 
 # Copy files from grom to our working dir.
 os.system("cp -r %s/* ." % gromPath)
+
+# Remove buffer .pdb and .itp if we do not use charge constraints:
+if (not qqConstrain):
+    os.system("rm buffer.itp buffer.pdb")
 
 # Backup previous builder.log file and index.ndx (if exists)
 backupFile("builder.log")
@@ -36,12 +44,11 @@ countACID = countASP + countGLU
 print("pHbuilder  : Detected %s acidic residues (%s ASP and %s GLU)..." 
       % (countACID, countASP, countGLU))
 
-print("           : Setting initial protonation state to %s" % (startProto))
-
-# Create EOF string required for pdb2gmx
+# Create EOF string required for pdb2gmx to set the protonation state of 
+# ASP and GLU to true (specify 1 for user input option.
 xstr = "<< EOF"
 for idx in range(0, countACID):
-    xstr += "\n%s" % (int(startProto))
+    xstr += "\n1"
 xstr += "\nEOF"
 
 print("           : Running gmx pdb2gmx to create %s_PR2.pdb..." % (pdbName))
@@ -56,45 +63,51 @@ os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s \
 print("pHbuilder  : Running gmx editconf to create %s_BOX.pdb..." % (pdbName))
 
 os.system("gmx editconf -quiet -f %s_PR2.pdb -o %s_BOX.pdb -c -d 1.0 -bt cubic \
-           >> builder.log 2>&1" % (pdbName, pdbName)) #Supress only stdout.
+        >> builder.log 2>&1" % (pdbName, pdbName)) #Supress only stdout.
 
-# GMX INSERT-MOLECULES (ADD BUFFER) ############################################
+    # GMX INSERT-MOLECULES (ADD BUFFER) ############################################
 
-print("pHbuilder  : Running gmx insert-molecules to create %s_BUF.pdb..." % (pdbName))
+if (qqConstrain):   # Only add buffer particles if we constrain the charge.
+    print("pHbuilder  : Running gmx insert-molecules to create %s_BUF.pdb..." % (pdbName))
 
-os.system("gmx insert-molecules -quiet -f %s_BOX.pdb -o %s_BUF.pdb -ci buffer.pdb \
-           -nmol %s >> builder.log 2>&1" % (pdbName, pdbName, countACID))
+    os.system("gmx insert-molecules -quiet -f %s_BOX.pdb -o %s_BUF.pdb -ci buffer.pdb \
+            -nmol %s >> builder.log 2>&1" % (pdbName, pdbName, countACID))
 
-# Add the buffer water's topology to our .top file:
-# This piece of code is kind of a hoax but it works.
-topList = []
-with open("topol.top", "r") as file:
-    for line in file.readlines():
-        topList.append(line)
+    # Add the buffer water's topology to our .top file:
+    # This piece of code is kind of a hoax but it works.
+    topList = []
+    with open("topol.top", "r") as file:
+        for line in file.readlines():
+            topList.append(line)
 
-with open("topol.top", "w+") as file:
-    try:
-        for idx in range(0, len(topList)):
-            file.write(topList[idx])
+    with open("topol.top", "w+") as file:
+        try:
+            for idx in range(0, len(topList)):
+                file.write(topList[idx])
 
-            # If we see that the next line is this:
-            if topList[idx + 1] == "; Include water topology\n":
-                # Then insert the buffer topology before that line:
-                file.write("; Include buffer topology\n")
-                file.write("#include \"buffer.itp\"\n\n")            
+                # If we see that the next line is this:
+                if topList[idx + 1] == "; Include water topology\n":
+                    # Then insert the buffer topology before that line:
+                    file.write("; Include buffer topology\n")
+                    file.write("#include \"buffer.itp\"\n\n")            
 
-    except IndexError:
-        pass
+        except IndexError:
+            pass
 
-    file.write("BUF\t\t\t\t\t  %s\n" % (countACID))
-topList.clear()
+        file.write("BUF\t\t\t\t\t  %s\n" % (countACID))
+    topList.clear()
 
 # GMX SOLVATE (ADD WATER) ######################################################
 
 print("pHbuilder  : Running gmx solvate to create %s_BUF.pdb..." % (pdbName))
 
-os.system("gmx solvate -cp %s_BUF.pdb -o %s_SOL.pdb -p topol.top \
-           >> builder.log 2>&1" % (pdbName, pdbName))
+if (qqConstrain):
+    os.system("gmx solvate -cp %s_BUF.pdb -o %s_SOL.pdb -p topol.top \
+            >> builder.log 2>&1" % (pdbName, pdbName))
+
+if (not qqConstrain):
+    os.system("gmx solvate -cp %s_BOX.pdb -o %s_SOL.pdb -p topol.top \
+            >> builder.log 2>&1" % (pdbName, pdbName))
 
 # GMX GENION (ADD IONS) ########################################################
 
@@ -120,9 +133,13 @@ group_NON_PROTEIN = group_BUFFER + group_WATER + group_IONS
 group_SYSTEM      = group_PROTEIN + group_NON_PROTEIN
 
 protein2 = PDB("%s_ION.pdb" % (pdbName))
+
 protein2.writendx("index.ndx", "SYSTEM"     , group_SYSTEM      )
 protein2.writendx("index.ndx", "PROTEIN"    , group_PROTEIN     )
-protein2.writendx("index.ndx", "BUFFER"     , group_BUFFER      )
+
+if (qqConstrain):
+    protein2.writendx("index.ndx", "BUFFER"     , group_BUFFER      )
+
 protein2.writendx("index.ndx", "WATER"      , group_WATER       )
 protein2.writendx("index.ndx", "IONS"       , group_IONS        )
 protein2.writendx("index.ndx", "NON_PROTEIN", group_NON_PROTEIN )
@@ -141,7 +158,9 @@ mdpGen("NPT.mdp", Type='NPT', dt=0.002, nsteps=25000, output=0,
 mdpGen("MD.mdp", Type='MD', dt=0.002, nsteps=500000, output=1000,
        tgroups=[['SYSTEM', 0.5, 300]])
 
-lambdaGen('%s_ION.pdb' % (pdbName), 4.5)
+# CREATE CONSTANT-PH .DAT FILE #################################################
+
+lambdaGen('%s_ION.pdb' % (pdbName), pH, qqConstrain)
 
 # ENERGY MINIMIZATION ##########################################################
 
@@ -186,6 +205,6 @@ os.system("gmx mdrun -s NPT.tpr -o NPT.trr -c %s_NPT.pdb -g NPT.log -e NPT.edr \
 # os.system("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx \
 #            -o MD.tpr >> builder.log 2>&1" % (pdbName))
 
-# os.system("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr" % (pdbName))
+# os.system("gmx mdrun -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr" % (pdbName))
 
 # OUR bug with 2khm.pdb is because of calibration, we use wrong ddlv values

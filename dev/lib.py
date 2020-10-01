@@ -381,12 +381,9 @@ class mdpGen:
 
 # Function that generates the required constant_ph_input.dat file.
 ################################################################################
-def lambdaGen(pdbFname, pH):
-    protein   = PDB(pdbFname)                    # import relevant .pdb file
-    
-    countASP  = protein.countRes("ASP") 
-    countGLU  = protein.countRes("GLU")
-    countACID = countASP + countGLU
+def lambdaGen(pdbFname, pH, qqConstrain):
+    protein   = PDB(pdbFname)
+    countACID = protein.countRes("ASP") + protein.countRes("GLU")
 
     file = open("constant_ph_input.dat", "w+")
 
@@ -395,9 +392,15 @@ def lambdaGen(pdbFname, pH):
     def addParam(name, value): # Formatting function for parameters.
         file.write("{:21s} = {:13s}\n".format(name, str(value)))
 
-    addParam('ph', pH)                          # simulation pH
-    addParam('nr_residues', countACID)          # amount of acidic residues
-    addParam('nr_lambdagroups', countACID)      # amount of lambda groups
+    addParam('ph', pH)                          # Simulation pH
+    
+    if (qqConstrain):
+        addParam('nr_residues', 3)              # ASP, GLU, BUF
+    
+    if (not qqConstrain):
+        addParam('nr_residues', 2)              # ASP, GLU
+
+    addParam('nr_lambdagroups', countACID)      # Number of lambda groups
     file.write('\n')
 
     addParam('m_lambda', 10.0)                  # mass of l-particles
@@ -405,13 +408,17 @@ def lambdaGen(pdbFname, pH):
     addParam('tau', 0.1)                        # time constant for thermostat
     addParam('thermostat', 'v-rescale')         # 'v-rescale' or 'langevin'
     addParam('nst_lambda', 100)                 # numSteps between output
-    addParam('charge_constraint', 'yes')  # should be (hardcoded) yes as
-        # this is what we want and we have buffer to transfer charge to.
 
-    addParam('N_buffers', 1)                    # number of collective buffers
+    if (qqConstrain):
+        addParam('charge_constraint', 'yes')
+        addParam('N_buffers', 1)                # number of collective buffers
+    else:
+        addParam('charge_constraint', 'no')
+        addParam('N_buffers', 0)                # number of collective buffers
+
     addParam('m_buf', 10.0)                     # mass of buffer particles
-    addParam('multistate_constraint', 'no')     # ???
-    addParam('n_multigroups', 1)                # ???
+    addParam('multistate_constraint', 'no')     # NOT RELEVANT FOR NOW
+    addParam('n_multigroups', 0)                # NOT RELEVANT FOR NOW
     file.write('\n')
 
     ################ PART 2 - RESIDUE-TYPE SPECIFIC PARAMETERS #################
@@ -431,7 +438,9 @@ def lambdaGen(pdbFname, pH):
     #   resName  numParams  params for ref. potential   refpKa
     addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25)
     addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65)
-    addRes1('BUF', 4, [2010.3, -2023.2, 249.56, -450.63], 4.25)
+    
+    if (qqConstrain):
+        addRes1('BUF', 4, [2010.3, -2023.2, 249.56, -450.63], 4.25)
 
     ################## PART 3 - RESIDUE-SPECIFIC PARAMETERS ####################
 
@@ -506,31 +515,32 @@ def lambdaGen(pdbFname, pH):
             for atom in residue.d_atoms:
                 count += 1
 
-    # WRITE BUFFER HEAD
-    addParam('name', 'BUF')                         # hardcoded
-    addParam('residue_number', 1)                   # !!!
-    addParam('initial_lambda', '0.5')               # hardcoded
-    addParam('barrier', 0.0)                        # !!!
-    addParam('n_atoms', 3 * countACID)              # !!!
+    if (qqConstrain):
+        # WRITE BUFFER HEAD
+        addParam('name', 'BUF')                         # hardcoded
+        addParam('residue_number', 1)                   # !!!
+        addParam('initial_lambda', '0.5')               # hardcoded
+        addParam('barrier', 0.0)                        # !!!
+        addParam('n_atoms', 3 * countACID)              # !!!
 
-    # GET INDEXLIST FOR BUFFER
-    indexList = []; count = 1
-    
-    for residue in protein.d_residues:
-        for atom in residue.d_atoms:
+        # GET INDEXLIST FOR BUFFER
+        indexList = []; count = 1
+        
+        for residue in protein.d_residues:
+            for atom in residue.d_atoms:
 
-            if (residue.d_resname == 'BUF'):
-                indexList.append(count)
-                
-            count += 1
+                if (residue.d_resname == 'BUF'):
+                    indexList.append(count)
+                    
+                count += 1
 
-    # WRITE INDEXLIST FOR BUFFER
-    writeIndexLine(indexList)
+        # WRITE INDEXLIST FOR BUFFER
+        writeIndexLine(indexList)
 
-    # WRITE CHARGES FOR BUFFER ATOMS
-    for idx in range(0, len(indexList)):
-        file.write("{:<7d} {:7.3f}  {:7.3f}\n".format(
-                    indexList[idx], BUF_charge1[idx % 3], BUF_charge2[idx % 3]))
+        # WRITE CHARGES FOR BUFFER ATOMS
+        for idx in range(0, len(indexList)):
+            file.write("{:<7d} {:7.4f}  {:7.4f}\n".format(
+                        indexList[idx], BUF_charge1[idx % 3], BUF_charge2[idx % 3]))
 
     file.close()
 
