@@ -1,0 +1,23 @@
+refcoord_scaling moet All zijn! als je position restraints gebruikt.
+
+position restrain de buffers! (alleen de zuurstof)
+
+-aparte code schrijven om buffers ver van eiwit en ver van elkaar
+ te krijgen. ( gmx genion (misschien afstand meegeven))
+
+-Kijk evt ook naar gmxapi (zie Gromacs website)
+
+-calibratie dvdl (email sim met 4 asp)
+    -WEL afhankelijk van systeem (voornamelijk grootte box)
+    -vragen aan Noora nog een keer
+
+-fluctuatie temperatuur lambda groups
+    -Klopt
+
+-ref_pka van buffer
+
+-studieplan
+    -even kijken update
+
+-praktische vragen
+    -rest vakantie dagen opsturen
