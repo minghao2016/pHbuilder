@@ -7,17 +7,17 @@ position restrain de buffers! (alleen de zuurstof)
 
 -Kijk evt ook naar gmxapi (zie Gromacs website)
 
--calibratie dvdl (email sim met 4 asp)
+-Calibratie dvdl (email sim met 4 asp)
     -WEL afhankelijk van systeem (voornamelijk grootte box)
     -vragen aan Noora nog een keer
 
--fluctuatie temperatuur lambda groups
-    -Klopt
+-fluctuatie temperatuur lambda groups --> klopt wel
 
--ref_pka van buffer
+-ref_pka van buffer --> onzin
 
--studieplan
-    -even kijken update
+To-do:
 
--praktische vragen
-    -rest vakantie dagen opsturen
+-Vakantiedagen opsturen             check
+-Studieplan checken + aproven       check
+-Zoom-meeting plannen met Noora     check
+-HPC                                
