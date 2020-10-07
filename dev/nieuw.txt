@@ -20,4 +20,10 @@ To-do:
 -Vakantiedagen opsturen             check
 -Studieplan checken + aproven       check
 -Zoom-meeting plannen met Noora     check
--HPC                                
+-HPC                                check
+
+-refcoord_scaling naar All
+-position-restrain de buffer --> gmx genion?
+-calibratie dvdl ??
+-charge restraint standaard aan, zou geen optie moeten zijn?
+-simulatie draaien in weekend en naar analyse kijken.
