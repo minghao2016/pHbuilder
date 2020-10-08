@@ -271,9 +271,13 @@ class mdpGen:
         print("mdpGen     : writing %s..." % (fname))
 
         # POSITION RESTRAIN
+        addTitle('Position restrain')
+        
+        if (Type in ['EM', 'MD']):
+            addParam('define', '-DPOSRES_BUF', 'Position restraints.')
+
         if (Type in ['NVT', 'NPT']): # position restrain temp and press coupling
-            addTitle('Position restrain')
-            addParam('define', '-DPOSRES', 'Position restrain protein.')
+            addParam('define', '-DPOSRES -DPOSRES_BUF', 'Position restraints.')
 
         # RUN CONTROL
         addTitle("Run control")
@@ -355,9 +359,7 @@ class mdpGen:
             addParam('tau_p', 5.0, 'Berk: better to change from 2.0 to 5.0.')
             addParam('ref_p', 1.0, 'Reference pressure (bar).')
             addParam('compressibility', 4.5e-5, 'Isothermal compressbility of water.')
-
-            if (Type == 'NPT'): # Required when restraining.
-                addParam('refcoord_scaling', 'com', 'Required when -DPOSRES.')
+            addParam('refcoord_scaling', 'all', 'Required with position restraints.')
 
         # PERIODIC BOUNDARY CONDITIONS
         addTitle("Periodic boundary condition")

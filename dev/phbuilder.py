@@ -14,8 +14,9 @@ protein     = PDB("1cvo.pdb")
 
 # CONSTANT-PH OPTIONS
 
-pH          = 4.5
-qqConstrain = True         # Constrain charge in the constant-pH simulation?
+pH          = 4.5           
+qqConstrain = True      # Constrain charge in the constant-pH simulation?
+                        # This should be True by default.
 
 # PATH AND FILE STUFF ##########################################################
 
@@ -28,7 +29,6 @@ if (not qqConstrain):
 
 # Backup previous builder.log file and index.ndx (if exists)
 backupFile("builder.log")
-backupFile("index.ndx")
 
 # GMX PDB2GMX ##################################################################
 
@@ -167,7 +167,7 @@ lambdaGen('%s_ION.pdb' % (pdbName), pH, qqConstrain)
 print("pHbuilder  : Running gmx grompp to create EM.tpr...")
 
 os.system("gmx grompp -f EM.mdp -c %s_ION.pdb -p topol.top -n index.ndx \
-           -o EM.tpr >> builder.log 2>&1" % (pdbName))
+           -o EM.tpr -r %s_ION.pdb >> builder.log 2>&1" % (pdbName, pdbName))
 
 print("           : Running gmx mdrun (energy minimization) to create %s_EM.pdb..." % (pdbName))
 
@@ -203,7 +203,7 @@ os.system("gmx mdrun -s NPT.tpr -o NPT.trr -c %s_NPT.pdb -g NPT.log -e NPT.edr \
 # print("pHbuilder  : Running gmx grompp to create MD.tpr...")
 
 # os.system("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx \
-#            -o MD.tpr >> builder.log 2>&1" % (pdbName))
+#            -o MD.tpr -r %s_NPT.pdb >> builder.log 2>&1" % (pdbName))
 
 # os.system("gmx mdrun -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr" % (pdbName))
 
