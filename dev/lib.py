@@ -1,4 +1,5 @@
 import os
+import math
 
 # For doing all kinds of stuff related to .pdb files.
 class PDB:
@@ -558,3 +559,71 @@ def backupFile(fname):
 
             os.system("mv %s '#%s.%s#'" % (fname, fname, num))
             break
+
+class sim:
+    class write:
+
+        @staticmethod
+        def run(pdbName, gmxDefaultPath, gmxPhPath):
+            print("writeRun   : writing run.sh...")
+            
+            with open("run.sh", "w+") as file:
+                file.write("#!/bin/bash\n\n")
+                
+                file.write("# source constant-pH gromacs version\n")
+                file.write("source %s/bin/GMXRC\n\n" % gmxPhPath)
+
+                file.write("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r %s_NPT.pdb\n\n" % (pdbName, pdbName))
+                file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % (pdbName))
+
+                file.write("# CONTINUE\n")
+                file.write("# gmx convert-tpr -s MD.tpr -o MD.tpr -extend <ps>\n")
+                file.write("# gmx mdrun -v -cpi state.cpt -append -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % (pdbName))
+
+                file.write("# source default gromacs version\n")
+                file.write("source %s/bin/GMXRC\n" % gmxDefaultPath)
+
+            os.system("chmod +x run.sh")
+
+        @staticmethod
+        def reset(pdbName):
+            print("writeReset : writing reset.sh...")
+
+            with open("reset.sh", "w+") as file:
+                file.write("#!/bin/bash\n\n")
+                
+                file.write("rm -rf \\_\\_py* charmm*\n")
+                file.write("rm -f *.itp *.top *.mdp *.tpr *.log *.ndx *.edr *.trr *.cpt *.dat\n")
+                file.write("rm -f \\#*\\#\n")
+                file.write("rm -f buffer.pdb %s_*.pdb\n" % pdbName)
+                file.write("rm -f run.sh reset.sh jobscript.sh\n")
+
+            os.system("chmod +x reset.sh")
+        
+        @staticmethod
+        def jobscript(pdbName, simName, hours, nodes):
+            print("writeSlurm : writing jobscript.sh...")
+
+            file = open("jobscript.sh", "w+")
+
+            def writeHead(param, value):
+                file.write("#SBATCH --%s=%s\n" % (param, value))
+
+            file.write("#!/bin/bash\n")
+
+            writeHead("time", "%s-%s:00:00" % (int(hours / 24), hours % 24))
+            writeHead("nodes", nodes)
+            writeHead("partition", "longq")
+            writeHead("jobname", simName)
+            writeHead("mail", "anton.jansen@scilifelab.org")
+            writeHead("mail-type", "ALL")
+            file.write('\n')
+
+            file.write("if [ ! -f \"%s_NPT.pdb\" ]\nthen\n" % (pdbName))
+            file.write("\t# do prep steps\n")
+            file.write("fi\n\n")
+
+            file.write("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r %s_NPT.pdb\n\n" % (pdbName, pdbName))
+            file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % (pdbName))
+
+            file.close()
