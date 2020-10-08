@@ -162,6 +162,10 @@ mdpGen("MD.mdp", Type='MD', dt=0.002, nsteps=500000, output=1000,
 
 lambdaGen('%s_ION.pdb' % (pdbName), pH, qqConstrain)
 
+sim.write.run(pdbName, "/usr/local/gromacs", "/usr/local/gromacs_dev")
+sim.write.reset(pdbName)
+sim.write.jobscript(pdbName, "test", 36, 1)
+
 # ENERGY MINIMIZATION ##########################################################
 
 print("pHbuilder  : Running gmx grompp to create EM.tpr...")
@@ -197,14 +201,3 @@ print("           : Running gmx mdrun (pressure coupling) to create %s_NPT.pdb..
 
 os.system("gmx mdrun -s NPT.tpr -o NPT.trr -c %s_NPT.pdb -g NPT.log -e NPT.edr \
            >> builder.log 2>&1" % (pdbName))
-
-# PRODUCTION RUN ###############################################################
-
-# print("pHbuilder  : Running gmx grompp to create MD.tpr...")
-
-# os.system("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx \
-#            -o MD.tpr -r %s_NPT.pdb >> builder.log 2>&1" % (pdbName))
-
-# os.system("gmx mdrun -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr" % (pdbName))
-
-# OUR bug with 2khm.pdb is because of calibration, we use wrong ddlv values
