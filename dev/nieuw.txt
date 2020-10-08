@@ -22,8 +22,10 @@ To-do:
 -Zoom-meeting plannen met Noora     check
 -HPC                                check
 
--refcoord_scaling naar All
--position-restrain de buffer --> gmx genion?
+-refcoord_scaling naar all          check
+-position-restrain de buffer        check
+-
+
 -calibratie dvdl ??
 -charge restraint standaard aan, zou geen optie moeten zijn?
 -simulatie draaien in weekend en naar analyse kijken.
