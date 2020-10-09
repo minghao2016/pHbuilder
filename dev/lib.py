@@ -547,22 +547,8 @@ def lambdaGen(pdbFname, pH, qqConstrain):
 
     file.close()
 
-# LOOSE FUNCTIONS ##############################################################
-
-def backupFile(fname):
-    if os.path.isfile(fname):
-        num = 1
-        while (True):
-            if os.path.isfile("#%s.%s#" % (fname, num)):
-                num += 1
-                continue
-
-            os.system("mv %s '#%s.%s#'" % (fname, fname, num))
-            break
-
 class sim:
     class write:
-
         @staticmethod
         def run(pdbName, gmxDefaultPath, gmxPhPath):
             print("writeRun   : writing run.sh...")
@@ -627,3 +613,16 @@ class sim:
             file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % (pdbName))
 
             file.close()
+
+# LOOSE FUNCTIONS ##############################################################
+
+def backupFile(fname):
+    if os.path.isfile(fname):
+        num = 1
+        while (True):
+            if os.path.isfile("#%s.%s#" % (fname, num)):
+                num += 1
+                continue
+
+            os.system("mv %s '#%s.%s#'" % (fname, fname, num))
+            break
