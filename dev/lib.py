@@ -1,17 +1,9 @@
 import os
 import math
 
-# For doing all kinds of stuff related to .pdb files.
 class PDB:
-    # Data.
-    headRecords = [ 
-        "HEADER", "COMPND", "SOURCE", "KEYWDS", "EXPDTA", "AUTHOR", "NUMMDL", 
-        "REVDAT", "JRNL  ", "REMARK", "DBREF ", "SEQRES", "SHEET ", "SSBOND", 
-        "CRYST1", "ORIGX1", "ORIGX2", "ORIGX3", "SCALE1", "SCALE2", "SCALE3",
-        "SEQADV", "HET   ", "HETNAM", "HETSYN", "FORMUL", "HELIX ", "SITE  ",]
-
-     # Stores a single residue's data.
-    class Residue:
+     
+    class __Residue: # Stores a single residue's data.
         def __init__(self, atoms, ali, resname, chain, resid, x, y, z):
             self.d_atoms   = atoms      # list
             self.d_ali     = ali        # list
@@ -22,8 +14,7 @@ class PDB:
             self.d_y       = y          # list
             self.d_z       = z          # list
 
-        # Print Residue data.
-        def __inspect(self):
+        def inspect(self): # Print Residue data.
             print ("inspectRes : resname = %s, resid = %s, chain = %s" % 
                 (self.d_resname, self.d_resid, self.d_chain))
                 
@@ -37,15 +28,14 @@ class PDB:
                     ))
 
     def __init__(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
-        self.d_fname  = fname    # Store the name of the file that was loaded
-        self.d_model  = MODEL    # set MODEL number to load (MODEL 1 = default)
-        self.d_ALI    = ALI      # set which ALI letter to load (A = default)
-        self.d_chainl = CHAIN    # set which chain(s) to load (all = default)
+        # REQUIRED ITERNAL STATES / DATA MEBERS ################################
+        self.d_fname    = fname  # Store the name of the file that was loaded
+        self.d_model    = MODEL  # set MODEL number to load (MODEL 1 = default)
+        self.d_ALI      = ALI    # set which ALI letter to load (A = default)
+        self.d_chainl   = CHAIN  # set which chain(s) to load (all = default)
 
-        self.d_title     = ""    # string    stores TITLE line.
-        self.d_atomLines = []    # list      stores atom lines.
-        self.d_headLines = []    # list      stores header lines.
-        self.d_residues  = []    # list      stores Residue objects.
+        self.d_title    = ""     # string    stores TITLE line.
+        self.d_residues = []     # list      stores Residue objects.
         
         # PRINT USER INFO ######################################################
         print("loadpdb    : importing MODEL=%s, ALI=%s, chain(s)=" % (
@@ -62,6 +52,8 @@ class PDB:
         print(" from \"%s\"..." % (fname))
 
         # Read .pdb line by line ###############################################
+        atomLines = []
+
         with open(fname, 'r') as file:
             read = True         # Needs to be True if no MODEL is specified.
 
@@ -70,10 +62,6 @@ class PDB:
                 # Store the .pdb TITLE in d_title.
                 if (line[0:6]) == "TITLE ":
                     self.d_title = line[10:(len(line) - 1)]
-
-                # Store all header lines in d_headLines.
-                if (line[0:6]) in PDB.headRecords:
-                    self.d_headLines.append(line)
 
                 # This is to make sure we only import the specified MODEL.
                 if (line[0:6]) == "MODEL ":
@@ -92,36 +80,36 @@ class PDB:
                             # and we want all chains,
                             if (self.d_chainl == ["all"]):
                                 # then load the atom.
-                                self.d_atomLines.append(line)
+                                atomLines.append(line)
                             # or if we want a selection of chains,
                             elif (line[21:22] in self.d_chainl):
                                 # load that selection.
-                                self.d_atomLines.append(line)
+                                atomLines.append(line)
 
         # Add one line of padding to prevent IndexError
-        self.d_atomLines.append("000000000000000000000000000000000000000000000")
+        atomLines.append("0000000000000000000000000000000000000000000000000000")
 
         # Loop through lines and create list of Residue objects.
         atoms = []; ali = []; xCoord = []; yCoord = []; zCoord = []
         
-        for idx in range(0, len(self.d_atomLines) - 1):
-            atoms.append(self.d_atomLines[idx][12:16])
-            ali.append(self.d_atomLines[idx][16:17])
-            xCoord.append(float(self.d_atomLines[idx][30:38]))
-            yCoord.append(float(self.d_atomLines[idx][38:46]))
-            zCoord.append(float(self.d_atomLines[idx][46:54]))
+        for idx in range(0, len(atomLines) - 1):
+            atoms.append(atomLines[idx][12:16])
+            ali.append(atomLines[idx][16:17])
+            xCoord.append(float(atomLines[idx][30:38]))
+            yCoord.append(float(atomLines[idx][38:46]))
+            zCoord.append(float(atomLines[idx][46:54]))
 
-            # If the resid of the next line is different, we are at the end, so
-            if (self.d_atomLines[idx][22:26] != self.d_atomLines[idx + 1][22:26]):
+            # If the resid of the next line is different, we are at end
+            if (atomLines[idx][22:26] != atomLines[idx + 1][22:26]):
                 # put the data in a Residue object and append to d_residues:
                 self.d_residues.append(
-                    PDB.Residue
+                    PDB.__Residue
                     (
                         atoms, 
                         ali,
-                        self.d_atomLines[idx][17:20], 
-                        self.d_atomLines[idx][21:22], 
-                        int(self.d_atomLines[idx][22:26]), 
+                        atomLines[idx][17:20], 
+                        atomLines[idx][21:22], 
+                        int(atomLines[idx][22:26]), 
                         xCoord, 
                         yCoord,
                         zCoord
@@ -131,10 +119,10 @@ class PDB:
                 atoms = []; ali = []; xCoord = []; yCoord = []; zCoord = []
 
         # Clear d_atomLines to save memory.
-        self.d_atomLines.clear()
+        atomLines.clear()
 
     # Write (modified) .pdb file.
-    def writepdb(self, fname, HEADER = False):
+    def writepdb(self, fname):
         
         # PRINT USER INFO ######################################################
         print("writepdb   : writing \"%s\" to \"%s\"..." % (self.d_title, fname))
@@ -143,27 +131,17 @@ class PDB:
              (len(self.d_residues), self.d_model, self.d_ALI), end='')
         
         if self.d_chainl[0] == "all":
-            print("all", end = '')
+            print("all\n", end = '')
         else: 
             print("[", end = '')
             for chain in self.d_chainl: 
                 print("%s" % (chain), end = '')
-            print("]", end = '')        
-        
-        print(", header=%s" % (HEADER))
+            print("]\n", end = '')
 
         # WRITE ################################################################
         with open(fname, "w+") as file:
-            # write title
-            file.write("TITLE     %s\n" % self.d_title)     
-
-            # write header if HEADER
-            if (HEADER):                             
-                for line in self.d_headLines:
-                    file.write(line)
-
-            # write model line
-            file.write("MODEL        %s\n" % self.d_model)
+            file.write("TITLE %s\n" % self.d_title)          # Write title line.
+            file.write("MODEL {:8d}\n".format(self.d_model)) # Write model line.
 
             # Write actual residues.
             num = 1
@@ -220,7 +198,7 @@ class PDB:
     def inspectRes(self, resid, CHAIN = 'A'):
         for residue in self.d_residues:
             if (residue.d_resid == resid and residue.d_chain == CHAIN):
-                residue.__inspect()
+                residue.inspect()
                 return
         else:
             print("inspectRes : Cannot find residue with resid=%s and/or chain=%s" % (resid, CHAIN))
@@ -384,7 +362,7 @@ class mdpGen:
 
 # Function that generates the required constant_ph_input.dat file.
 ################################################################################
-def lambdaGen(pdbFname, pH, qqConstrain):
+def lambdaGen(pdbFname, pH):
     protein   = PDB(pdbFname)
     countACID = protein.countRes("ASP") + protein.countRes("GLU")
 
@@ -396,13 +374,7 @@ def lambdaGen(pdbFname, pH, qqConstrain):
         file.write("{:21s} = {:13s}\n".format(name, str(value)))
 
     addParam('ph', pH)                          # Simulation pH
-    
-    if (qqConstrain):
-        addParam('nr_residues', 3)              # ASP, GLU, BUF
-    
-    if (not qqConstrain):
-        addParam('nr_residues', 2)              # ASP, GLU
-
+    addParam('nr_residues', 3)                  # ASP, GLU, BUF
     addParam('nr_lambdagroups', countACID)      # Number of lambda groups
     file.write('\n')
 
@@ -412,12 +384,8 @@ def lambdaGen(pdbFname, pH, qqConstrain):
     addParam('thermostat', 'v-rescale')         # 'v-rescale' or 'langevin'
     addParam('nst_lambda', 100)                 # numSteps between output
 
-    if (qqConstrain):
-        addParam('charge_constraint', 'yes')
-        addParam('N_buffers', 1)                # number of collective buffers
-    else:
-        addParam('charge_constraint', 'no')
-        addParam('N_buffers', 0)                # number of collective buffers
+    addParam('charge_constraint', 'yes')
+    addParam('N_buffers', 1)                    # number of collective buffers
 
     addParam('m_buf', 10.0)                     # mass of buffer particles
     addParam('multistate_constraint', 'no')     # NOT RELEVANT FOR NOW
@@ -441,9 +409,7 @@ def lambdaGen(pdbFname, pH, qqConstrain):
     #   resName  numParams  params for ref. potential   refpKa
     addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25)
     addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65)
-    
-    if (qqConstrain):
-        addRes1('BUF', 4, [2010.3, -2023.2, 249.56, -450.63], 4.25)
+    addRes1('BUF', 4, [2010.3, -2023.2, 249.56, -450.63], 4.25)
 
     ################## PART 3 - RESIDUE-SPECIFIC PARAMETERS ####################
 
@@ -518,37 +484,110 @@ def lambdaGen(pdbFname, pH, qqConstrain):
             for atom in residue.d_atoms:
                 count += 1
 
-    if (qqConstrain):
-        # WRITE BUFFER HEAD
-        addParam('name', 'BUF')                         # hardcoded
-        addParam('residue_number', 1)                   # !!!
-        addParam('initial_lambda', '0.5')               # hardcoded
-        addParam('barrier', 0.0)                        # !!!
-        addParam('n_atoms', 3 * countACID)              # !!!
+    # WRITE BUFFER HEAD
+    addParam('name', 'BUF')                         # hardcoded
+    addParam('residue_number', 1)                   # !!!
+    addParam('initial_lambda', '0.5')               # hardcoded
+    addParam('barrier', 0.0)                        # !!!
+    addParam('n_atoms', 3 * countACID)              # !!!
 
-        # GET INDEXLIST FOR BUFFER
-        indexList = []; count = 1
-        
-        for residue in protein.d_residues:
-            for atom in residue.d_atoms:
+    # GET INDEXLIST FOR BUFFER
+    indexList = []; count = 1
+    
+    for residue in protein.d_residues:
+        for atom in residue.d_atoms:
 
-                if (residue.d_resname == 'BUF'):
-                    indexList.append(count)
-                    
-                count += 1
+            if (residue.d_resname == 'BUF'):
+                indexList.append(count)
+                
+            count += 1
 
-        # WRITE INDEXLIST FOR BUFFER
-        writeIndexLine(indexList)
+    # WRITE INDEXLIST FOR BUFFER
+    writeIndexLine(indexList)
 
-        # WRITE CHARGES FOR BUFFER ATOMS
-        for idx in range(0, len(indexList)):
-            file.write("{:<7d} {:7.4f}  {:7.4f}\n".format(
-                        indexList[idx], BUF_charge1[idx % 3], BUF_charge2[idx % 3]))
+    # WRITE CHARGES FOR BUFFER ATOMS
+    for idx in range(0, len(indexList)):
+        file.write("{:<7d} {:7.4f}  {:7.4f}\n".format(
+                    indexList[idx], BUF_charge1[idx % 3], BUF_charge2[idx % 3]))
 
     file.close()
 
 class sim:
+
+    class protein:
+        
+        @staticmethod
+        def load():
+            pass
+
+        class add:
+
+            @staticmethod
+            def forcefield():
+                pass
+
+            @staticmethod
+            def box(pdbName): # a comment for this function
+                print("pHbuilder  : Running gmx editconf to create %s_BOX.pdb..." % (pdbName))
+
+                os.system("gmx editconf -f %s_PR2.pdb -o %s_BOX.pdb -c -d 1.0 -bt cubic >> builder.log 2>&1" % (pdbName, pdbName))
+
+            @staticmethod
+            def buffer():
+                pass        
+
+            @staticmethod
+            def water(pdbName):
+                print("pHbuilder  : Running gmx solvate to create %s_BUF.pdb..." % (pdbName))
+
+                os.system("gmx solvate -cp %s_BUF.pdb -o %s_SOL.pdb -p topol.top >> builder.log 2>&1" % (pdbName, pdbName))
+
+            @staticmethod
+            def ions(pdbName):
+                print("pHbuilder  : Running gmx grompp to create IONS.tpr...")
+
+                os.system("gmx grompp -f IONS.mdp -c %s_SOL.pdb -p topol.top -o IONS.tpr >> builder.log 2>&1" % (pdbName))
+
+                print("           : Running gmx genion to create %s_ION.pdb..." % (pdbName))
+
+                os.system("gmx genion -s IONS.tpr -o %s_ION.pdb -p topol.top -pname NA -nname CL -neutral >> builder.log 2>&1 << EOF\nSOL\nEOF" % pdbName)
+
+    class generate:
+
+        @staticmethod
+        def index():
+            pass
+
+        @staticmethod
+        def mdp():
+            pass
+
+        @staticmethod
+        def phdata():
+            pass
+
+    class energy:
+        
+        @staticmethod
+        def minimize(pdbName):
+            os.system("gmx grompp -f EM.mdp -c %s_ION.pdb -p topol.top -n index.ndx -o EM.tpr -r %s_ION.pdb >> builder.log 2>&1" % (pdbName, pdbName))
+            
+            os.system("gmx mdrun -s EM.tpr -o EM.trr -c %s_EM.pdb -g EM.log -e EM.edr >> builder.log 2>&1" % (pdbName))
+
+        @staticmethod
+        def tcouple(pdbName):
+            os.system("gmx grompp -f NVT.mdp -c %s_EM.pdb -p topol.top -n index.ndx -o NVT.tpr -r %s_EM.pdb >> builder.log 2>&1" % (pdbName, pdbName))
+
+            os.system("gmx mdrun -s NVT.tpr -o NVT.trr -c %s_NVT.pdb -g NVT.log -e NVT.edr >> builder.log 2>&1" % (pdbName))
+
+        @staticmethod
+        def pcouple(pdbName):
+            os.system("gmx grompp -f NPT.mdp -c %s_NVT.pdb -p topol.top -n index.ndx -o NPT.tpr -r %s_NVT.pdb >> builder.log 2>&1" % (pdbName, pdbName))
+            
+            os.system("gmx mdrun -s NPT.tpr -o NPT.trr -c %s_NPT.pdb -g NPT.log -e NPT.edr >> builder.log 2>&1" % (pdbName))
+
     class write:
+        
         @staticmethod
         def run(pdbName, gmxDefaultPath, gmxPhPath):
             print("writeRun   : writing run.sh...")
@@ -614,7 +653,7 @@ class sim:
 
             file.close()
 
-# LOOSE FUNCTIONS ##############################################################
+########################## MISCELLANEOUS FUNCTIONS #############################
 
 def backupFile(fname):
     if os.path.isfile(fname):
