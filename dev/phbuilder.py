@@ -112,17 +112,10 @@ protein2.writendx("index.ndx", "NON_PROTEIN", group_NON_PROTEIN )
 
 # CREATE .MDP FILES ############################################################
 
-mdpGen("EM.mdp", Type='EM', dt=0.01, nsteps=10000, output=0,
-       tgroups=[['SYSTEM', 0.5, 300]])
-
-mdpGen("NVT.mdp", Type='NVT', dt=0.002, nsteps=25000, output=0,
-       tgroups=[['SYSTEM', 0.5, 300]])
-
-mdpGen("NPT.mdp", Type='NPT', dt=0.002, nsteps=25000, output=0,
-       tgroups=[['SYSTEM', 0.5, 300]])
-
-mdpGen("MD.mdp", Type='MD', dt=0.002, nsteps=500000, output=1000,
-       tgroups=[['SYSTEM', 0.5, 300]])
+sim.generate.mdp("EM.mdp",  Type='EM',  dt=0.01,  nsteps=10000,  output=0,    tgroups=[['SYSTEM', 0.5, 300]])
+sim.generate.mdp("NVT.mdp", Type='NVT', dt=0.002, nsteps=25000,  output=0,    tgroups=[['SYSTEM', 0.5, 300]])
+sim.generate.mdp("NPT.mdp", Type='NPT', dt=0.002, nsteps=25000,  output=0,    tgroups=[['SYSTEM', 0.5, 300]])
+sim.generate.mdp("MD.mdp",  Type='MD',  dt=0.002, nsteps=500000, output=1000, tgroups=[['SYSTEM', 0.5, 300]])
 
 # CREATE CONSTANT-PH .DAT FILE #################################################
 
@@ -137,3 +130,4 @@ sim.write.jobscript(pdbName, "test", 36, 1)
 sim.energy.minimize(pdbName)
 sim.energy.tcouple(pdbName)
 sim.energy.pcouple(pdbName)
+    
