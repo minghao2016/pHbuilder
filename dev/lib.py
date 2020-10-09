@@ -1,4 +1,4 @@
-import os, math
+import os
 
 class PDB:
      
@@ -227,157 +227,19 @@ class PDB:
         else:
             return self.d_fname[0:len(self.d_fname)-4]
 
-# Function that generates the required constant_ph_input.dat file.
-################################################################################
-def lambdaGen(pdbFname, pH):
-    protein   = PDB(pdbFname)
-    countACID = protein.countRes("ASP") + protein.countRes("GLU")
 
-    file = open("constant_ph_input.dat", "w+")
 
-    ############ PART 1 - GENERAL INPUT SETTINGS FOR CONSTANT PH MD ############
 
-    def addParam(name, value): # Formatting function for parameters.
-        file.write("{:21s} = {:13s}\n".format(name, str(value)))
 
-    addParam('ph', pH)                          # Simulation pH
-    addParam('nr_residues', 3)                  # ASP, GLU, BUF
-    addParam('nr_lambdagroups', countACID)      # Number of lambda groups
-    file.write('\n')
 
-    addParam('m_lambda', 10.0)                  # mass of l-particles
-    addParam('T_lambda', 300)                   # ref. temp. of l-particles
-    addParam('tau', 0.1)                        # time constant for thermostat
-    addParam('thermostat', 'v-rescale')         # 'v-rescale' or 'langevin'
-    addParam('nst_lambda', 100)                 # numSteps between output
 
-    addParam('charge_constraint', 'yes')
-    addParam('N_buffers', 1)                    # number of collective buffers
 
-    addParam('m_buf', 10.0)                     # mass of buffer particles
-    addParam('multistate_constraint', 'no')     # NOT RELEVANT FOR NOW
-    addParam('n_multigroups', 0)                # NOT RELEVANT FOR NOW
-    file.write('\n')
 
-    ################ PART 2 - RESIDUE-TYPE SPECIFIC PARAMETERS #################
 
-    def addRes1(name, n_coeffs, dvdl_coeffs, ref_pka):  # formatting function.
-        addParam('residue', name)
-        addParam('n_coeffs', n_coeffs)
 
-        file.write("{:21s} = ".format('dvdl_coeffs'))
-        for coeff in dvdl_coeffs:
-            file.write('%s ' % (coeff))
-        file.write('\n')
 
-        addParam('ref_pka', ref_pka)
-        file.write('\n')
 
-    #   resName  numParams  params for ref. potential   refpKa
-    addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25)
-    addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65)
-    addRes1('BUF', 4, [2010.3, -2023.2, 249.56, -450.63], 4.25)
 
-    ################## PART 3 - RESIDUE-SPECIFIC PARAMETERS ####################
-
-    ASP_atoms   = [' CB ', ' CG ', ' OD1', ' OD2', ' HD2'] # atoms part of model
-    ASP_charge1 = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
-    ASP_charge2 = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
-
-    GLU_atoms   = [' CG ', ' CD ', ' OE1', ' OE2', ' HE2'] # atoms part of model
-    GLU_charge1 = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
-    GLU_charge2 = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
-
-    # BUF_atoms = [' OW ' , ' HW1', ' HW2'] # atoms in buffer (water) molecule
-    BUF_charge1 = [-0.0656, 0.5328, 0.5328] # protonated charge
-    BUF_charge2 = [-0.8476, 0.4238, 0.4328] # deprotonated charge
-
-    def writeIndexLine(indexList): # formatting function.
-        file.write("{:21s} = ".format('index'))
-
-        for num in indexList:
-            file.write('%s ' % num)
-
-        file.write('\n\n')
-
-    count = 1
-    for residue in protein.d_residues:      # loop through all residues
-
-        indexList = []
-
-        if (residue.d_resname == 'ASP'):    # if we find an ASP
-            addParam('name', 'ASP')                         # hardcoded
-            addParam('residue_number', residue.d_resid)     # pull from .pdb
-            addParam('initial_lambda', '0.5')               # hardcoded
-            addParam('barrier', 7.5)                        # parameter
-            addParam('n_atoms', '5')                        # hardcoded
-            
-            for atom in residue.d_atoms:    # Add indices of relevant atoms
-                if atom in ASP_atoms:       # of ASP to list
-                    indexList.append(count)
-
-                count += 1
-
-            writeIndexLine(indexList)
-
-            for idx in range(0, len(indexList)):
-                file.write("{:<7d} {:7.3f}  {:7.3f}\n".format(
-                    indexList[idx], ASP_charge1[idx], ASP_charge2[idx]))
-            
-            file.write('\n')
-
-        elif (residue.d_resname == 'GLU'):
-            addParam('name', 'GLU')                         # hardcoded
-            addParam('residue_number', residue.d_resid)     # pull from .pdb
-            addParam('initial_lambda', '0.5')               # hardcoded
-            addParam('barrier', 7.5)                        # parameter
-            addParam('n_atoms', '5')                        # hardcoded
-            
-            for atom in residue.d_atoms:
-                if atom in GLU_atoms:
-                    indexList.append(count)
-
-                count += 1
-
-            writeIndexLine(indexList)
-
-            for idx in range(0, len(indexList)):
-                file.write("{:<7d} {:7.3f}  {:7.3f}\n".format(
-                    indexList[idx], GLU_charge1[idx], GLU_charge2[idx]))
-            
-            file.write('\n')
-
-        else:
-            for atom in residue.d_atoms:
-                count += 1
-
-    # WRITE BUFFER HEAD
-    addParam('name', 'BUF')                         # hardcoded
-    addParam('residue_number', 1)                   # !!!
-    addParam('initial_lambda', '0.5')               # hardcoded
-    addParam('barrier', 0.0)                        # !!!
-    addParam('n_atoms', 3 * countACID)              # !!!
-
-    # GET INDEXLIST FOR BUFFER
-    indexList = []; count = 1
-    
-    for residue in protein.d_residues:
-        for atom in residue.d_atoms:
-
-            if (residue.d_resname == 'BUF'):
-                indexList.append(count)
-                
-            count += 1
-
-    # WRITE INDEXLIST FOR BUFFER
-    writeIndexLine(indexList)
-
-    # WRITE CHARGES FOR BUFFER ATOMS
-    for idx in range(0, len(indexList)):
-        file.write("{:<7d} {:7.4f}  {:7.4f}\n".format(
-                    indexList[idx], BUF_charge1[idx % 3], BUF_charge2[idx % 3]))
-
-    file.close()
 
 
 
@@ -389,11 +251,221 @@ def lambdaGen(pdbFname, pH):
 
 class sim:
 
+    class __Residue: # Stores a single residue's data.
+        def __init__(self, atoms, ali, resname, chain, resid, x, y, z):
+            self.d_atoms   = atoms      # list
+            self.d_ali     = ali        # list
+            self.d_resname = resname    # string
+            self.d_chain   = chain      # string
+            self.d_resid   = resid      # int
+            self.d_x       = x          # list
+            self.d_y       = y          # list
+            self.d_z       = z          # list
+
+        def inspect(self): # Print Residue data.
+            print ("inspectRes : resname = %s, resid = %s, chain = %s" % 
+                (self.d_resname, self.d_resid, self.d_chain))
+                
+            for idx in range(0, len(self.d_atoms)):
+                print ("           :{:^4s}{:1s}{:8.3f} {:8.3f} {:8.3f}".format(
+                        self.d_atoms[idx], 
+                        self.d_ali[idx], 
+                        self.d_x[idx], 
+                        self.d_y[idx], 
+                        self.d_z[idx]
+                    ))
+
+    def __init__(self):
+        self.d_fname    = ""
+        self.d_model    = 0
+        self.d_ALI      = ""
+        self.d_chainl   = ""
+        self.d_title    = ""
+        self.d_residues = []
+
+    def loadpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
+        # REQUIRED ITERNAL STATES / DATA MEBERS ################################
+        self.d_fname    = fname  # Store the name of the file that was loaded
+        self.d_model    = MODEL  # set MODEL number to load (MODEL 1 = default)
+        self.d_ALI      = ALI    # set which ALI letter to load (A = default)
+        self.d_chainl   = CHAIN  # set which chain(s) to load (all = default)
+        self.d_title    = ""     # string    stores TITLE line.
+        self.d_residues = []     # list      stores Residue objects.
+        
+        # PRINT USER INFO ######################################################
+        print("loadpdb    : importing MODEL=%s, ALI=%s, chain(s)=" % (
+            self.d_model, self.d_ALI), end = '')
+        
+        if self.d_chainl[0] == "all":
+            print("all", end = '')
+        else: 
+            print("[", end = '')
+            for chain in self.d_chainl: 
+                print("%s" % (chain), end = '')
+            print("]", end = '')
+
+        print(" from \"%s\"..." % (fname))
+
+        # Read .pdb line by line ###############################################
+        atomLines = []
+
+        with open(fname, 'r') as file:
+            read = True         # Needs to be True if no MODEL is specified.
+
+            for line in file.readlines():
+                
+                # Store the .pdb TITLE in d_title.
+                if (line[0:6]) == "TITLE ":
+                    self.d_title = line[10:(len(line) - 1)]
+
+                # This is to make sure we only import the specified MODEL.
+                if (line[0:6]) == "MODEL ":
+                    if ("MODEL {:8d}".format(self.d_model)) in line:
+                        read = True
+                    else:
+                        read = False
+                
+                # if our line specifies an ATOM,
+                if (line[0:6] == "ATOM  "):                 
+                    # and we are currently reading the correct MODEL,
+                    if (read == True):
+                        # and our line contains the correct specified alternate 
+                        # location specifier (if any at all),
+                        if (line[16:17] in [ALI, " "]):
+                            # and we want all chains,
+                            if (self.d_chainl == ["all"]):
+                                # then load the atom.
+                                atomLines.append(line)
+                            # or if we want a selection of chains,
+                            elif (line[21:22] in self.d_chainl):
+                                # load that selection.
+                                atomLines.append(line)
+
+        # Add one line of padding to prevent IndexError
+        atomLines.append("0000000000000000000000000000000000000000000000000000")
+
+        # Loop through lines and create list of Residue objects.
+        atoms = []; ali = []; xCoord = []; yCoord = []; zCoord = []
+        
+        for idx in range(0, len(atomLines) - 1):
+            atoms.append(atomLines[idx][12:16])
+            ali.append(atomLines[idx][16:17])
+            xCoord.append(float(atomLines[idx][30:38]))
+            yCoord.append(float(atomLines[idx][38:46]))
+            zCoord.append(float(atomLines[idx][46:54]))
+
+            # If the resid of the next line is different, we are at end
+            if (atomLines[idx][22:26] != atomLines[idx + 1][22:26]):
+                # put the data in a Residue object and append to d_residues:
+                self.d_residues.append(
+                    sim.__Residue
+                    (
+                        atoms, 
+                        ali,
+                        atomLines[idx][17:20], 
+                        atomLines[idx][21:22], 
+                        int(atomLines[idx][22:26]), 
+                        xCoord, 
+                        yCoord,
+                        zCoord
+                    ))
+
+                # Reset.
+                atoms = []; ali = []; xCoord = []; yCoord = []; zCoord = []
+
+        # Clear d_atomLines to save memory.
+        atomLines.clear()
+
+    # Write (modified) .pdb file.
+    def writepdb(self, fname):
+        
+        # PRINT USER INFO ######################################################
+        print("writepdb   : writing \"%s\" to \"%s\"..." % (self.d_title, fname))
+
+        print("           : info : residues=%s, MODEL=%s, ALI=%s, chain(s)=" % 
+             (len(self.d_residues), self.d_model, self.d_ALI), end='')
+        
+        if self.d_chainl[0] == "all":
+            print("all\n", end = '')
+        else: 
+            print("[", end = '')
+            for chain in self.d_chainl: 
+                print("%s" % (chain), end = '')
+            print("]\n", end = '')
+
+        # WRITE ################################################################
+        with open(fname, "w+") as file:
+            file.write("TITLE %s\n" % self.d_title)          # Write title line.
+            file.write("MODEL {:8d}\n".format(self.d_model)) # Write model line.
+
+            # Write actual residues.
+            num = 1
+            for residue in self.d_residues:
+                for idx in range(0, len(residue.d_atoms)):
+                    file.write("{:6s}{:5d} {:^4s}{:1s}{:3s} {:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', num, residue.d_atoms[idx], residue.d_ali[idx], residue.d_resname, residue.d_chain, residue.d_resid, '', residue.d_x[idx], residue.d_y[idx], residue.d_z[idx]))
+                    num += 1
+
+            # Write EOF information.
+            file.write("TER\nENDMDL\n")
+
+    # Return the file name (with/without extensions)
+    def fname(self, ext = True):
+        if (ext):
+            return self.d_fname
+        else:
+            return self.d_fname[0:len(self.d_fname)-4]
+
 ################################################################################
 
-    @staticmethod
-    def protein_add_forcefield():
-        pass
+    # Print data for a specific residue.
+    def protein_inspectRes(self, resid, CHAIN = 'A'):
+        for residue in self.d_residues:
+            if (residue.d_resid == resid and residue.d_chain == CHAIN):
+                residue.inspect()
+                return
+        else:
+            print("inspectRes : Cannot find residue with resid=%s and/or chain=%s" % (resid, CHAIN))
+
+    # Returns the number of residues of a specific type in the protein.
+    def protein_countRes(self, resname):
+        count = 0
+        
+        for residue in self.d_residues:
+            if residue.d_resname == resname:
+                count += 1
+        
+        return count
+
+    # Resets the numbering of residues. For example, we keep counting instead 
+    # of starting 1 if we go from chain A to chain B.
+    def protein_resetResId(self):
+        num = 1
+        for residue in self.d_residues:
+            residue.d_resid = num
+            num += 1
+
+################################################################################
+
+    def protein_add_forcefield(self, pdbName, modelFF, modelWater):
+        countASP  = self.protein_countRes("ASP") 
+        countGLU  = self.protein_countRes("GLU")
+        countACID = countASP + countGLU
+
+        # Print how many acidic residues were found
+        print("pHbuilder  : Detected %s acidic residues (%s ASP and %s GLU)..." 
+              % (countACID, countASP, countGLU))
+
+        # Create EOF string required for pdb2gmx to set the protonation state of 
+        # ASP and GLU to true (specify 1 for user input option.
+        xstr = "<< EOF"
+        for _ in range(0, countACID):
+            xstr += "\n1"
+        xstr += "\nEOF"
+
+        print("           : Running gmx pdb2gmx to create %s_PR2.pdb..." % (pdbName))
+
+        # Generate topology and protonate (make neutral) all GLU and ASP:
+        os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s -water %s >> builder.log 2>&1 %s" % (pdbName, pdbName, modelFF, modelWater, xstr))
 
     @staticmethod
     def protein_add_box(pdbName):
@@ -401,9 +473,36 @@ class sim:
 
         os.system("gmx editconf -f %s_PR2.pdb -o %s_BOX.pdb -c -d 1.0 -bt cubic >> builder.log 2>&1" % (pdbName, pdbName))
 
-    @staticmethod
-    def protein_add_buffer():
-        pass        
+    def protein_add_buffer(self, pdbName):
+        countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
+        
+        print("pHbuilder  : Running gmx insert-molecules to create %s_BUF.pdb..." % (pdbName))
+
+        os.system("gmx insert-molecules -f %s_BOX.pdb -o %s_BUF.pdb -ci buffer.pdb -nmol %s >> builder.log 2>&1" % (pdbName, pdbName, countACID))        
+
+        # Add the buffer water's topology to our .top file:
+        # This piece of code is kind of a hoax but it works.
+        topList = []
+        with open("topol.top", "r") as file:
+            for line in file.readlines():
+                topList.append(line)
+
+        with open("topol.top", "w+") as file:
+            try:
+                for idx in range(0, len(topList)):
+                    file.write(topList[idx])
+
+                    # If we see that the next line is this:
+                    if topList[idx + 1] == "; Include water topology\n":
+                        # Then insert the buffer topology before that line:
+                        file.write("; Include buffer topology\n")
+                        file.write("#include \"buffer.itp\"\n\n")            
+
+            except IndexError:
+                pass
+
+            file.write("BUF\t\t\t\t\t  %s\n" % (countACID))
+        topList.clear()
 
     @staticmethod
     def protein_add_water(pdbName):
@@ -556,13 +655,191 @@ class sim:
 
             file.close()
 
-    @staticmethod
-    def generate_index():
-        pass
+    def generate_index(self, fname, name, group):
+        # Warn user if the energy group already exists
+        if (os.path.isfile(fname)):
+            print("writendx   : Detected existing file %s, will append [ %s ]..." % (fname, name))
 
-    @staticmethod
-    def generate_phdata():
-        pass
+            with open("index.ndx", "r") as file:
+                if name in file.read():
+                    print("           : Warning : [ %s ] in %s already exists. aborting..." % (name, fname))
+                    return
+        else:
+            print("writendx   : No existing file %s was found. Will create..." % (fname))
+
+        with open("index.ndx", "a+") as file:
+            file.write("[ %s ]\n" % (name))
+
+            count = 0; atom = 1; xxx = False
+            for residue in self.d_residues:
+                for _ in range(0, len(residue.d_atoms)):
+                
+                    if residue.d_resname in group:
+                        file.write("{:<6d} ".format(atom))
+                        count += 1
+                        xxx = True
+
+                        if (count == 11): # Keep rows within 80 chars.
+                            file.write("\n")
+                            count = 0
+
+                    atom += 1
+
+            file.write("\n\n")
+        
+        if (xxx):
+            print("           : Wrote group [ %s ] from %s to %s" % (name, self.d_fname, fname))
+        else:
+            print("           : Warning : no atoms beloning to [ %s ] were found" % (name))
+
+    def generate_phdata(self, pdbFname, pH):
+        countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
+
+        file = open("constant_ph_input.dat", "w+")
+
+        ############ PART 1 - GENERAL INPUT SETTINGS FOR CONSTANT PH MD ############
+
+        def addParam(name, value): # Formatting function for parameters.
+            file.write("{:21s} = {:13s}\n".format(name, str(value)))
+
+        addParam('ph', pH)                          # Simulation pH
+        addParam('nr_residues', 3)                  # ASP, GLU, BUF
+        addParam('nr_lambdagroups', countACID)      # Number of lambda groups
+        file.write('\n')
+
+        addParam('m_lambda', 10.0)                  # mass of l-particles
+        addParam('T_lambda', 300)                   # ref. temp. of l-particles
+        addParam('tau', 0.1)                        # time constant for thermostat
+        addParam('thermostat', 'v-rescale')         # 'v-rescale' or 'langevin'
+        addParam('nst_lambda', 100)                 # numSteps between output
+
+        addParam('charge_constraint', 'yes')
+        addParam('N_buffers', 1)                    # number of collective buffers
+
+        addParam('m_buf', 10.0)                     # mass of buffer particles
+        addParam('multistate_constraint', 'no')     # NOT RELEVANT FOR NOW
+        addParam('n_multigroups', 0)                # NOT RELEVANT FOR NOW
+        file.write('\n')
+
+        ################ PART 2 - RESIDUE-TYPE SPECIFIC PARAMETERS #################
+
+        def addRes1(name, n_coeffs, dvdl_coeffs, ref_pka):  # formatting function.
+            addParam('residue', name)
+            addParam('n_coeffs', n_coeffs)
+
+            file.write("{:21s} = ".format('dvdl_coeffs'))
+            for coeff in dvdl_coeffs:
+                file.write('%s ' % (coeff))
+            file.write('\n')
+
+            addParam('ref_pka', ref_pka)
+            file.write('\n')
+
+        #   resName  numParams  params for ref. potential   refpKa
+        addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25)
+        addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65)
+        addRes1('BUF', 4, [2010.3, -2023.2, 249.56, -450.63], 4.25)
+
+        ################## PART 3 - RESIDUE-SPECIFIC PARAMETERS ####################
+
+        ASP_atoms   = [' CB ', ' CG ', ' OD1', ' OD2', ' HD2'] # atoms part of model
+        ASP_charge1 = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
+        ASP_charge2 = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
+
+        GLU_atoms   = [' CG ', ' CD ', ' OE1', ' OE2', ' HE2'] # atoms part of model
+        GLU_charge1 = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
+        GLU_charge2 = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
+
+        # BUF_atoms = [' OW ' , ' HW1', ' HW2'] # atoms in buffer (water) molecule
+        BUF_charge1 = [-0.0656, 0.5328, 0.5328] # protonated charge
+        BUF_charge2 = [-0.8476, 0.4238, 0.4328] # deprotonated charge
+
+        def writeIndexLine(indexList): # formatting function.
+            file.write("{:21s} = ".format('index'))
+
+            for num in indexList:
+                file.write('%s ' % num)
+
+            file.write('\n\n')
+
+        count = 1
+        for residue in self.d_residues:      # loop through all residues
+
+            indexList = []
+
+            if (residue.d_resname == 'ASP'):    # if we find an ASP
+                addParam('name', 'ASP')                         # hardcoded
+                addParam('residue_number', residue.d_resid)     # pull from .pdb
+                addParam('initial_lambda', '0.5')               # hardcoded
+                addParam('barrier', 7.5)                        # parameter
+                addParam('n_atoms', '5')                        # hardcoded
+                
+                for atom in residue.d_atoms:    # Add indices of relevant atoms
+                    if atom in ASP_atoms:       # of ASP to list
+                        indexList.append(count)
+
+                    count += 1
+
+                writeIndexLine(indexList)
+
+                for idx in range(0, len(indexList)):
+                    file.write("{:<7d} {:7.3f}  {:7.3f}\n".format(
+                        indexList[idx], ASP_charge1[idx], ASP_charge2[idx]))
+                
+                file.write('\n')
+
+            elif (residue.d_resname == 'GLU'):
+                addParam('name', 'GLU')                         # hardcoded
+                addParam('residue_number', residue.d_resid)     # pull from .pdb
+                addParam('initial_lambda', '0.5')               # hardcoded
+                addParam('barrier', 7.5)                        # parameter
+                addParam('n_atoms', '5')                        # hardcoded
+                
+                for atom in residue.d_atoms:
+                    if atom in GLU_atoms:
+                        indexList.append(count)
+
+                    count += 1
+
+                writeIndexLine(indexList)
+
+                for idx in range(0, len(indexList)):
+                    file.write("{:<7d} {:7.3f}  {:7.3f}\n".format(
+                        indexList[idx], GLU_charge1[idx], GLU_charge2[idx]))
+                
+                file.write('\n')
+
+            else:
+                for atom in residue.d_atoms:
+                    count += 1
+
+        # WRITE BUFFER HEAD
+        addParam('name', 'BUF')                         # hardcoded
+        addParam('residue_number', 1)                   # !!!
+        addParam('initial_lambda', '0.5')               # hardcoded
+        addParam('barrier', 0.0)                        # !!!
+        addParam('n_atoms', 3 * countACID)              # !!!
+
+        # GET INDEXLIST FOR BUFFER
+        indexList = []; count = 1
+        
+        for residue in self.d_residues:
+            for atom in residue.d_atoms:
+
+                if (residue.d_resname == 'BUF'):
+                    indexList.append(count)
+                    
+                count += 1
+
+        # WRITE INDEXLIST FOR BUFFER
+        writeIndexLine(indexList)
+
+        # WRITE CHARGES FOR BUFFER ATOMS
+        for idx in range(0, len(indexList)):
+            file.write("{:<7d} {:7.4f}  {:7.4f}\n".format(
+                        indexList[idx], BUF_charge1[idx % 3], BUF_charge2[idx % 3]))
+
+        file.close()
 
 ################################################################################
 
