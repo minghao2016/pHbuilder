@@ -53,7 +53,7 @@ os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s \
 
 # GMX EDITCONF #################################################################
 
-sim.protein.add.box(pdbName)        # Editconf
+sim.protein_add_box(pdbName)        # Editconf
 
 # GMX INSERT-MOLECULES (ADD BUFFER) ############################################
 
@@ -86,9 +86,9 @@ with open("topol.top", "w+") as file:
     file.write("BUF\t\t\t\t\t  %s\n" % (countACID))
 topList.clear()
 
-sim.protein.add.water(pdbName)      # Solvate
+sim.protein_add_water(pdbName)      # Solvate
 
-sim.protein.add.ions(pdbName)       # Genion
+sim.protein_add_ions(pdbName)       # Genion
 
 # CREATE INDEX FILE ############################################################
 
@@ -112,22 +112,23 @@ protein2.writendx("index.ndx", "NON_PROTEIN", group_NON_PROTEIN )
 
 # CREATE .MDP FILES ############################################################
 
-sim.generate.mdp("EM.mdp",  Type='EM',  dt=0.01,  nsteps=10000,  output=0,    tgroups=[['SYSTEM', 0.5, 300]])
-sim.generate.mdp("NVT.mdp", Type='NVT', dt=0.002, nsteps=25000,  output=0,    tgroups=[['SYSTEM', 0.5, 300]])
-sim.generate.mdp("NPT.mdp", Type='NPT', dt=0.002, nsteps=25000,  output=0,    tgroups=[['SYSTEM', 0.5, 300]])
-sim.generate.mdp("MD.mdp",  Type='MD',  dt=0.002, nsteps=500000, output=1000, tgroups=[['SYSTEM', 0.5, 300]])
+sim.generate_mdp("EM.mdp",  Type='EM',  dt=0.01,  nsteps=10000,  output=0,    tgroups=[['SYSTEM', 0.5, 300]])
+sim.generate_mdp("NVT.mdp", Type='NVT', dt=0.002, nsteps=25000,  output=0,    tgroups=[['SYSTEM', 0.5, 300]])
+sim.generate_mdp("NPT.mdp", Type='NPT', dt=0.002, nsteps=25000,  output=0,    tgroups=[['SYSTEM', 0.5, 300]])
+sim.generate_mdp("MD.mdp",  Type='MD',  dt=0.002, nsteps=500000, output=1000, tgroups=[['SYSTEM', 0.5, 300]])
 
 # CREATE CONSTANT-PH .DAT FILE #################################################
 
 lambdaGen('%s_ION.pdb' % (pdbName), pH)
 
-sim.write.run(pdbName, "/usr/local/gromacs", "/usr/local/gromacs_dev")
-sim.write.reset(pdbName)
-sim.write.jobscript(pdbName, "test", 36, 1)
+sim.write_run(pdbName, "/usr/local/gromacs", "/usr/local/gromacs_dev")
+sim.write_reset(pdbName)
+sim.write_jobscript(pdbName, "test", 36, 1)
 
 # ENERGY MINIMIZATION ##########################################################
 
-sim.energy.minimize(pdbName)
-sim.energy.tcouple(pdbName)
-sim.energy.pcouple(pdbName)
-    
+sim.energy_minimize(pdbName)
+sim.energy_tcouple(pdbName)
+sim.energy_pcouple(pdbName)
+
+sim.
