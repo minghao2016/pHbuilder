@@ -1,254 +1,5 @@
 import os
 
-class PDB:
-     
-    class __Residue: # Stores a single residue's data.
-        def __init__(self, atoms, ali, resname, chain, resid, x, y, z):
-            self.d_atoms   = atoms      # list
-            self.d_ali     = ali        # list
-            self.d_resname = resname    # string
-            self.d_chain   = chain      # string
-            self.d_resid   = resid      # int
-            self.d_x       = x          # list
-            self.d_y       = y          # list
-            self.d_z       = z          # list
-
-        def inspect(self): # Print Residue data.
-            print ("inspectRes : resname = %s, resid = %s, chain = %s" % 
-                (self.d_resname, self.d_resid, self.d_chain))
-                
-            for idx in range(0, len(self.d_atoms)):
-                print ("           :{:^4s}{:1s}{:8.3f} {:8.3f} {:8.3f}".format(
-                        self.d_atoms[idx], 
-                        self.d_ali[idx], 
-                        self.d_x[idx], 
-                        self.d_y[idx], 
-                        self.d_z[idx]
-                    ))
-
-    def __init__(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
-        # REQUIRED ITERNAL STATES / DATA MEBERS ################################
-        self.d_fname    = fname  # Store the name of the file that was loaded
-        self.d_model    = MODEL  # set MODEL number to load (MODEL 1 = default)
-        self.d_ALI      = ALI    # set which ALI letter to load (A = default)
-        self.d_chainl   = CHAIN  # set which chain(s) to load (all = default)
-
-        self.d_title    = ""     # string    stores TITLE line.
-        self.d_residues = []     # list      stores Residue objects.
-        
-        # PRINT USER INFO ######################################################
-        print("loadpdb    : importing MODEL=%s, ALI=%s, chain(s)=" % (
-            self.d_model, self.d_ALI), end = '')
-        
-        if self.d_chainl[0] == "all":
-            print("all", end = '')
-        else: 
-            print("[", end = '')
-            for chain in self.d_chainl: 
-                print("%s" % (chain), end = '')
-            print("]", end = '')
-
-        print(" from \"%s\"..." % (fname))
-
-        # Read .pdb line by line ###############################################
-        atomLines = []
-
-        with open(fname, 'r') as file:
-            read = True         # Needs to be True if no MODEL is specified.
-
-            for line in file.readlines():
-                
-                # Store the .pdb TITLE in d_title.
-                if (line[0:6]) == "TITLE ":
-                    self.d_title = line[10:(len(line) - 1)]
-
-                # This is to make sure we only import the specified MODEL.
-                if (line[0:6]) == "MODEL ":
-                    if ("MODEL {:8d}".format(self.d_model)) in line:
-                        read = True
-                    else:
-                        read = False
-                
-                # if our line specifies an ATOM,
-                if (line[0:6] == "ATOM  "):                 
-                    # and we are currently reading the correct MODEL,
-                    if (read == True):
-                        # and our line contains the correct specified alternate 
-                        # location specifier (if any at all),
-                        if (line[16:17] in [ALI, " "]):
-                            # and we want all chains,
-                            if (self.d_chainl == ["all"]):
-                                # then load the atom.
-                                atomLines.append(line)
-                            # or if we want a selection of chains,
-                            elif (line[21:22] in self.d_chainl):
-                                # load that selection.
-                                atomLines.append(line)
-
-        # Add one line of padding to prevent IndexError
-        atomLines.append("0000000000000000000000000000000000000000000000000000")
-
-        # Loop through lines and create list of Residue objects.
-        atoms = []; ali = []; xCoord = []; yCoord = []; zCoord = []
-        
-        for idx in range(0, len(atomLines) - 1):
-            atoms.append(atomLines[idx][12:16])
-            ali.append(atomLines[idx][16:17])
-            xCoord.append(float(atomLines[idx][30:38]))
-            yCoord.append(float(atomLines[idx][38:46]))
-            zCoord.append(float(atomLines[idx][46:54]))
-
-            # If the resid of the next line is different, we are at end
-            if (atomLines[idx][22:26] != atomLines[idx + 1][22:26]):
-                # put the data in a Residue object and append to d_residues:
-                self.d_residues.append(
-                    PDB.__Residue
-                    (
-                        atoms, 
-                        ali,
-                        atomLines[idx][17:20], 
-                        atomLines[idx][21:22], 
-                        int(atomLines[idx][22:26]), 
-                        xCoord, 
-                        yCoord,
-                        zCoord
-                    ))
-
-                # Reset.
-                atoms = []; ali = []; xCoord = []; yCoord = []; zCoord = []
-
-        # Clear d_atomLines to save memory.
-        atomLines.clear()
-
-    # Write (modified) .pdb file.
-    def writepdb(self, fname):
-        
-        # PRINT USER INFO ######################################################
-        print("writepdb   : writing \"%s\" to \"%s\"..." % (self.d_title, fname))
-
-        print("           : info : residues=%s, MODEL=%s, ALI=%s, chain(s)=" % 
-             (len(self.d_residues), self.d_model, self.d_ALI), end='')
-        
-        if self.d_chainl[0] == "all":
-            print("all\n", end = '')
-        else: 
-            print("[", end = '')
-            for chain in self.d_chainl: 
-                print("%s" % (chain), end = '')
-            print("]\n", end = '')
-
-        # WRITE ################################################################
-        with open(fname, "w+") as file:
-            file.write("TITLE %s\n" % self.d_title)          # Write title line.
-            file.write("MODEL {:8d}\n".format(self.d_model)) # Write model line.
-
-            # Write actual residues.
-            num = 1
-            for residue in self.d_residues:
-                for idx in range(0, len(residue.d_atoms)):
-                    file.write("{:6s}{:5d} {:^4s}{:1s}{:3s} {:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', num, residue.d_atoms[idx], residue.d_ali[idx], residue.d_resname, residue.d_chain, residue.d_resid, '', residue.d_x[idx], residue.d_y[idx], residue.d_z[idx]))
-                    num += 1
-
-            # Write EOF information.
-            file.write("TER\nENDMDL\n")
-
-    # WRITE INDEX FILE #########################################################
-    
-    def writendx(self, fname, name, group):
-        # Warn user if the energy group already exists
-        if (os.path.isfile(fname)):
-            print("writendx   : Detected existing file %s, will append [ %s ]..." % (fname, name))
-
-            with open("index.ndx", "r") as file:
-                if name in file.read():
-                    print("           : Warning : [ %s ] in %s already exists. aborting..." % (name, fname))
-                    return
-        else:
-            print("writendx   : No existing file %s was found. Will create..." % (fname))
-
-        with open("index.ndx", "a+") as file:
-            file.write("[ %s ]\n" % (name))
-
-            count = 0; atom = 1; xxx = False
-            for residue in self.d_residues:
-                for _ in range(0, len(residue.d_atoms)):
-                
-                    if residue.d_resname in group:
-                        file.write("{:<6d} ".format(atom))
-                        count += 1
-                        xxx = True
-
-                        if (count == 11): # Keep rows within 80 chars.
-                            file.write("\n")
-                            count = 0
-
-                    atom += 1
-
-            file.write("\n\n")
-        
-        if (xxx):
-            print("           : Wrote group [ %s ] from %s to %s" % (name, self.d_fname, fname))
-        else:
-            print("           : Warning : no atoms beloning to [ %s ] were found" % (name))
-
-    # VARIOUS FUNCTIONS ########################################################
-
-    # Print data for a specific residue.
-    def inspectRes(self, resid, CHAIN = 'A'):
-        for residue in self.d_residues:
-            if (residue.d_resid == resid and residue.d_chain == CHAIN):
-                residue.inspect()
-                return
-        else:
-            print("inspectRes : Cannot find residue with resid=%s and/or chain=%s" % (resid, CHAIN))
-
-    # Returns the number of residues of a specific type in the protein.
-    def countRes(self, resname):
-        count = 0
-        
-        for residue in self.d_residues:
-            if residue.d_resname == resname:
-                count += 1
-        
-        return count
-
-    # Resets the numbering of residues. For example, we keep counting instead 
-    # of starting 1 if we go from chain A to chain B.
-    def resetResId(self):
-        num = 1
-        for residue in self.d_residues:
-            residue.d_resid = num
-            num += 1
-
-    # Return the file name (with/without extensions)
-    def fname(self, ext = True):
-        if (ext):
-            return self.d_fname
-        else:
-            return self.d_fname[0:len(self.d_fname)-4]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class sim:
 
     class __Residue: # Stores a single residue's data.
@@ -408,8 +159,15 @@ class sim:
             # Write EOF information.
             file.write("TER\nENDMDL\n")
 
+    def processpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
+        self.loadpdb(fname, MODEL, ALI, CHAIN)
+        pdbName = self.__fname(ext = 0)
+        self.writepdb("%s_PR1.pdb" % (pdbName))
+
+        return pdbName
+
     # Return the file name (with/without extensions)
-    def fname(self, ext = True):
+    def __fname(self, ext = True):
         if (ext):
             return self.d_fname
         else:
@@ -467,11 +225,14 @@ class sim:
         # Generate topology and protonate (make neutral) all GLU and ASP:
         os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s -water %s >> builder.log 2>&1 %s" % (pdbName, pdbName, modelFF, modelWater, xstr))
 
-    @staticmethod
-    def protein_add_box(pdbName):
+        self.loadpdb("%s_PR2.pdb" % (pdbName)) # Update internal d_residues.
+
+    def protein_add_box(self, pdbName):
         print("pHbuilder  : Running gmx editconf to create %s_BOX.pdb..." % (pdbName))
 
         os.system("gmx editconf -f %s_PR2.pdb -o %s_BOX.pdb -c -d 1.0 -bt cubic >> builder.log 2>&1" % (pdbName, pdbName))
+
+        self.loadpdb("%s_BOX.pdb" % (pdbName)) # Update internal d_residues.
 
     def protein_add_buffer(self, pdbName):
         countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
@@ -504,14 +265,16 @@ class sim:
             file.write("BUF\t\t\t\t\t  %s\n" % (countACID))
         topList.clear()
 
-    @staticmethod
-    def protein_add_water(pdbName):
+        self.loadpdb("%s_BUF.pdb" % (pdbName)) # Update internal d_residues.
+
+    def protein_add_water(self, pdbName):
         print("pHbuilder  : Running gmx solvate to create %s_BUF.pdb..." % (pdbName))
 
         os.system("gmx solvate -cp %s_BUF.pdb -o %s_SOL.pdb -p topol.top >> builder.log 2>&1" % (pdbName, pdbName))
 
-    @staticmethod
-    def protein_add_ions(pdbName):
+        self.loadpdb("%s_SOL.pdb" % (pdbName)) # Update internal d_residues.
+
+    def protein_add_ions(self, pdbName):
         print("pHbuilder  : Running gmx grompp to create IONS.tpr...")
 
         os.system("gmx grompp -f IONS.mdp -c %s_SOL.pdb -p topol.top -o IONS.tpr >> builder.log 2>&1" % (pdbName))
@@ -519,6 +282,8 @@ class sim:
         print("           : Running gmx genion to create %s_ION.pdb..." % (pdbName))
 
         os.system("gmx genion -s IONS.tpr -o %s_ION.pdb -p topol.top -pname NA -nname CL -neutral >> builder.log 2>&1 << EOF\nSOL\nEOF" % pdbName)
+
+        self.loadpdb("%s_ION.pdb" % (pdbName)) # Update internal d_residues.
 
 ################################################################################
 

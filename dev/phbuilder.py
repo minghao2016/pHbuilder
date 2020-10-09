@@ -1,6 +1,4 @@
 #!/usr/bin/python3
-
-import os
 from lib import *
 
 # PARAMETERS
@@ -10,11 +8,6 @@ modelFF     = "charmm36-mar2019"
 modelWater  = "tip3p"
 pH          = 4.5           
 
-sim = sim()
-protein = PDB("1cvo.pdb")
-
-# PATH AND FILE STUFF
-
 # Copy files from grom to our working dir.
 os.system("cp -r %s/* ." % gromPath)
 
@@ -23,23 +16,18 @@ backupFile("builder.log")
 
 ################################################################################
 
+sim = sim()
+pdbName = sim.processpdb("1cvo.pdb")
+
 # PROTEIN
-
-pdbName = protein.fname(ext = 0)
-# protein.resetResId()
-protein.writepdb("%s_PR1.pdb" % (pdbName))
-
-sim.loadpdb("1cvo.pdb")
 
 sim.protein_add_forcefield(pdbName, modelFF, modelWater)
 sim.protein_add_box(pdbName)
 sim.protein_add_buffer(pdbName)
-sim.protein_add_water(pdbName)      # Solvate
-sim.protein_add_ions(pdbName)       # Genion
+sim.protein_add_water(pdbName)
+sim.protein_add_ions(pdbName)
 
 # GENERATE INDEX FILES
-
-sim.loadpdb("%s_ION.pdb" % (pdbName))
 
 group_PROTEIN     = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY',
                      'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PRO', 'SER', 'THR',
