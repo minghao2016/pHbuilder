@@ -1,5 +1,6 @@
 #!/usr/bin/python3
-from lib import *
+import os
+from lib import sim
 
 # PARAMETERS
 
@@ -11,23 +12,19 @@ pH          = 4.5
 # Copy files from grom to our working dir.
 os.system("cp -r %s/* ." % gromPath)
 
-# Backup previous builder.log file and index.ndx (if exists)
-backupFile("builder.log")
-
 ################################################################################
 
 sim = sim()
-pdbName = sim.processpdb("1cvo.pdb")
+sim.processpdb("1cvo.pdb")
 
 # PROTEIN
+sim.protein_add_forcefield(modelFF, modelWater)
+sim.protein_add_box()
+sim.protein_add_buffer()
+sim.protein_add_water()
+sim.protein_add_ions()
 
-sim.protein_add_forcefield(pdbName, modelFF, modelWater)
-sim.protein_add_box(pdbName)
-sim.protein_add_buffer(pdbName)
-sim.protein_add_water(pdbName)
-sim.protein_add_ions(pdbName)
-
-# GENERATE INDEX FILES
+# GENERATE INDEX FILE
 
 group_PROTEIN     = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY',
                      'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PRO', 'SER', 'THR',
@@ -38,12 +35,12 @@ group_IONS        = [' NA', ' CL']
 group_NON_PROTEIN = group_BUFFER + group_WATER + group_IONS
 group_SYSTEM      = group_PROTEIN + group_NON_PROTEIN
 
-sim.generate_index("index.ndx", "SYSTEM"     , group_SYSTEM      )
-sim.generate_index("index.ndx", "PROTEIN"    , group_PROTEIN     )
-sim.generate_index("index.ndx", "BUFFER"     , group_BUFFER      )
-sim.generate_index("index.ndx", "WATER"      , group_WATER       )
-sim.generate_index("index.ndx", "IONS"       , group_IONS        )
-sim.generate_index("index.ndx", "NON_PROTEIN", group_NON_PROTEIN )
+sim.generate_index("SYSTEM"     , group_SYSTEM     )
+sim.generate_index("PROTEIN"    , group_PROTEIN    )
+sim.generate_index("BUFFER"     , group_BUFFER     )
+sim.generate_index("WATER"      , group_WATER      )
+sim.generate_index("IONS"       , group_IONS       )
+sim.generate_index("NON_PROTEIN", group_NON_PROTEIN)
 
 # GENERATE .MDP FILES
 
@@ -54,16 +51,16 @@ sim.generate_mdp("MD.mdp",  Type='MD',  dt=0.002, nsteps=500000, output=1000, tg
 
 # GENERATE CONSTANT-PH .DAT FILE
 
-sim.generate_phdata('%s_ION.pdb' % (pdbName), pH)
+sim.generate_phdata(pH)
 
 # WRITE BASH SCRIPTS
 
-sim.write_run(pdbName, "/usr/local/gromacs", "/usr/local/gromacs_dev")
-sim.write_reset(pdbName)
-sim.write_jobscript(pdbName, "test", 36, 1)
+sim.write_run("/usr/local/gromacs", "/usr/local/gromacs_dev")
+sim.write_reset()
+sim.write_jobscript("test", 36, 1)
 
 # EQUILIBRATE
 
-sim.energy_minimize(pdbName)
-sim.energy_tcouple(pdbName)
-sim.energy_pcouple(pdbName)
+sim.energy_minimize()
+sim.energy_tcouple()
+sim.energy_pcouple()

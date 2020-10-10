@@ -33,6 +33,7 @@ class sim:
         self.d_chainl   = ""
         self.d_title    = ""
         self.d_residues = []
+        self.d_pdbName  = ""
 
     def loadpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
         # REQUIRED ITERNAL STATES / DATA MEBERS ################################
@@ -128,7 +129,7 @@ class sim:
         atomLines.clear()
 
     # Write (modified) .pdb file.
-    def writepdb(self, fname):
+    def __writepdb(self, fname):
         
         # PRINT USER INFO ######################################################
         print("writepdb   : writing \"%s\" to \"%s\"..." % (self.d_title, fname))
@@ -161,10 +162,8 @@ class sim:
 
     def processpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
         self.loadpdb(fname, MODEL, ALI, CHAIN)
-        pdbName = self.__fname(ext = 0)
-        self.writepdb("%s_PR1.pdb" % (pdbName))
-
-        return pdbName
+        self.d_pdbName = self.__fname(ext = 0)
+        self.__writepdb("%s_PR1.pdb" % self.d_pdbName)
 
     # Return the file name (with/without extensions)
     def __fname(self, ext = True):
@@ -204,7 +203,7 @@ class sim:
 
 ################################################################################
 
-    def protein_add_forcefield(self, pdbName, modelFF, modelWater):
+    def protein_add_forcefield(self, modelFF, modelWater):
         countASP  = self.protein_countRes("ASP") 
         countGLU  = self.protein_countRes("GLU")
         countACID = countASP + countGLU
@@ -220,26 +219,26 @@ class sim:
             xstr += "\n1"
         xstr += "\nEOF"
 
-        print("           : Running gmx pdb2gmx to create %s_PR2.pdb..." % (pdbName))
+        print("           : Running gmx pdb2gmx to create %s_PR2.pdb..." % self.d_pdbName)
 
         # Generate topology and protonate (make neutral) all GLU and ASP:
-        os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s -water %s >> builder.log 2>&1 %s" % (pdbName, pdbName, modelFF, modelWater, xstr))
+        os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s -water %s >> builder.log 2>&1 %s" % (self.d_pdbName, self.d_pdbName, modelFF, modelWater, xstr))
 
-        self.loadpdb("%s_PR2.pdb" % (pdbName)) # Update internal d_residues.
+        self.loadpdb("%s_PR2.pdb" % self.d_pdbName) # Update internal d_residues.
 
-    def protein_add_box(self, pdbName):
-        print("pHbuilder  : Running gmx editconf to create %s_BOX.pdb..." % (pdbName))
+    def protein_add_box(self):
+        print("pHbuilder  : Running gmx editconf to create %s_BOX.pdb..." % self.d_pdbName)
 
-        os.system("gmx editconf -f %s_PR2.pdb -o %s_BOX.pdb -c -d 1.0 -bt cubic >> builder.log 2>&1" % (pdbName, pdbName))
+        os.system("gmx editconf -f %s_PR2.pdb -o %s_BOX.pdb -c -d 1.0 -bt cubic >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
 
-        self.loadpdb("%s_BOX.pdb" % (pdbName)) # Update internal d_residues.
+        self.loadpdb("%s_BOX.pdb" % self.d_pdbName) # Update internal d_residues.
 
-    def protein_add_buffer(self, pdbName):
+    def protein_add_buffer(self):
         countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
         
-        print("pHbuilder  : Running gmx insert-molecules to create %s_BUF.pdb..." % (pdbName))
+        print("pHbuilder  : Running gmx insert-molecules to create %s_BUF.pdb..." % self.d_pdbName)
 
-        os.system("gmx insert-molecules -f %s_BOX.pdb -o %s_BUF.pdb -ci buffer.pdb -nmol %s >> builder.log 2>&1" % (pdbName, pdbName, countACID))        
+        os.system("gmx insert-molecules -f %s_BOX.pdb -o %s_BUF.pdb -ci buffer.pdb -nmol %s >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName, countACID))        
 
         # Add the buffer water's topology to our .top file:
         # This piece of code is kind of a hoax but it works.
@@ -265,25 +264,25 @@ class sim:
             file.write("BUF\t\t\t\t\t  %s\n" % (countACID))
         topList.clear()
 
-        self.loadpdb("%s_BUF.pdb" % (pdbName)) # Update internal d_residues.
+        self.loadpdb("%s_BUF.pdb" % self.d_pdbName) # Update internal d_residues.
 
-    def protein_add_water(self, pdbName):
-        print("pHbuilder  : Running gmx solvate to create %s_BUF.pdb..." % (pdbName))
+    def protein_add_water(self):
+        print("pHbuilder  : Running gmx solvate to create %s_BUF.pdb..." % self.d_pdbName)
 
-        os.system("gmx solvate -cp %s_BUF.pdb -o %s_SOL.pdb -p topol.top >> builder.log 2>&1" % (pdbName, pdbName))
+        os.system("gmx solvate -cp %s_BUF.pdb -o %s_SOL.pdb -p topol.top >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
 
-        self.loadpdb("%s_SOL.pdb" % (pdbName)) # Update internal d_residues.
+        self.loadpdb("%s_SOL.pdb" % self.d_pdbName) # Update internal d_residues.
 
-    def protein_add_ions(self, pdbName):
+    def protein_add_ions(self):
         print("pHbuilder  : Running gmx grompp to create IONS.tpr...")
 
-        os.system("gmx grompp -f IONS.mdp -c %s_SOL.pdb -p topol.top -o IONS.tpr >> builder.log 2>&1" % (pdbName))
+        os.system("gmx grompp -f IONS.mdp -c %s_SOL.pdb -p topol.top -o IONS.tpr >> builder.log 2>&1" % self.d_pdbName)
 
-        print("           : Running gmx genion to create %s_ION.pdb..." % (pdbName))
+        print("           : Running gmx genion to create %s_ION.pdb..." % self.d_pdbName)
 
-        os.system("gmx genion -s IONS.tpr -o %s_ION.pdb -p topol.top -pname NA -nname CL -neutral >> builder.log 2>&1 << EOF\nSOL\nEOF" % pdbName)
+        os.system("gmx genion -s IONS.tpr -o %s_ION.pdb -p topol.top -pname NA -nname CL -neutral >> builder.log 2>&1 << EOF\nSOL\nEOF" % self.d_pdbName)
 
-        self.loadpdb("%s_ION.pdb" % (pdbName)) # Update internal d_residues.
+        self.loadpdb("%s_ION.pdb" % self.d_pdbName) # Update internal d_residues.
 
 ################################################################################
 
@@ -420,17 +419,17 @@ class sim:
 
             file.close()
 
-    def generate_index(self, fname, name, group):
+    def generate_index(self, name, group):
         # Warn user if the energy group already exists
-        if (os.path.isfile(fname)):
-            print("writendx   : Detected existing file %s, will append [ %s ]..." % (fname, name))
+        if (os.path.isfile("index.ndx")):
+            print("writendx   : Detected existing file index.ndx, will append [ %s ]..." % name)
 
             with open("index.ndx", "r") as file:
                 if name in file.read():
-                    print("           : Warning : [ %s ] in %s already exists. aborting..." % (name, fname))
+                    print("           : Warning : [ %s ] in index.ndx already exists. aborting..." % name)
                     return
         else:
-            print("writendx   : No existing file %s was found. Will create..." % (fname))
+            print("writendx   : No existing index file was found. Will create...")
 
         with open("index.ndx", "a+") as file:
             file.write("[ %s ]\n" % (name))
@@ -453,11 +452,11 @@ class sim:
             file.write("\n\n")
         
         if (xxx):
-            print("           : Wrote group [ %s ] from %s to %s" % (name, self.d_fname, fname))
+            print("           : Wrote group [ %s ] from %s to index.ndx" % (name, self.d_fname))
         else:
             print("           : Warning : no atoms beloning to [ %s ] were found" % (name))
 
-    def generate_phdata(self, pdbFname, pH):
+    def generate_phdata(self, pH):
         countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
 
         file = open("constant_ph_input.dat", "w+")
@@ -608,28 +607,24 @@ class sim:
 
 ################################################################################
 
-    @staticmethod
-    def energy_minimize(pdbName):
-        os.system("gmx grompp -f EM.mdp -c %s_ION.pdb -p topol.top -n index.ndx -o EM.tpr -r %s_ION.pdb >> builder.log 2>&1" % (pdbName, pdbName))
+    def energy_minimize(self):
+        os.system("gmx grompp -f EM.mdp -c %s_ION.pdb -p topol.top -n index.ndx -o EM.tpr -r %s_ION.pdb >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
         
-        os.system("gmx mdrun -s EM.tpr -o EM.trr -c %s_EM.pdb -g EM.log -e EM.edr >> builder.log 2>&1" % (pdbName))
+        os.system("gmx mdrun -s EM.tpr -o EM.trr -c %s_EM.pdb -g EM.log -e EM.edr >> builder.log 2>&1" % self.d_pdbName)
 
-    @staticmethod
-    def energy_tcouple(pdbName):
-        os.system("gmx grompp -f NVT.mdp -c %s_EM.pdb -p topol.top -n index.ndx -o NVT.tpr -r %s_EM.pdb >> builder.log 2>&1" % (pdbName, pdbName))
+    def energy_tcouple(self):
+        os.system("gmx grompp -f NVT.mdp -c %s_EM.pdb -p topol.top -n index.ndx -o NVT.tpr -r %s_EM.pdb >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
 
-        os.system("gmx mdrun -s NVT.tpr -o NVT.trr -c %s_NVT.pdb -g NVT.log -e NVT.edr >> builder.log 2>&1" % (pdbName))
+        os.system("gmx mdrun -s NVT.tpr -o NVT.trr -c %s_NVT.pdb -g NVT.log -e NVT.edr >> builder.log 2>&1" % self.d_pdbName)
 
-    @staticmethod
-    def energy_pcouple(pdbName):
-        os.system("gmx grompp -f NPT.mdp -c %s_NVT.pdb -p topol.top -n index.ndx -o NPT.tpr -r %s_NVT.pdb >> builder.log 2>&1" % (pdbName, pdbName))
+    def energy_pcouple(self):
+        os.system("gmx grompp -f NPT.mdp -c %s_NVT.pdb -p topol.top -n index.ndx -o NPT.tpr -r %s_NVT.pdb >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
         
-        os.system("gmx mdrun -s NPT.tpr -o NPT.trr -c %s_NPT.pdb -g NPT.log -e NPT.edr >> builder.log 2>&1" % (pdbName))
+        os.system("gmx mdrun -s NPT.tpr -o NPT.trr -c %s_NPT.pdb -g NPT.log -e NPT.edr >> builder.log 2>&1" % self.d_pdbName)
 
 ################################################################################
 
-    @staticmethod
-    def write_run(pdbName, gmxDefaultPath, gmxPhPath):
+    def write_run(self, gmxDefaultPath, gmxPhPath):
         print("writeRun   : writing run.sh...")
         
         with open("run.sh", "w+") as file:
@@ -638,20 +633,19 @@ class sim:
             file.write("# source constant-pH gromacs version\n")
             file.write("source %s/bin/GMXRC\n\n" % gmxPhPath)
 
-            file.write("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r %s_NPT.pdb\n\n" % (pdbName, pdbName))
-            file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % (pdbName))
+            file.write("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r %s_NPT.pdb\n\n" % (self.d_pdbName, self.d_pdbName))
+            file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % self.d_pdbName)
 
             file.write("# CONTINUE\n")
             file.write("# gmx convert-tpr -s MD.tpr -o MD.tpr -extend <ps>\n")
-            file.write("# gmx mdrun -v -cpi state.cpt -append -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % (pdbName))
+            file.write("# gmx mdrun -v -cpi state.cpt -append -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % self.d_pdbName)
 
             file.write("# source default gromacs version\n")
             file.write("source %s/bin/GMXRC\n" % gmxDefaultPath)
 
         os.system("chmod +x run.sh")
 
-    @staticmethod
-    def write_reset(pdbName):
+    def write_reset(self):
         print("writeReset : writing reset.sh...")
 
         with open("reset.sh", "w+") as file:
@@ -660,13 +654,12 @@ class sim:
             file.write("rm -rf \\_\\_py* charmm*\n")
             file.write("rm -f *.itp *.top *.mdp *.tpr *.log *.ndx *.edr *.trr *.cpt *.dat\n")
             file.write("rm -f \\#*\\#\n")
-            file.write("rm -f buffer.pdb %s_*.pdb\n" % pdbName)
+            file.write("rm -f buffer.pdb %s_*.pdb\n" % self.d_pdbName)
             file.write("rm -f run.sh reset.sh jobscript.sh\n")
 
         os.system("chmod +x reset.sh")
     
-    @staticmethod
-    def write_jobscript(pdbName, simName, hours, nodes):
+    def write_jobscript(self, simName, hours, nodes):
         print("writeSlurm : writing jobscript.sh...")
 
         file = open("jobscript.sh", "w+")
@@ -684,12 +677,12 @@ class sim:
         writeHead("mail-type", "ALL")
         file.write('\n')
 
-        file.write("if [ ! -f \"%s_NPT.pdb\" ]\nthen\n" % (pdbName))
+        file.write("if [ ! -f \"%s_NPT.pdb\" ]\nthen\n" % self.d_pdbName)
         file.write("\t# do prep steps\n")
         file.write("fi\n\n")
 
-        file.write("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r %s_NPT.pdb\n\n" % (pdbName, pdbName))
-        file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % (pdbName))
+        file.write("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r %s_NPT.pdb\n\n" % (self.d_pdbName, self.d_pdbName))
+        file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % self.d_pdbName)
 
         file.close()
 
