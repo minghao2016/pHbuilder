@@ -14,8 +14,7 @@ class sim:
             self.d_z       = z          # list
 
         def inspect(self): # Print Residue data.
-            print ("inspectRes : resname = %s, resid = %s, chain = %s" % 
-                (self.d_resname, self.d_resid, self.d_chain))
+            print ("inspectRes : resname = %s, resid = %s, chain = %s" % (self.d_resname, self.d_resid, self.d_chain))
                 
             for idx in range(0, len(self.d_atoms)):
                 print ("           :{:^4s}{:1s}{:8.3f} {:8.3f} {:8.3f}".format(
@@ -27,26 +26,28 @@ class sim:
                     ))
 
     def __init__(self):
-        self.d_fname    = ""
-        self.d_model    = 0
-        self.d_ALI      = ""
-        self.d_chainl   = ""
-        self.d_title    = ""
-        self.d_residues = []
-        self.d_pdbName  = ""
+        self.d_fname    = ""    # Store the name of the file that was loaded.
+        self.d_model    = 0     # Store the model number.
+        self.d_ALI      = ""    # Store the Alternative Location Indicator.
+        self.d_chainl   = ""    # Store the chain that was loaded.
+        self.d_title    = ""    # Store the TITLE line.
+        self.d_residues = []    # Store the Residue objects.
+        self.d_pdbName  = ""    # Store the .pdb name (without extention).
+
+    def update(self, tool, message):
+        print("{:22s} : {:s}".format(tool, message))
 
     def loadpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
         # REQUIRED ITERNAL STATES / DATA MEBERS ################################
-        self.d_fname    = fname  # Store the name of the file that was loaded
-        self.d_model    = MODEL  # set MODEL number to load (MODEL 1 = default)
-        self.d_ALI      = ALI    # set which ALI letter to load (A = default)
-        self.d_chainl   = CHAIN  # set which chain(s) to load (all = default)
-        self.d_title    = ""     # string    stores TITLE line.
-        self.d_residues = []     # list      stores Residue objects.
+        self.d_fname    = fname
+        self.d_model    = MODEL
+        self.d_ALI      = ALI
+        self.d_chainl   = CHAIN
+        self.d_title    = ""
+        self.d_residues = []
         
         # PRINT USER INFO ######################################################
-        print("loadpdb    : importing MODEL=%s, ALI=%s, chain(s)=" % (
-            self.d_model, self.d_ALI), end = '')
+        print("loadpdb    : importing MODEL=%s, ALI=%s, chain(s)=" % (self.d_model, self.d_ALI), end = '')
         
         if self.d_chainl[0] == "all":
             print("all", end = '')
@@ -181,7 +182,7 @@ class sim:
                 residue.inspect()
                 return
         else:
-            print("inspectRes : Cannot find residue with resid=%s and/or chain=%s" % (resid, CHAIN))
+            raise Exception("cannot find residue with resid=%s and/or chain=%s" % (resid, CHAIN))
 
     # Returns the number of residues of a specific type in the protein.
     def protein_countRes(self, resname):
@@ -204,13 +205,15 @@ class sim:
 ################################################################################
 
     def protein_add_forcefield(self, modelFF, modelWater):
-        countASP  = self.protein_countRes("ASP") 
-        countGLU  = self.protein_countRes("GLU")
-        countACID = countASP + countGLU
+        countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
 
-        # Print how many acidic residues were found
-        print("pHbuilder  : Detected %s acidic residues (%s ASP and %s GLU)..." 
-              % (countACID, countASP, countGLU))
+        self.update("protein_add_forcefield", "detected %s acidic residues:" % countACID)
+
+        count = 1
+        for residue in self.d_residues:
+            if residue.d_resname in ['ASP', 'GLU']:
+                self.update("protein_add_forcefield", "{:3s} {:<4d}".format(residue.d_resname, count))
+            count += 1
 
         # Create EOF string required for pdb2gmx to set the protonation state of 
         # ASP and GLU to true (specify 1 for user input option.
@@ -219,32 +222,30 @@ class sim:
             xstr += "\n1"
         xstr += "\nEOF"
 
-        print("           : Running gmx pdb2gmx to create %s_PR2.pdb..." % self.d_pdbName)
+        self.update("protein_add_forcefield", "running pdb2gmx to create topol.top...")
 
         # Generate topology and protonate (make neutral) all GLU and ASP:
         os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s -water %s >> builder.log 2>&1 %s" % (self.d_pdbName, self.d_pdbName, modelFF, modelWater, xstr))
 
         self.loadpdb("%s_PR2.pdb" % self.d_pdbName) # Update internal d_residues.
 
-    def protein_add_box(self):
-        print("pHbuilder  : Running gmx editconf to create %s_BOX.pdb..." % self.d_pdbName)
+    def protein_add_box(self, boxSizeMargin):
+        self.update("protein_add_box", "running gmx editconf...")
 
-        os.system("gmx editconf -f %s_PR2.pdb -o %s_BOX.pdb -c -d 1.0 -bt cubic >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
+        os.system("gmx editconf -f %s_PR2.pdb -o %s_BOX.pdb -c -d %s -bt cubic >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName, boxSizeMargin))
 
         self.loadpdb("%s_BOX.pdb" % self.d_pdbName) # Update internal d_residues.
 
     def protein_add_buffer(self):
         countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
         
-        print("pHbuilder  : Running gmx insert-molecules to create %s_BUF.pdb..." % self.d_pdbName)
+        self.update("protein_add_buffer", "adding buffer molecules...")
 
-        os.system("gmx insert-molecules -f %s_BOX.pdb -o %s_BUF.pdb -ci buffer.pdb -nmol %s >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName, countACID))        
+        os.system("gmx insert-molecules -f %s_BOX.pdb -o %s_BUF.pdb -ci buffer.pdb -nmol %s >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName, countACID))
 
-        # Add the buffer water's topology to our .top file:
-        # This piece of code is kind of a hoax but it works.
         topList = []
-        with open("topol.top", "r") as file:
-            for line in file.readlines():
+        with open("topol.top", "r") as file:    # Add the buffer water's topology to our .top file:
+            for line in file.readlines():       # This piece of code is kind of a hoax but it works.
                 topList.append(line)
 
         with open("topol.top", "w+") as file:
@@ -267,18 +268,16 @@ class sim:
         self.loadpdb("%s_BUF.pdb" % self.d_pdbName) # Update internal d_residues.
 
     def protein_add_water(self):
-        print("pHbuilder  : Running gmx solvate to create %s_BUF.pdb..." % self.d_pdbName)
+        self.update("protein_add_water", "running gmx solvate...")
 
         os.system("gmx solvate -cp %s_BUF.pdb -o %s_SOL.pdb -p topol.top >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
 
         self.loadpdb("%s_SOL.pdb" % self.d_pdbName) # Update internal d_residues.
 
     def protein_add_ions(self):
-        print("pHbuilder  : Running gmx grompp to create IONS.tpr...")
-
+        self.update("protein_add_ions", "running gmx grompp and genion to create add ions...")
+        
         os.system("gmx grompp -f IONS.mdp -c %s_SOL.pdb -p topol.top -o IONS.tpr >> builder.log 2>&1" % self.d_pdbName)
-
-        print("           : Running gmx genion to create %s_ION.pdb..." % self.d_pdbName)
 
         os.system("gmx genion -s IONS.tpr -o %s_ION.pdb -p topol.top -pname NA -nname CL -neutral >> builder.log 2>&1 << EOF\nSOL\nEOF" % self.d_pdbName)
 
@@ -287,10 +286,13 @@ class sim:
 ################################################################################
 
     class generate_mdp:
-        def __init__(self, fname, Type, dt, nsteps, output, tgroups):
+        def __init__(self, Type, dt, nsteps, output, tgroups):
             self.firstLine = True
 
-            file = open(fname, "w+")
+            if Type not in ['EM', 'NVT', 'NPT', 'MD']:
+                raise Exception("Unknown .mdp Type specified. Types are: EM, NVT, NPT, MD.")
+
+            file = open("%s.mdp" % Type, 'w+')
 
             def addParam(name, value, comment = "NUL"):
                 if (comment == "NUL"):
@@ -306,7 +308,7 @@ class sim:
                     file.write("\n; %s\n" % (title.upper()))
 
             # PRINT UPDATE
-            print("mdpGen     : writing %s..." % (fname))
+            print("generate_mdp : writing %s.mdp..." % Type)
 
             # POSITION RESTRAIN
             addTitle('Position restrain')
@@ -422,14 +424,15 @@ class sim:
     def generate_index(self, name, group):
         # Warn user if the energy group already exists
         if (os.path.isfile("index.ndx")):
-            print("writendx   : Detected existing file index.ndx, will append [ %s ]..." % name)
+            print("generate_index : detected existing index.ndx, appending [ %s ]..." % name)
 
             with open("index.ndx", "r") as file:
                 if name in file.read():
-                    print("           : Warning : [ %s ] in index.ndx already exists. aborting..." % name)
+                    print("generate_index : warning : [ %s ] in index.ndx already exists. Skipping..." % name)
                     return
         else:
-            print("writendx   : No existing index file was found. Will create...")
+            print("generate_index : no existing index.ndx found. Will create...")
+            print("generate_index : writing [ %s ]..." % name)
 
         with open("index.ndx", "a+") as file:
             file.write("[ %s ]\n" % (name))
@@ -451,10 +454,8 @@ class sim:
 
             file.write("\n\n")
         
-        if (xxx):
-            print("           : Wrote group [ %s ] from %s to index.ndx" % (name, self.d_fname))
-        else:
-            print("           : Warning : no atoms beloning to [ %s ] were found" % (name))
+        if (not xxx):
+            raise Exception("generate_index : no atoms beloning to [ %s ] were found" % name)
 
     def generate_phdata(self, pH):
         countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
@@ -608,16 +609,22 @@ class sim:
 ################################################################################
 
     def energy_minimize(self):
+        self.update("energy_minimize", "running gmx grompp and gmx mdrun for energy minimization...")
+        
         os.system("gmx grompp -f EM.mdp -c %s_ION.pdb -p topol.top -n index.ndx -o EM.tpr -r %s_ION.pdb >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
         
         os.system("gmx mdrun -s EM.tpr -o EM.trr -c %s_EM.pdb -g EM.log -e EM.edr >> builder.log 2>&1" % self.d_pdbName)
 
     def energy_tcouple(self):
+        self.update("energy_tcouple", "running gmx grompp and gmx mdrun for temperature coupling...")
+        
         os.system("gmx grompp -f NVT.mdp -c %s_EM.pdb -p topol.top -n index.ndx -o NVT.tpr -r %s_EM.pdb >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
 
         os.system("gmx mdrun -s NVT.tpr -o NVT.trr -c %s_NVT.pdb -g NVT.log -e NVT.edr >> builder.log 2>&1" % self.d_pdbName)
 
     def energy_pcouple(self):
+        self.update("energy_pcouple", "running gmx grompp and gmx mdrun for pressure coupling...")
+
         os.system("gmx grompp -f NPT.mdp -c %s_NVT.pdb -p topol.top -n index.ndx -o NPT.tpr -r %s_NVT.pdb >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
         
         os.system("gmx mdrun -s NPT.tpr -o NPT.trr -c %s_NPT.pdb -g NPT.log -e NPT.edr >> builder.log 2>&1" % self.d_pdbName)
@@ -625,7 +632,7 @@ class sim:
 ################################################################################
 
     def write_run(self, gmxDefaultPath, gmxPhPath):
-        print("writeRun   : writing run.sh...")
+        self.update("write_run", "writing run.sh...")
         
         with open("run.sh", "w+") as file:
             file.write("#!/bin/bash\n\n")
@@ -646,7 +653,7 @@ class sim:
         os.system("chmod +x run.sh")
 
     def write_reset(self):
-        print("writeReset : writing reset.sh...")
+        self.update("write_reset", "writing reset.sh...")
 
         with open("reset.sh", "w+") as file:
             file.write("#!/bin/bash\n\n")
@@ -659,8 +666,8 @@ class sim:
 
         os.system("chmod +x reset.sh")
     
-    def write_jobscript(self, simName, hours, nodes):
-        print("writeSlurm : writing jobscript.sh...")
+    def write_jobscript(self, simName, partition, hours, nodes):
+        self.update("write_jobscript", "writing jobscript.sh...")
 
         file = open("jobscript.sh", "w+")
 
@@ -671,17 +678,25 @@ class sim:
 
         writeHead("time", "%s-%s:00:00" % (int(hours / 24), hours % 24))
         writeHead("nodes", nodes)
-        writeHead("partition", "longq")
         writeHead("jobname", simName)
+        writeHead("partition", partition)        
         writeHead("mail", "anton.jansen@scilifelab.org")
         writeHead("mail-type", "ALL")
         file.write('\n')
 
         file.write("if [ ! -f \"%s_NPT.pdb\" ]\nthen\n" % self.d_pdbName)
-        file.write("\t# do prep steps\n")
+        
+        file.write("\tgmx grompp -f EM.mdp -c %s_ION.pdb -p topol.top -n index.ndx -o EM.tpr -r %s_ION.pdb\n" % (self.d_pdbName, self.d_pdbName))
+        file.write("\tgmx mdrun -s EM.tpr -o EM.trr -c %s_EM.pdb -g EM.log -e EM.edr\n\n" % self.d_pdbName)
+
+        file.write("\tgmx grompp -f NVT.mdp -c %s_EM.pdb -p topol.top -n index.ndx -o NVT.tpr -r %s_EM.pdb\n" % (self.d_pdbName, self.d_pdbName))
+        file.write("\tgmx mdrun -s NVT.tpr -o NVT.trr -c %s_NVT.pdb -g NVT.log -e NVT.edr\n\n" % self.d_pdbName)
+
+        file.write("\tgmx grompp -f NPT.mdp -c %s_NVT.pdb -p topol.top -n index.ndx -o NPT.tpr -r %s_NVT.pdb\n" % (self.d_pdbName, self.d_pdbName))
+        file.write("\tgmx mdrun -s NPT.tpr -o NPT.trr -c %s_NPT.pdb -g NPT.log -e NPT.edr\n" % self.d_pdbName)
         file.write("fi\n\n")
 
-        file.write("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r %s_NPT.pdb\n\n" % (self.d_pdbName, self.d_pdbName))
+        file.write("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r %s_NPT.pdb\n" % (self.d_pdbName, self.d_pdbName))
         file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % self.d_pdbName)
 
         file.close()
