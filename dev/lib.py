@@ -14,6 +14,8 @@ class sim:
             self.d_z       = z          # list      holds z-coordinatees
 
     def __init__(self):
+        self.d_constantpH = True
+        
         self.d_fname    = ""    # Store the name of the file that was loaded.
         self.d_model    = 0     # Store the model number.
         self.d_ALI      = ""    # Store the Alternative Location Indicator.
@@ -40,6 +42,9 @@ class sim:
         self.__update("processpdb", "importing MODEL=%s, ALI=%s, chain(s)=%s, internal name is %s..." % (self.d_model, self.d_ALI, chainString, self.d_pdbName))
         
         self.__writepdb("%s_PR1.pdb" % self.d_pdbName)
+
+    def setconstantpH(self, value):
+        self.d_constantpH = value
 
     def __loadpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
         self.d_fname    = fname         # Set internal states.
@@ -176,8 +181,8 @@ class sim:
 
         xstr = "<< EOF"                 # Create EOF string required for pdb2gmx 
         for _ in range(0, countACID):   # to set the protonation state of ASP 
-            xstr += "\n1"               # and GLU to true (specify 1 for user 
-        xstr += "\nEOF"                 # input option.
+            xstr += "\n%d" % self.d_constantpH
+        xstr += "\nEOF"                 # and GLU to true (specify 1 for user input option.
 
         self.__update("protein_add_forcefield", "running pdb2gmx to create topol.top...")
 
@@ -194,7 +199,10 @@ class sim:
         self.__loadpdb("%s_BOX.pdb" % self.d_pdbName) # Update internal d_residues.
 
     def protein_add_buffer(self, minSep):
-        
+        if (not self.d_constantpH):
+            self.__update("protein_add_buffer", "skipping this step...")
+            return
+
         self.__update("protein_add_buffer", "adding buffer molecules...")
 
         def extractMinimum():                   # Extract the required value
@@ -261,7 +269,10 @@ class sim:
     def protein_add_water(self):
         self.__update("protein_add_water", "running gmx solvate...")
 
-        os.system("gmx solvate -cp %s_BUF.pdb -o %s_SOL.pdb -p topol.top >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
+        if (self.d_constantpH):
+            os.system("gmx solvate -cp %s_BUF.pdb -o %s_SOL.pdb -p topol.top >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
+        else:
+            os.system("gmx solvate -cp %s_BOX.pdb -o %s_SOL.pdb -p topol.top >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
 
         self.__loadpdb("%s_SOL.pdb" % self.d_pdbName) # Update internal d_residues.
 
@@ -269,150 +280,148 @@ class sim:
         self.__update("protein_add_ions", "running gmx grompp and genion to add ions...")
         
         os.system("gmx grompp -f IONS.mdp -c %s_SOL.pdb -p topol.top -o IONS.tpr >> builder.log 2>&1" % self.d_pdbName)
-
         os.system("gmx genion -s IONS.tpr -o %s_ION.pdb -p topol.top -pname NA -nname CL -neutral >> builder.log 2>&1 << EOF\nSOL\nEOF" % self.d_pdbName)
 
         self.__loadpdb("%s_ION.pdb" % self.d_pdbName) # Update internal d_residues.
 
 ################################################################################
 
-    class generate_mdp:
-        def __update(self, tool, message):
-            print("{:22s} : {:s}".format(tool, message))
-        
-        def __init__(self, Type, dt, nsteps, output, tgroups):
-            self.firstLine = True
+    def generate_mdp(self, Type, dt, nsteps, output, tgroups):
+        self.firstLine = True
 
-            if Type not in ['EM', 'NVT', 'NPT', 'MD']:
-                raise Exception("Unknown .mdp Type specified. Types are: EM, NVT, NPT, MD.")
+        if Type not in ['EM', 'NVT', 'NPT', 'MD']:
+            raise Exception("Unknown .mdp Type specified. Types are: EM, NVT, NPT, MD.")
 
-            file = open("%s.mdp" % Type, 'w+')
+        file = open("%s.mdp" % Type, 'w+')
 
-            def addParam(name, value, comment = "NUL"):
-                if (comment == "NUL"):
-                    file.write("{:20s} = {:13s}\n".format(name, str(value)))
-                else:
-                    file.write("{:20s} = {:13s} ; {:13s}\n".format(name, str(value), comment))    
+        def addParam(name, value, comment = "NUL"):
+            if (comment == "NUL"):
+                file.write("{:20s} = {:13s}\n".format(name, str(value)))
+            else:
+                file.write("{:20s} = {:13s} ; {:13s}\n".format(name, str(value), comment))    
 
-            def addTitle(title=""):
-                if (self.firstLine):
-                    file.write("; %s\n" % (title.upper()))
-                    self.firstLine = False
-                else:
-                    file.write("\n; %s\n" % (title.upper()))
+        def addTitle(title=""):
+            if (self.firstLine):
+                file.write("; %s\n" % (title.upper()))
+                self.firstLine = False
+            else:
+                file.write("\n; %s\n" % (title.upper()))
 
-            self.__update("generate_mdp", "Type=%s, dt=%s, nsteps=%s, output=%s" % (Type, dt, nsteps, output))
+        self.__update("generate_mdp", "Type=%s, dt=%s, nsteps=%s, output=%s" % (Type, dt, nsteps, output))
 
-            # POSITION RESTRAIN
+        # POSITION RESTRAIN
+        if (Type in ['EM', 'MD'] and self.d_constantpH):
             addTitle('Position restrain')
-            
-            if (Type in ['EM', 'MD']):
-                addParam('define', '-DPOSRES_BUF', 'Position restraints.')
+            addParam('define', '-DPOSRES_BUF', 'Position restraints.')
 
-            if (Type in ['NVT', 'NPT']): # position restrain temp and press coupling
+        if (Type in ['NVT', 'NPT']): # position restrain temp and press coupling
+            if (self.d_constantpH):
                 addParam('define', '-DPOSRES -DPOSRES_BUF', 'Position restraints.')
+            else:
+                addTitle('Position restrain')
+                addParam('define', '-DPOSRES', 'Position restraints.')
 
-            # RUN CONTROL
-            addTitle("Run control")
+        # RUN CONTROL
+        addTitle("Run control")
 
-            if (Type == 'EM'): # emtol hardcored, pretty typical for normal MD.
-                addParam('integrator', 'steep', 'Use steep for EM.')
-                addParam('emtol', 1000, 'Stop when max force < 1000 kJ/mol/nm.')
-                addParam('emstep', dt, 'Time step (ps).')
+        if (Type == 'EM'): # emtol hardcored, pretty typical for normal MD.
+            addParam('integrator', 'steep', 'Use steep for EM.')
+            addParam('emtol', 1000, 'Stop when max force < 1000 kJ/mol/nm.')
+            addParam('emstep', dt, 'Time step (ps).')
 
-            if (Type in ['NVT', 'NPT', 'MD']):
-                addParam('integrator', 'md')
-                addParam('dt', dt, 'Time step (ps).')
+        if (Type in ['NVT', 'NPT', 'MD']):
+            addParam('integrator', 'md')
+            addParam('dt', dt, 'Time step (ps).')
+        
+        addParam('nsteps', nsteps, '%.3f ns' % ((dt * nsteps)/1000.0))
+
+        # OUTPUT CONTROL
+        addTitle("Output control")
+
+        if (output):
+            addParam('nstxout',   output, 'Write frame every %s ps.' % int(dt * output))
+            addParam('nstenergy', output, 'Write frame every %s ps.' % int(dt * output))
+            addParam('nstlog',    output, 'Write frame every %s ps.' % int(dt * output))
+
+        if (not output):
+            addParam('nstxout',   0, 'Only write last frame to .trr.')
+            addParam('nstenergy', 0, 'Only write last frame to .edr.')
+            addParam('nstlog',    0, 'Only write last frame to .log.')
+
+        # NEIGHBOUR SEARCHING PARAMETERS
+        addTitle("Neighbour searching")
+        addParam('cutoff-scheme', 'Verlet', 'Related params are inferred by Gromacs.')
+
+        # BONDED
+        if (Type in ['NVT', 'NPT', 'MD']):
+            addTitle("Bond parameters")
+            addParam('constraints', 'h-bonds', 'Constrain h-bond vibrations.')
+            addParam('constraint_algorithm', 'lincs', 'Holonomic constraints.')
+            addParam('lincs_iter', 1, 'Related to accuracy of LINCS.')
+            addParam('lincs_order', 4, 'Related to accuracy of LINCS.')
+
+        # ELECTROSTATICS
+        addTitle("Electrostatics")
+        addParam('coulombtype', 'PME', 'Use Particle Mesh Ewald.')
+        addParam('rcoulomb', 1.2, 'Berk: CHARMM was calibrated for 1.2 nm.')
+        addParam('fourierspacing', 0.14, 'Berk: set this to 0.14 for CHARMM.')
+
+        # VAN DER WAALS
+        addTitle("Van der Waals")
+        addParam('vdwtype', 'cut-off', 'Twin range cut-off with nblist cut-off.')
+        addParam('rvdw', 1.2, 'Berk: CHARMM was calibrated for 1.2 nm.')
+        addParam('vdw-modifier', 'force-switch', 'Berk: specific for CHARMM.')
+        addParam('rvdw-switch', 1.0, 'Berk: specific for CHARMM.')
+
+        # TEMPERATURE COUPLING
+        if (Type in ['NVT', 'NPT', 'MD']):
+            addTitle("Temperature coupling")
+            addParam('tcoupl', 'v-rescale')
+
+            string1 = ""; string2 = ""; string3 = ""
+            for group in tgroups:
+                string1 += group[0]      + ' '
+                string2 += str(group[1]) + ' '
+                string3 += str(group[2]) + ' '
+
+            addParam('tc-grps', string1)
+            addParam('tau-t', string2, 'Berk: change from 0.1 to 0.5.')
+            addParam('ref-t', string3, 'Reference temp. (K) (for each group).')
+
+        # PRESSURE COUPLING
+        if (Type in ['NPT', 'MD']):
+            addTitle('Pressure coupling')
             
-            addParam('nsteps', nsteps, '%.3f ns' % ((dt * nsteps)/1000.0))
+            if (Type == 'NPT'):
+                addParam('pcoupl', 'Berendsen', 'Use Berendsen for NPT.')
+            else:
+                addParam('pcoupl', 'Parrinello-Rahman')
+            
+            addParam('pcoupltype', 'isotropic', 'Uniform scaling of box.')
+            addParam('tau_p', 5.0, 'Berk: better to change from 2.0 to 5.0.')
+            addParam('ref_p', 1.0, 'Reference pressure (bar).')
+            addParam('compressibility', 4.5e-5, 'Isothermal compressbility of water.')
+            addParam('refcoord_scaling', 'all', 'Required with position restraints.')
 
-            # OUTPUT CONTROL
-            addTitle("Output control")
+        # PERIODIC BOUNDARY CONDITIONS
+        addTitle("Periodic boundary condition")
+        addParam('pbc', 'xyz', 'To keep molecule(s) in box.')
 
-            if (output):
-                addParam('nstxout',   output, 'Write frame every %s ps.' % int(dt * output))
-                addParam('nstenergy', output, 'Write frame every %s ps.' % int(dt * output))
-                addParam('nstlog',    output, 'Write frame every %s ps.' % int(dt * output))
+        # GENERATE VELOCITIES FOR STARTUP
+        if (Type == 'NVT'):
+            # This is only meaningful with integrator 'md', and we don't want
+            # to use this while we have pressure coupling or doing MD.
+            addTitle('Generate velocities for startup')
+            addParam('gen_vel', 'yes')
+            # addParam('gen_temp', 300)         # Default is also 300K.
+            # addParam('gen_seed', -1)          # Default is also -1 (random).
 
-            if (not output):
-                addParam('nstxout',   0, 'Only write last frame to .trr.')
-                addParam('nstenergy', 0, 'Only write last frame to .edr.')
-                addParam('nstlog',    0, 'Only write last frame to .log.')
+        # ENABLE PH
+        if (Type == 'MD' and self.d_constantpH):
+            addTitle('Constant pH')
+            addParam('lambda-dynamics', 'yes', 'Enable constant pH.')
 
-            # NEIGHBOUR SEARCHING PARAMETERS
-            addTitle("Neighbour searching")
-            addParam('cutoff-scheme', 'Verlet', 'Related params are inferred by Gromacs.')
-
-            # BONDED
-            if (Type in ['NVT', 'NPT', 'MD']):
-                addTitle("Bond parameters")
-                addParam('constraints', 'h-bonds', 'Constrain h-bond vibrations.')
-                addParam('constraint_algorithm', 'lincs', 'Holonomic constraints.')
-                addParam('lincs_iter', 1, 'Related to accuracy of LINCS.')
-                addParam('lincs_order', 4, 'Related to accuracy of LINCS.')
-
-            # ELECTROSTATICS
-            addTitle("Electrostatics")
-            addParam('coulombtype', 'PME', 'Use Particle Mesh Ewald.')
-            addParam('rcoulomb', 1.2, 'Berk: CHARMM was calibrated for 1.2 nm.')
-            addParam('fourierspacing', 0.14, 'Berk: set this to 0.14 for CHARMM.')
-
-            # VAN DER WAALS
-            addTitle("Van der Waals")
-            addParam('vdwtype', 'cut-off', 'Twin range cut-off with nblist cut-off.')
-            addParam('rvdw', 1.2, 'Berk: CHARMM was calibrated for 1.2 nm.')
-            addParam('vdw-modifier', 'force-switch', 'Berk: specific for CHARMM.')
-            addParam('rvdw-switch', 1.0, 'Berk: specific for CHARMM.')
-
-            # TEMPERATURE COUPLING
-            if (Type in ['NVT', 'NPT', 'MD']):
-                addTitle("Temperature coupling")
-                addParam('tcoupl', 'v-rescale')
-
-                string1 = ""; string2 = ""; string3 = ""
-                for group in tgroups:
-                    string1 += group[0]      + ' '
-                    string2 += str(group[1]) + ' '
-                    string3 += str(group[2]) + ' '
-
-                addParam('tc-grps', string1)
-                addParam('tau-t', string2, 'Berk: change from 0.1 to 0.5.')
-                addParam('ref-t', string3, 'Reference temp. (K) (for each group).')
-
-            # PRESSURE COUPLING
-            if (Type in ['NPT', 'MD']):
-                addTitle('Pressure coupling')
-                
-                if (Type == 'NPT'):
-                    addParam('pcoupl', 'Berendsen', 'Use Berendsen for NPT.')
-                else:
-                    addParam('pcoupl', 'Parrinello-Rahman')
-                
-                addParam('pcoupltype', 'isotropic', 'Uniform scaling of box.')
-                addParam('tau_p', 5.0, 'Berk: better to change from 2.0 to 5.0.')
-                addParam('ref_p', 1.0, 'Reference pressure (bar).')
-                addParam('compressibility', 4.5e-5, 'Isothermal compressbility of water.')
-                addParam('refcoord_scaling', 'all', 'Required with position restraints.')
-
-            # PERIODIC BOUNDARY CONDITIONS
-            addTitle("Periodic boundary condition")
-            addParam('pbc', 'xyz', 'To keep molecule(s) in box.')
-
-            # GENERATE VELOCITIES FOR STARTUP
-            if (Type == 'NVT'):
-                # This is only meaningful with integrator 'md', and we don't want
-                # to use this while we have pressure coupling or doing MD.
-                addTitle('Generate velocities for startup')
-                addParam('gen_vel', 'yes')
-                # addParam('gen_temp', 300)         # Default is also 300K.
-                # addParam('gen_seed', -1)          # Default is also -1 (random).
-
-            # ENABLE PH
-            if (Type == 'MD'):
-                addTitle('Constant pH')
-                addParam('lambda-dynamics', 'yes', 'Enable constant pH.')
-
-            file.close()
+        file.close()
 
     def generate_index(self, name, group):
         # Warn user if the energy group already exists
@@ -448,9 +457,13 @@ class sim:
             file.write("\n\n")
         
         if (not foundAtLeastOneAtom):
-            raise Exception("No atoms beloning to [ %s ] were found" % name)
+            self.__update("generate_index", "no atoms belonging to [ %s ] were found..." % name)
 
     def generate_phdata(self, pH):
+        if (not self.d_constantpH):
+            self.__update("generate_phdata", "skipping this step...")
+            return
+
         self.__update("generate_phdata", "pH=%s" % pH)
         
         countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
@@ -628,19 +641,29 @@ class sim:
         
         with open("run.sh", "w+") as file:
             file.write("#!/bin/bash\n\n")
-            
-            file.write("# source constant-pH gromacs version\n")
-            file.write("source %s/bin/GMXRC\n\n" % gmxPhPath)
+
+            if (self.d_constantpH):
+                file.write("# source constant-pH gromacs version\n")
+                file.write("source %s/bin/GMXRC\n\n" % gmxPhPath)
 
             file.write("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r %s_NPT.pdb\n\n" % (self.d_pdbName, self.d_pdbName))
-            file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr -nb cpu\n\n" % self.d_pdbName)
+            
+            if (self.d_constantpH):
+                file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr -nb cpu\n\n" % self.d_pdbName)
+            else:
+                file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % self.d_pdbName)
 
             file.write("# CONTINUE\n")
             file.write("# gmx convert-tpr -s MD.tpr -o MD.tpr -extend <ps>\n")
-            file.write("# gmx mdrun -v -cpi state.cpt -append -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr -nb cpu\n\n" % self.d_pdbName)
+            
+            if (self.d_constantpH):
+                file.write("# gmx mdrun -v -cpi state.cpt -append -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr -nb cpu\n\n" % self.d_pdbName)
+            else:
+                file.write("# gmx mdrun -v -cpi state.cpt -append -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % self.d_pdbName)
 
-            file.write("# source default gromacs version\n")
-            file.write("source %s/bin/GMXRC\n" % gmxDefaultPath)
+            if (self.d_constantpH):
+                file.write("# source default gromacs version\n")
+                file.write("source %s/bin/GMXRC\n" % gmxDefaultPath)
 
         os.system("chmod +x run.sh")
 
@@ -689,7 +712,11 @@ class sim:
         file.write("fi\n\n")
 
         file.write("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r %s_NPT.pdb\n" % (self.d_pdbName, self.d_pdbName))
-        file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr -nb cpu\n\n" % self.d_pdbName)
+        
+        if (self.d_constantpH):        
+            file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr -nb cpu\n\n" % self.d_pdbName)
+        else:
+            file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % self.d_pdbName)
 
         file.close()
 

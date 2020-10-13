@@ -14,6 +14,8 @@ backupFile("builder.log")
 ################################################################################
 
 sim = sim()
+
+sim.setconstantpH(True)
 sim.processpdb("1cvo.pdb")
 
 # PROTEIN
