@@ -193,11 +193,40 @@ class sim:
 
         self.__loadpdb("%s_BOX.pdb" % self.d_pdbName) # Update internal d_residues.
 
-    def protein_add_buffer(self):
+    def protein_add_buffer(self, minSep):
+        
         self.__update("protein_add_buffer", "adding buffer molecules...")
 
+        def extractMinimum():                   # Extract the required value
+            def getfloat(file, line, column):   # from our mindist.xvg
+	            x = open(file,'r')
+	            for y, z in enumerate(x):
+		            if y == line-1:
+			            number = z.split()[column-1]
+	            x.close()
+	            return float(number)
+                                                    # Position of mindist in
+            return getfloat("mindist.xvg", 25, 2)   # .xvg file.
+
         countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
-        os.system("gmx insert-molecules -f %s_BOX.pdb -o %s_BUF.pdb -ci buffer.pdb -nmol %s >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName, countACID))
+
+        attempts = 0
+        while (True):           # Randomly add the buffer molecules
+            os.system("gmx insert-molecules -f %s_BOX.pdb -o %s_BUF.pdb -ci buffer.pdb -nmol %s >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName, countACID))
+            
+                                # Determine the minimum distance between the protein and the buffers
+            os.system("gmx mindist -f %s_BUF.pdb -s %s_BUF.pdb >> builder.log 2>&1 << EOF\n1\n13\nEOF" % (self.d_pdbName, self.d_pdbName))
+
+            attempts += 1
+            if (extractMinimum() >= minSep):
+                break
+
+        self.__update("protein_add_buffer", "placing buffers took %s attempt(s) (mindist = %s)..." % (attempts, extractMinimum()))
+
+        # Cleanup
+        os.system("rm -f \\#mindist.xvg.*\\# \\#%s_BUF.pdb.*\\# mindist.xvg" % (self.d_pdbName))
+
+        self.__update("protein_add_buffer", "updating topology...")
 
         topList = []
         with open("topol.top", "r") as file:    # Add the buffer water's topology to our .top file:
@@ -231,7 +260,7 @@ class sim:
         self.__loadpdb("%s_SOL.pdb" % self.d_pdbName) # Update internal d_residues.
 
     def protein_add_ions(self):
-        self.__update("protein_add_ions", "running gmx grompp and genion to create add ions...")
+        self.__update("protein_add_ions", "running gmx grompp and genion to add ions...")
         
         os.system("gmx grompp -f IONS.mdp -c %s_SOL.pdb -p topol.top -o IONS.tpr >> builder.log 2>&1" % self.d_pdbName)
 

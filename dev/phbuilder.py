@@ -18,8 +18,8 @@ sim.processpdb("1cvo.pdb")
 
 # PROTEIN
 sim.protein_add_forcefield(modelFF, modelWater)
-sim.protein_add_box(1.0)
-sim.protein_add_buffer()
+sim.protein_add_box(boxSizeMargin=1.0)
+sim.protein_add_buffer(minSep=1.5)
 sim.protein_add_water()
 sim.protein_add_ions()
 
