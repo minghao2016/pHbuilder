@@ -4,66 +4,55 @@ class sim:
 
     class __Residue: # Stores a single residue's data.
         def __init__(self, atoms, ali, resname, chain, resid, x, y, z):
-            self.d_atoms   = atoms      # list
-            self.d_ali     = ali        # list
-            self.d_resname = resname    # string
-            self.d_chain   = chain      # string
-            self.d_resid   = resid      # int
-            self.d_x       = x          # list
-            self.d_y       = y          # list
-            self.d_z       = z          # list
-
-        def inspect(self): # Print Residue data.
-            print ("inspectRes : resname = %s, resid = %s, chain = %s" % (self.d_resname, self.d_resid, self.d_chain))
-                
-            for idx in range(0, len(self.d_atoms)):
-                print ("           :{:^4s}{:1s}{:8.3f} {:8.3f} {:8.3f}".format(
-                        self.d_atoms[idx], 
-                        self.d_ali[idx], 
-                        self.d_x[idx], 
-                        self.d_y[idx], 
-                        self.d_z[idx]
-                    ))
+            self.d_atoms   = atoms      # list      holds atom names
+            self.d_ali     = ali        # list      holds alternative loc. ind.
+            self.d_resname = resname    # string    holds residue name
+            self.d_chain   = chain      # string    holds chain name (A, B)
+            self.d_resid   = resid      # int       holds residue number
+            self.d_x       = x          # list      holds x-coordiantes
+            self.d_y       = y          # list      holds y-coordinates
+            self.d_z       = z          # list      holds z-coordinatees
 
     def __init__(self):
         self.d_fname    = ""    # Store the name of the file that was loaded.
         self.d_model    = 0     # Store the model number.
         self.d_ALI      = ""    # Store the Alternative Location Indicator.
-        self.d_chainl   = ""    # Store the chain that was loaded.
+        self.d_chainl   = []    # Store the chain that was loaded.
+        
         self.d_title    = ""    # Store the TITLE line.
         self.d_residues = []    # Store the Residue objects.
+
         self.d_pdbName  = ""    # Store the .pdb name (without extention).
 
-    def update(self, tool, message):
-        print("{:22s} : {:s}".format(tool, message))
+    def processpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
+        self.__loadpdb(fname, MODEL, ALI, CHAIN)    # Load the .pdb file.
 
-    def loadpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
-        # REQUIRED ITERNAL STATES / DATA MEBERS ################################
-        self.d_fname    = fname
+        chainString = ""                            # Create userinfo message.
+        if self.d_chainl[0] == "all":
+            chainString = "all"
+        else:
+            chainString = "["
+            for chain in self.d_chainl:
+                chainString += chain
+            chainString += "]"
+                                                    # Chop off .pdb extention.
+        self.d_pdbName = self.d_fname[0:len(self.d_fname)-4]
+        self.__update("processpdb", "importing MODEL=%s, ALI=%s, chain(s)=%s, internal name is %s..." % (self.d_model, self.d_ALI, chainString, self.d_pdbName))
+        
+        self.__writepdb("%s_PR1.pdb" % self.d_pdbName)
+
+    def __loadpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
+        self.d_fname    = fname         # Set internal states.
         self.d_model    = MODEL
         self.d_ALI      = ALI
         self.d_chainl   = CHAIN
-        self.d_title    = ""
-        self.d_residues = []
         
-        # PRINT USER INFO ######################################################
-        print("loadpdb    : importing MODEL=%s, ALI=%s, chain(s)=" % (self.d_model, self.d_ALI), end = '')
-        
-        if self.d_chainl[0] == "all":
-            print("all", end = '')
-        else: 
-            print("[", end = '')
-            for chain in self.d_chainl: 
-                print("%s" % (chain), end = '')
-            print("]", end = '')
+        self.d_title    = ""            # Clear previous title.
+        self.d_residues = []            # Clear previous values.
 
-        print(" from \"%s\"..." % (fname))
-
-        # Read .pdb line by line ###############################################
         atomLines = []
-
-        with open(fname, 'r') as file:
-            read = True         # Needs to be True if no MODEL is specified.
+        with open(fname, 'r') as file:  # Read .pdb line-by-line.
+            read = True                 # True if no specific MODEL specified.
 
             for line in file.readlines():
                 
@@ -122,81 +111,51 @@ class sim:
                         yCoord,
                         zCoord
                     ))
-
-                # Reset.
+                                            # Reset.
                 atoms = []; ali = []; xCoord = []; yCoord = []; zCoord = []
 
-        # Clear d_atomLines to save memory.
-        atomLines.clear()
-
-    # Write (modified) .pdb file.
-    def __writepdb(self, fname):
-        
-        # PRINT USER INFO ######################################################
-        print("writepdb   : writing \"%s\" to \"%s\"..." % (self.d_title, fname))
-
-        print("           : info : residues=%s, MODEL=%s, ALI=%s, chain(s)=" % 
-             (len(self.d_residues), self.d_model, self.d_ALI), end='')
-        
-        if self.d_chainl[0] == "all":
-            print("all\n", end = '')
-        else: 
-            print("[", end = '')
-            for chain in self.d_chainl: 
-                print("%s" % (chain), end = '')
-            print("]\n", end = '')
-
-        # WRITE ################################################################
+        atomLines.clear()                   # Clear d_atomLines to save memory.
+    
+    def __writepdb(self, fname):            # Write (modified) .pdb file.
         with open(fname, "w+") as file:
             file.write("TITLE %s\n" % self.d_title)          # Write title line.
             file.write("MODEL {:8d}\n".format(self.d_model)) # Write model line.
 
-            # Write actual residues.
-            num = 1
+            num = 1                         # Write actual residues.
             for residue in self.d_residues:
                 for idx in range(0, len(residue.d_atoms)):
                     file.write("{:6s}{:5d} {:^4s}{:1s}{:3s} {:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', num, residue.d_atoms[idx], residue.d_ali[idx], residue.d_resname, residue.d_chain, residue.d_resid, '', residue.d_x[idx], residue.d_y[idx], residue.d_z[idx]))
-                    num += 1
+                    num += 1                # .pdb format string.
 
-            # Write EOF information.
-            file.write("TER\nENDMDL\n")
+            file.write("TER\nENDMDL\n")     # Write EOF information.
 
-    def processpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
-        self.loadpdb(fname, MODEL, ALI, CHAIN)
-        self.d_pdbName = self.__fname(ext = 0)
-        self.__writepdb("%s_PR1.pdb" % self.d_pdbName)
-
-    # Return the file name (with/without extensions)
-    def __fname(self, ext = True):
-        if (ext):
-            return self.d_fname
-        else:
-            return self.d_fname[0:len(self.d_fname)-4]
+    def __update(self, tool, message):      # For formating user messages.
+        print("{:22s} : {:s}".format(tool, message))
 
 ################################################################################
 
-    # Print data for a specific residue.
     def protein_inspectRes(self, resid, CHAIN = 'A'):
         for residue in self.d_residues:
             if (residue.d_resid == resid and residue.d_chain == CHAIN):
-                residue.inspect()
-                return
-        else:
-            raise Exception("cannot find residue with resid=%s and/or chain=%s" % (resid, CHAIN))
 
-    # Returns the number of residues of a specific type in the protein.
-    def protein_countRes(self, resname):
-        count = 0
-        
+                self.__update("protein_inspectRes", "resname = %s, resid = %s, chain = %s" % (residue.d_resname, residue.d_resid, residue.d_chain))
+
+                for idx in range(0, len(residue.d_atoms)):
+                    self.__update("protein_inspectRes", "{:^4s}{:1s}{:8.3f} {:8.3f} {:8.3f}".format(residue.d_atoms[idx], residue.d_ali[idx], residue.d_x[idx], residue.d_y[idx], residue.d_z[idx]))
+
+                return
+
+        raise Exception("cannot find residue with resid=%s and/or chain=%s" % (resid, CHAIN))
+
+    def protein_countRes(self, resname):    # Returns num of residues with a
+        count = 0                           # specific resname.
         for residue in self.d_residues:
             if residue.d_resname == resname:
                 count += 1
         
         return count
 
-    # Resets the numbering of residues. For example, we keep counting instead 
-    # of starting 1 if we go from chain A to chain B.
-    def protein_resetResId(self):
+    def protein_resetResId(self):           # Reset the original residue numbering.
         num = 1
         for residue in self.d_residues:
             residue.d_resid = num
@@ -205,42 +164,39 @@ class sim:
 ################################################################################
 
     def protein_add_forcefield(self, modelFF, modelWater):
+        # User update
         countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
-
-        self.update("protein_add_forcefield", "detected %s acidic residues:" % countACID)
+        self.__update("protein_add_forcefield", "detected %s acidic residues:" % countACID)
 
         count = 1
         for residue in self.d_residues:
             if residue.d_resname in ['ASP', 'GLU']:
-                self.update("protein_add_forcefield", "{:3s} {:<4d}".format(residue.d_resname, count))
+                self.__update("protein_add_forcefield", "{:3s} {:<4d}".format(residue.d_resname, count))
             count += 1
 
-        # Create EOF string required for pdb2gmx to set the protonation state of 
-        # ASP and GLU to true (specify 1 for user input option.
-        xstr = "<< EOF"
-        for _ in range(0, countACID):
-            xstr += "\n1"
-        xstr += "\nEOF"
+        xstr = "<< EOF"                 # Create EOF string required for pdb2gmx 
+        for _ in range(0, countACID):   # to set the protonation state of ASP 
+            xstr += "\n1"               # and GLU to true (specify 1 for user 
+        xstr += "\nEOF"                 # input option.
 
-        self.update("protein_add_forcefield", "running pdb2gmx to create topol.top...")
+        self.__update("protein_add_forcefield", "running pdb2gmx to create topol.top...")
 
         # Generate topology and protonate (make neutral) all GLU and ASP:
         os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s -water %s >> builder.log 2>&1 %s" % (self.d_pdbName, self.d_pdbName, modelFF, modelWater, xstr))
 
-        self.loadpdb("%s_PR2.pdb" % self.d_pdbName) # Update internal d_residues.
+        self.__loadpdb("%s_PR2.pdb" % self.d_pdbName) # Update internal d_residues.
 
     def protein_add_box(self, boxSizeMargin):
-        self.update("protein_add_box", "running gmx editconf...")
+        self.__update("protein_add_box", "running gmx editconf...")
 
         os.system("gmx editconf -f %s_PR2.pdb -o %s_BOX.pdb -c -d %s -bt cubic >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName, boxSizeMargin))
 
-        self.loadpdb("%s_BOX.pdb" % self.d_pdbName) # Update internal d_residues.
+        self.__loadpdb("%s_BOX.pdb" % self.d_pdbName) # Update internal d_residues.
 
     def protein_add_buffer(self):
-        countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
-        
-        self.update("protein_add_buffer", "adding buffer molecules...")
+        self.__update("protein_add_buffer", "adding buffer molecules...")
 
+        countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
         os.system("gmx insert-molecules -f %s_BOX.pdb -o %s_BUF.pdb -ci buffer.pdb -nmol %s >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName, countACID))
 
         topList = []
@@ -265,27 +221,30 @@ class sim:
             file.write("BUF\t\t\t\t\t  %s\n" % (countACID))
         topList.clear()
 
-        self.loadpdb("%s_BUF.pdb" % self.d_pdbName) # Update internal d_residues.
+        self.__loadpdb("%s_BUF.pdb" % self.d_pdbName) # Update internal d_residues.
 
     def protein_add_water(self):
-        self.update("protein_add_water", "running gmx solvate...")
+        self.__update("protein_add_water", "running gmx solvate...")
 
         os.system("gmx solvate -cp %s_BUF.pdb -o %s_SOL.pdb -p topol.top >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
 
-        self.loadpdb("%s_SOL.pdb" % self.d_pdbName) # Update internal d_residues.
+        self.__loadpdb("%s_SOL.pdb" % self.d_pdbName) # Update internal d_residues.
 
     def protein_add_ions(self):
-        self.update("protein_add_ions", "running gmx grompp and genion to create add ions...")
+        self.__update("protein_add_ions", "running gmx grompp and genion to create add ions...")
         
         os.system("gmx grompp -f IONS.mdp -c %s_SOL.pdb -p topol.top -o IONS.tpr >> builder.log 2>&1" % self.d_pdbName)
 
         os.system("gmx genion -s IONS.tpr -o %s_ION.pdb -p topol.top -pname NA -nname CL -neutral >> builder.log 2>&1 << EOF\nSOL\nEOF" % self.d_pdbName)
 
-        self.loadpdb("%s_ION.pdb" % self.d_pdbName) # Update internal d_residues.
+        self.__loadpdb("%s_ION.pdb" % self.d_pdbName) # Update internal d_residues.
 
 ################################################################################
 
     class generate_mdp:
+        def __update(self, tool, message):
+            print("{:22s} : {:s}".format(tool, message))
+        
         def __init__(self, Type, dt, nsteps, output, tgroups):
             self.firstLine = True
 
@@ -307,8 +266,7 @@ class sim:
                 else:
                     file.write("\n; %s\n" % (title.upper()))
 
-            # PRINT UPDATE
-            print("generate_mdp : writing %s.mdp..." % Type)
+            self.__update("generate_mdp", "Type=%s, dt=%s, nsteps=%s, output=%s" % (Type, dt, nsteps, output))
 
             # POSITION RESTRAIN
             addTitle('Position restrain')
@@ -424,27 +382,27 @@ class sim:
     def generate_index(self, name, group):
         # Warn user if the energy group already exists
         if (os.path.isfile("index.ndx")):
-            print("generate_index : detected existing index.ndx, appending [ %s ]..." % name)
+            self.__update("generate_index", "detected existing index.ndx, appending [ %s ]..." % name)
 
             with open("index.ndx", "r") as file:
                 if name in file.read():
-                    print("generate_index : warning : [ %s ] in index.ndx already exists. Skipping..." % name)
+                    self.__update("generate_index", "warning : [ %s ] in index.ndx already exists. Skipping..." % name)
                     return
         else:
-            print("generate_index : no existing index.ndx found. Will create...")
-            print("generate_index : writing [ %s ]..." % name)
+            self.__update("generate_index", "no existing index.ndx found. Will create...")
+            self.__update("generate_index", "writing [ %s ]..." % name)
 
         with open("index.ndx", "a+") as file:
             file.write("[ %s ]\n" % (name))
 
-            count = 0; atom = 1; xxx = False
+            count = 0; atom = 1; foundAtLeastOneAtom = False
             for residue in self.d_residues:
                 for _ in range(0, len(residue.d_atoms)):
                 
                     if residue.d_resname in group:
                         file.write("{:<6d} ".format(atom))
                         count += 1
-                        xxx = True
+                        foundAtLeastOneAtom = True
 
                         if (count == 11): # Keep rows within 80 chars.
                             file.write("\n")
@@ -454,15 +412,17 @@ class sim:
 
             file.write("\n\n")
         
-        if (not xxx):
+        if (not foundAtLeastOneAtom):
             raise Exception("generate_index : no atoms beloning to [ %s ] were found" % name)
 
     def generate_phdata(self, pH):
+        self.__update("generate_phdata", "pH=%s" % pH)
+        
         countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
 
         file = open("constant_ph_input.dat", "w+")
 
-        ############ PART 1 - GENERAL INPUT SETTINGS FOR CONSTANT PH MD ############
+        ######### PART 1 - GENERAL INPUT SETTINGS FOR CONSTANT PH MD ###########
 
         def addParam(name, value): # Formatting function for parameters.
             file.write("{:21s} = {:13s}\n".format(name, str(value)))
@@ -579,11 +539,11 @@ class sim:
                     count += 1
 
         # WRITE BUFFER HEAD
-        addParam('name', 'BUF')                         # hardcoded
-        addParam('residue_number', 1)                   # !!!
-        addParam('initial_lambda', '0.5')               # hardcoded
-        addParam('barrier', 0.0)                        # !!!
-        addParam('n_atoms', 3 * countACID)              # !!!
+        addParam('name', 'BUF')
+        addParam('residue_number', 1)
+        addParam('initial_lambda', '0.5')
+        addParam('barrier', 0.0)
+        addParam('n_atoms', 3 * countACID)
 
         # GET INDEXLIST FOR BUFFER
         indexList = []; count = 1
@@ -601,38 +561,34 @@ class sim:
 
         # WRITE CHARGES FOR BUFFER ATOMS
         for idx in range(0, len(indexList)):
-            file.write("{:<7d} {:7.4f}  {:7.4f}\n".format(
-                        indexList[idx], BUF_charge1[idx % 3], BUF_charge2[idx % 3]))
+            file.write("{:<7d} {:7.4f}  {:7.4f}\n".format(indexList[idx], BUF_charge1[idx % 3], BUF_charge2[idx % 3]))
 
         file.close()
 
 ################################################################################
 
     def energy_minimize(self):
-        self.update("energy_minimize", "running gmx grompp and gmx mdrun for energy minimization...")
+        self.__update("energy_minimize", "running gmx grompp and mdrun for energy minimization...")
         
         os.system("gmx grompp -f EM.mdp -c %s_ION.pdb -p topol.top -n index.ndx -o EM.tpr -r %s_ION.pdb >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
-        
         os.system("gmx mdrun -s EM.tpr -o EM.trr -c %s_EM.pdb -g EM.log -e EM.edr >> builder.log 2>&1" % self.d_pdbName)
 
     def energy_tcouple(self):
-        self.update("energy_tcouple", "running gmx grompp and gmx mdrun for temperature coupling...")
+        self.__update("energy_tcouple", "running gmx grompp and mdrun for temperature coupling...")
         
         os.system("gmx grompp -f NVT.mdp -c %s_EM.pdb -p topol.top -n index.ndx -o NVT.tpr -r %s_EM.pdb >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
-
         os.system("gmx mdrun -s NVT.tpr -o NVT.trr -c %s_NVT.pdb -g NVT.log -e NVT.edr >> builder.log 2>&1" % self.d_pdbName)
 
     def energy_pcouple(self):
-        self.update("energy_pcouple", "running gmx grompp and gmx mdrun for pressure coupling...")
+        self.__update("energy_pcouple", "running gmx grompp and mdrun for pressure coupling...")
 
         os.system("gmx grompp -f NPT.mdp -c %s_NVT.pdb -p topol.top -n index.ndx -o NPT.tpr -r %s_NVT.pdb >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
-        
         os.system("gmx mdrun -s NPT.tpr -o NPT.trr -c %s_NPT.pdb -g NPT.log -e NPT.edr >> builder.log 2>&1" % self.d_pdbName)
 
 ################################################################################
 
     def write_run(self, gmxDefaultPath, gmxPhPath):
-        self.update("write_run", "writing run.sh...")
+        self.__update("write_run", "writing run.sh")
         
         with open("run.sh", "w+") as file:
             file.write("#!/bin/bash\n\n")
@@ -653,7 +609,7 @@ class sim:
         os.system("chmod +x run.sh")
 
     def write_reset(self):
-        self.update("write_reset", "writing reset.sh...")
+        self.__update("write_reset", "writing reset.sh...")
 
         with open("reset.sh", "w+") as file:
             file.write("#!/bin/bash\n\n")
@@ -666,8 +622,8 @@ class sim:
 
         os.system("chmod +x reset.sh")
     
-    def write_jobscript(self, simName, partition, hours, nodes):
-        self.update("write_jobscript", "writing jobscript.sh...")
+    def write_jobscript(self, jobName, queue, time, cores, nodes):
+        self.__update("write_jobscript", "jobname=%s, queue=%s, time=%s(hrs), cores=%s, nodes=%s..." % (jobName, queue, time, cores, nodes))
 
         file = open("jobscript.sh", "w+")
 
@@ -676,10 +632,10 @@ class sim:
 
         file.write("#!/bin/bash\n")
 
-        writeHead("time", "%s-%s:00:00" % (int(hours / 24), hours % 24))
+        writeHead("time", "%s-%s:00:00" % (int(time / 24), time % 24))
         writeHead("nodes", nodes)
-        writeHead("jobname", simName)
-        writeHead("partition", partition)        
+        writeHead("jobname", jobName)
+        writeHead("partition", queue)        
         writeHead("mail", "anton.jansen@scilifelab.org")
         writeHead("mail-type", "ALL")
         file.write('\n')

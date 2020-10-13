@@ -1,15 +1,15 @@
 #!/usr/bin/python3
 
-import os
-import sys
-from lib import sim
+import os, sys
+from lib import sim, backupFile
 
-gromPath    = "/home/anton/GIT/phbuilder/grom"      # Parameters.
+gromPath    = "/home/anton/GIT/phbuilder/grom"
 modelFF     = "charmm36-mar2019"
 modelWater  = "tip3p"
 
 # Copy files from grom to our working dir.
 os.system("cp -r %s/* ." % gromPath)
+backupFile("builder.log")
 
 ################################################################################
 
@@ -55,7 +55,7 @@ sim.generate_phdata(4.5)
 # WRITE BASH SCRIPTS
 
 sim.write_run("/usr/local/gromacs", "/usr/local/gromacs_dev")
-sim.write_jobscript("test", "longq", 36, 1)
+sim.write_jobscript("test", "longq", 36, 32, 1)
 sim.write_reset()
 
 # EQUILIBRATE
