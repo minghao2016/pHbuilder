@@ -3,23 +3,19 @@
 import os, sys
 from lib import sim, backupFile
 
-gromPath    = "/home/anton/GIT/phbuilder/grom"
-modelFF     = "charmm36-mar2019"
-modelWater  = "tip3p"
-
-# Copy files from grom to our working dir.
-os.system("cp -r %s/* ." % gromPath)
+# Set up environment/external files.
+gromPath = "/home/anton/GIT/phbuilder/grom"
+os.system("cp {0}/buffer.itp {0}/buffer.pdb {0}/IONS.mdp ./".format(gromPath))
 backupFile("builder.log")
 
 ################################################################################
 
 sim = sim()
-
 sim.setconstantpH(True)
 sim.processpdb("1cvo.pdb")
 
 # PROTEIN
-sim.protein_add_forcefield(modelFF, modelWater)
+sim.protein_add_forcefield("charmm36-mar2019", "tip3p")
 sim.protein_add_box(boxSizeMargin=1.0)
 sim.protein_add_buffer(minSep=1.5)
 sim.protein_add_water()

@@ -14,7 +14,7 @@ class sim:
             self.d_z       = z          # list      holds z-coordinatees
 
     def __init__(self):
-        self.d_constantpH = True
+        self.d_constantpH = True    # Turn constant-pH sim on or off.
         
         self.d_fname    = ""    # Store the name of the file that was loaded.
         self.d_model    = 0     # Store the model number.
@@ -179,6 +179,8 @@ class sim:
                 self.__update("protein_add_forcefield", "{:3s} {:<4d}".format(residue.d_resname, count))
             count += 1
 
+        self.d_modelFF = modelFF        # Set internal force field variable
+
         xstr = "<< EOF"                 # Create EOF string required for pdb2gmx 
         for _ in range(0, countACID):   # to set the protonation state of ASP 
             xstr += "\n%d" % self.d_constantpH
@@ -333,7 +335,7 @@ class sim:
             addParam('integrator', 'md')
             addParam('dt', dt, 'Time step (ps).')
         
-        addParam('nsteps', nsteps, '%.3f ns' % ((dt * nsteps)/1000.0))
+        addParam('nsteps', nsteps, '%.1f ns' % ((dt * nsteps)/1000.0))
 
         # OUTPUT CONTROL
         addTitle("Output control")
@@ -355,7 +357,7 @@ class sim:
         # BONDED
         if (Type in ['NVT', 'NPT', 'MD']):
             addTitle("Bond parameters")
-            addParam('constraints', 'h-bonds', 'Constrain h-bond vibrations.')
+            addParam('constraints', 'h-bonds', 'Constrain H-bond vibrations.')
             addParam('constraint_algorithm', 'lincs', 'Holonomic constraints.')
             addParam('lincs_iter', 1, 'Related to accuracy of LINCS.')
             addParam('lincs_order', 4, 'Related to accuracy of LINCS.')
@@ -363,15 +365,23 @@ class sim:
         # ELECTROSTATICS
         addTitle("Electrostatics")
         addParam('coulombtype', 'PME', 'Use Particle Mesh Ewald.')
-        addParam('rcoulomb', 1.2, 'Berk: CHARMM was calibrated for 1.2 nm.')
-        addParam('fourierspacing', 0.14, 'Berk: set this to 0.14 for CHARMM.')
+        
+        if (self.d_modelFF[0:5].lower() == "charm"): # if we use a CHARMM force field...
+            addParam('rcoulomb', 1.2, 'Berk: CHARMM was calibrated for 1.2 nm.')
+            addParam('fourierspacing', 0.14, 'Berk: set this to 0.14 for CHARMM.')
+        else: # Default for force fields:
+            addParam('rcoulomb', 1.0, 'Coulomb cut-off (nm).')
 
         # VAN DER WAALS
         addTitle("Van der Waals")
         addParam('vdwtype', 'cut-off', 'Twin range cut-off with nblist cut-off.')
-        addParam('rvdw', 1.2, 'Berk: CHARMM was calibrated for 1.2 nm.')
-        addParam('vdw-modifier', 'force-switch', 'Berk: specific for CHARMM.')
-        addParam('rvdw-switch', 1.0, 'Berk: specific for CHARMM.')
+
+        if (self.d_modelFF[0:5].lower() == "charm"): # if we use a CHARMM force field...
+            addParam('rvdw', 1.2, 'Berk: CHARMM was calibrated for 1.2 nm.')
+            addParam('vdw-modifier', 'force-switch', 'Berk: specific for CHARMM.')
+            addParam('rvdw-switch', 1.0, 'Berk: specific for CHARMM.')
+        else: # Default for force fields:
+            addParam('rvdw', 1.0, 'Van der Waals cut-off (nm).')
 
         # TEMPERATURE COUPLING
         if (Type in ['NVT', 'NPT', 'MD']):
