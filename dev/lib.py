@@ -180,6 +180,7 @@ class sim:
             count += 1
 
         self.d_modelFF = modelFF        # Set internal force field variable
+        self.__update("protein_add_forcefield", "using the %s force field with the %s water model..." % (modelFF, modelWater))
 
         xstr = "<< EOF"                 # Create EOF string required for pdb2gmx 
         for _ in range(0, countACID):   # to set the protonation state of ASP 
