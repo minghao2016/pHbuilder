@@ -1,0 +1,8 @@
+CPU Kernel / GPU Kernel
+
+src/gromacs/nbnxm/kernels_reference/kerenl_ref_inner.h
+src/gromacs/nbnxm/cuda
+
+-Maar ff kijken of je uit het toevoegen van GPU support constant pH.
+-De float4 zit in cuda/nbnxm_cuda_types.h 
+
