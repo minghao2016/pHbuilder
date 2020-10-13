@@ -145,7 +145,7 @@ class sim:
 
                 return
 
-        raise Exception("cannot find residue with resid=%s and/or chain=%s" % (resid, CHAIN))
+        raise Exception("Cannot find residue with resid=%s and/or chain=%s" % (resid, CHAIN))
 
     def protein_countRes(self, resname):    # Returns num of residues with a
         count = 0                           # specific resname.
@@ -208,6 +208,9 @@ class sim:
                                                     # Position of mindist in
             return getfloat("mindist.xvg", 25, 2)   # .xvg file.
 
+        def clean():
+            os.system("rm -f \\#mindist.xvg.*\\# \\#%s_BUF.pdb.*\\# mindist.xvg" % (self.d_pdbName))
+
         countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
 
         attempts = 0
@@ -221,10 +224,13 @@ class sim:
             if (extractMinimum() >= minSep):
                 break
 
+            if (attempts > 100):
+                clean()
+                raise Exception("Maximum number of buffer insertion attempts exceeded (100). Try decreasing minSep or increasing boxSizeMargin.")
+
         self.__update("protein_add_buffer", "placing buffers took %s attempt(s) (mindist = %s)..." % (attempts, extractMinimum()))
 
-        # Cleanup
-        os.system("rm -f \\#mindist.xvg.*\\# \\#%s_BUF.pdb.*\\# mindist.xvg" % (self.d_pdbName))
+        clean()                 # Cleanup
 
         self.__update("protein_add_buffer", "updating topology...")
 
@@ -442,7 +448,7 @@ class sim:
             file.write("\n\n")
         
         if (not foundAtLeastOneAtom):
-            raise Exception("generate_index : no atoms beloning to [ %s ] were found" % name)
+            raise Exception("No atoms beloning to [ %s ] were found" % name)
 
     def generate_phdata(self, pH):
         self.__update("generate_phdata", "pH=%s" % pH)
@@ -475,7 +481,7 @@ class sim:
         addParam('n_multigroups', 0)                # NOT RELEVANT FOR NOW
         file.write('\n')
 
-        ################ PART 2 - RESIDUE-TYPE SPECIFIC PARAMETERS #################
+        ################ PART 2 - RESIDUE-TYPE SPECIFIC PARAMETERS #############
 
         def addRes1(name, n_coeffs, dvdl_coeffs, ref_pka):  # formatting function.
             addParam('residue', name)
@@ -483,7 +489,7 @@ class sim:
 
             file.write("{:21s} = ".format('dvdl_coeffs'))
             for coeff in dvdl_coeffs:
-                file.write('%s ' % (coeff))
+                file.write('%.3f ' % (coeff))
             file.write('\n')
 
             addParam('ref_pka', ref_pka)
@@ -492,9 +498,10 @@ class sim:
         #   resName  numParams  params for ref. potential   refpKa
         addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25)
         addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65)
-        addRes1('BUF', 4, [2010.3, -2023.2, 249.56, -450.63], 4.25)
+        # addRes1('BUF', 4, [2010.3, -2023.2, 249.56, -450.63], 4.25)   # old
+        addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 0.00) # new, but might not be necessary in newer commits.
 
-        ################## PART 3 - RESIDUE-SPECIFIC PARAMETERS ####################
+        ################## PART 3 - RESIDUE-SPECIFIC PARAMETERS ################
 
         ASP_atoms   = [' CB ', ' CG ', ' OD1', ' OD2', ' HD2'] # atoms part of model
         ASP_charge1 = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
@@ -626,11 +633,11 @@ class sim:
             file.write("source %s/bin/GMXRC\n\n" % gmxPhPath)
 
             file.write("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r %s_NPT.pdb\n\n" % (self.d_pdbName, self.d_pdbName))
-            file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % self.d_pdbName)
+            file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr -nb cpu\n\n" % self.d_pdbName)
 
             file.write("# CONTINUE\n")
             file.write("# gmx convert-tpr -s MD.tpr -o MD.tpr -extend <ps>\n")
-            file.write("# gmx mdrun -v -cpi state.cpt -append -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % self.d_pdbName)
+            file.write("# gmx mdrun -v -cpi state.cpt -append -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr -nb cpu\n\n" % self.d_pdbName)
 
             file.write("# source default gromacs version\n")
             file.write("source %s/bin/GMXRC\n" % gmxDefaultPath)
@@ -682,7 +689,7 @@ class sim:
         file.write("fi\n\n")
 
         file.write("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r %s_NPT.pdb\n" % (self.d_pdbName, self.d_pdbName))
-        file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % self.d_pdbName)
+        file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr -nb cpu\n\n" % self.d_pdbName)
 
         file.close()
 
