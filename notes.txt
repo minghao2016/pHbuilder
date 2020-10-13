@@ -83,3 +83,14 @@ index                 = 994 995 996 997 998 999 1000 1001 1002
 1000    -0.0656  -0.8476
 1001     0.5328   0.4238
 1002     0.5328   0.4328
+
+--------------------------------------------------------------------------------
+
+CPU Kernel / GPU Kernel
+
+src/gromacs/nbnxm/kernels_reference/kerenl_ref_inner.h
+src/gromacs/nbnxm/cuda
+
+-Maar ff kijken of je uit het toevoegen van GPU support constant pH.
+-De float4 zit in cuda/nbnxm_cuda_types.h 
+
