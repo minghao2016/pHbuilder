@@ -1,6 +1,20 @@
 import os
 
 class sim:
+    
+    def __defineGromacsCommands(self):
+        # We define these because we re-use them in internal energy commands,
+        # the run.sh and jobscript.sh files, and if we change something we
+        # don't want to do it three times.
+        self.g_EM_gromm  = "-f EM.mdp -c {0}_ION.pdb -p topol.top -n index.ndx -o EM.tpr -r {0}_ION.pdb".format(self.d_pdbName)
+        self.g_NVT_gromm = "-f NVT.mdp -c {0}_EM.pdb -p topol.top -n index.ndx -o NVT.tpr -r {0}_EM.pdb".format(self.d_pdbName)
+        self.g_NPT_gromm = "-f NPT.mdp -c {0}_NVT.pdb -p topol.top -n index.ndx -o NPT.tpr -r {0}_NVT.pdb".format(self.d_pdbName)
+        self.g_MD_gromm  = "-f MD.mdp -c {0}_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r {0}_NPT.pdb".format(self.d_pdbName)
+        
+        self.g_EM_md  = "-s EM.tpr -o EM.trr -c {0}_EM.pdb -g EM.log -e EM.edr".format(self.d_pdbName)
+        self.g_NVT_md = "-s NVT.tpr -o NVT.trr -c {0}_NVT.pdb -g NVT.log -e NVT.edr".format(self.d_pdbName)
+        self.g_NPT_md = "-s NPT.tpr -o NPT.trr -c {0}_NPT.pdb -g NPT.log -e NPT.edr".format(self.d_pdbName)
+        self.g_MD_md  = "-v -s MD.tpr -o MD.trr -c {0}_MD.pdb -g MD.log -e MD.edr".format(self.d_pdbName)
 
     class __Residue: # Stores a single residue's data.
         def __init__(self, atoms, ali, resname, chain, resid, x, y, z):
@@ -42,6 +56,8 @@ class sim:
         self.__update("processpdb", "importing MODEL=%s, ALI=%s, chain(s)=%s, internal name is %s..." % (self.d_model, self.d_ALI, chainString, self.d_pdbName))
         
         self.__writepdb("%s_PR1.pdb" % self.d_pdbName)
+
+        self.__defineGromacsCommands()      # Define energy-related gmx commands.
 
     def setconstantpH(self, value):
         self.d_constantpH = value
@@ -629,21 +645,20 @@ class sim:
 
     def energy_minimize(self):
         self.__update("energy_minimize", "running gmx grompp and mdrun for energy minimization...")
-        
-        os.system("gmx grompp -f EM.mdp -c %s_ION.pdb -p topol.top -n index.ndx -o EM.tpr -r %s_ION.pdb >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
-        os.system("gmx mdrun -s EM.tpr -o EM.trr -c %s_EM.pdb -g EM.log -e EM.edr >> builder.log 2>&1" % self.d_pdbName)
+
+        os.system("gmx grompp %s >> builder.log 2>&1" % self.g_EM_gromm)
+        os.system("gmx mdrun  %s >> builder.log 2>&1" % self.g_EM_md)
 
     def energy_tcouple(self):
         self.__update("energy_tcouple", "running gmx grompp and mdrun for temperature coupling...")
-        
-        os.system("gmx grompp -f NVT.mdp -c %s_EM.pdb -p topol.top -n index.ndx -o NVT.tpr -r %s_EM.pdb >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
-        os.system("gmx mdrun -s NVT.tpr -o NVT.trr -c %s_NVT.pdb -g NVT.log -e NVT.edr >> builder.log 2>&1" % self.d_pdbName)
+
+        os.system("gmx grompp %s >> builder.log 2>&1" % self.g_NVT_gromm)
+        os.system("gmx mdrun  %s >> builder.log 2>&1" % self.g_NVT_md)
 
     def energy_pcouple(self):
         self.__update("energy_pcouple", "running gmx grompp and mdrun for pressure coupling...")
-
-        os.system("gmx grompp -f NPT.mdp -c %s_NVT.pdb -p topol.top -n index.ndx -o NPT.tpr -r %s_NVT.pdb >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
-        os.system("gmx mdrun -s NPT.tpr -o NPT.trr -c %s_NPT.pdb -g NPT.log -e NPT.edr >> builder.log 2>&1" % self.d_pdbName)
+        os.system("gmx grompp %s >> builder.log 2>&1" % self.g_NPT_gromm)
+        os.system("gmx mdrun  %s >> builder.log 2>&1" % self.g_NPT_md)
 
 ################################################################################
 
@@ -657,20 +672,16 @@ class sim:
                 file.write("# source constant-pH gromacs version\n")
                 file.write("source %s/bin/GMXRC\n\n" % gmxPhPath)
 
-            file.write("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r %s_NPT.pdb\n\n" % (self.d_pdbName, self.d_pdbName))
+            file.write("gmx grompp %s\n\n" % self.g_MD_gromm)
             
             if (self.d_constantpH):
-                file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr -nb cpu\n\n" % self.d_pdbName)
+                file.write("gmx mdrun %s -nb cpu\n\n" % self.g_MD_md)
             else:
-                file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % self.d_pdbName)
+                file.write("gmx mdrun %s\n\n" % self.g_MD_md)
 
             file.write("# CONTINUE\n")
             file.write("# gmx convert-tpr -s MD.tpr -o MD.tpr -extend <ps>\n")
-            
-            if (self.d_constantpH):
-                file.write("# gmx mdrun -v -cpi state.cpt -append -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr -nb cpu\n\n" % self.d_pdbName)
-            else:
-                file.write("# gmx mdrun -v -cpi state.cpt -append -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % self.d_pdbName)
+            file.write("# gmx mdrun %s -cpi state.cpt -append \n\n" % self.g_MD_md)
 
             if (self.d_constantpH):
                 file.write("# source default gromacs version\n")
@@ -712,22 +723,22 @@ class sim:
 
         file.write("if [ ! -f \"%s_NPT.pdb\" ]\nthen\n" % self.d_pdbName)
         
-        file.write("\tgmx grompp -f EM.mdp -c %s_ION.pdb -p topol.top -n index.ndx -o EM.tpr -r %s_ION.pdb\n" % (self.d_pdbName, self.d_pdbName))
-        file.write("\tgmx mdrun -s EM.tpr -o EM.trr -c %s_EM.pdb -g EM.log -e EM.edr\n\n" % self.d_pdbName)
+        file.write("\tgmx grompp %s\n"  % self.g_EM_gromm)
+        file.write("\tgmx mdrun %s\n\n" % self.g_EM_md)
 
-        file.write("\tgmx grompp -f NVT.mdp -c %s_EM.pdb -p topol.top -n index.ndx -o NVT.tpr -r %s_EM.pdb\n" % (self.d_pdbName, self.d_pdbName))
-        file.write("\tgmx mdrun -s NVT.tpr -o NVT.trr -c %s_NVT.pdb -g NVT.log -e NVT.edr\n\n" % self.d_pdbName)
+        file.write("\tgmx grompp %s\n"  % self.g_NVT_gromm)
+        file.write("\tgmx mdrun %s\n\n" % self.g_NVT_md)
 
-        file.write("\tgmx grompp -f NPT.mdp -c %s_NVT.pdb -p topol.top -n index.ndx -o NPT.tpr -r %s_NVT.pdb\n" % (self.d_pdbName, self.d_pdbName))
-        file.write("\tgmx mdrun -s NPT.tpr -o NPT.trr -c %s_NPT.pdb -g NPT.log -e NPT.edr\n" % self.d_pdbName)
+        file.write("\tgmx grompp %s\n"  % self.g_NPT_gromm)
+        file.write("\tgmx mdrun %s\n"   % self.g_NPT_md)
         file.write("fi\n\n")
 
-        file.write("gmx grompp -f MD.mdp -c %s_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r %s_NPT.pdb\n" % (self.d_pdbName, self.d_pdbName))
+        file.write("gmx grompp %s\n"    % self.g_MD_gromm)
         
         if (self.d_constantpH):        
-            file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr -nb cpu\n\n" % self.d_pdbName)
+            file.write("gmx mdrun %s -nb cpu\n" % self.g_MD_md)
         else:
-            file.write("gmx mdrun -v -s MD.tpr -o MD.trr -c %s_MD.pdb -g MD.log -e MD.edr\n\n" % self.d_pdbName)
+            file.write("gmx mdrun %s\n" % self.g_MD_md)
 
         file.close()
 
