@@ -703,8 +703,8 @@ class sim:
 
         os.system("chmod +x reset.sh")
     
-    def write_jobscript(self, jobName, queue, time, cores, nodes):
-        self.__update("write_jobscript", "jobname=%s, queue=%s, time=%s(hrs), cores=%s, nodes=%s..." % (jobName, queue, time, cores, nodes))
+    def write_jobscript(self, jobName, time, nodes, ntasks, queue):
+        self.__update("write_jobscript", "jobname=%s, time=%s(hrs), nodes=%s, ntasks=%s, queue=%s..." % (jobName, time, nodes, ntasks, queue))
 
         file = open("jobscript.sh", "w+")
 
@@ -713,13 +713,29 @@ class sim:
 
         file.write("#!/bin/bash\n")
 
-        writeHead("time", "%s-%s:00:00" % (int(time / 24), time % 24))
+        writeHead("time", "%d-%.2d:00:00" % (int(time / 24), time % 24))
         writeHead("nodes", nodes)
-        writeHead("jobname", jobName)
-        writeHead("partition", queue)        
-        writeHead("mail", "anton.jansen@scilifelab.org")
+        writeHead("ntasks", ntasks)
+        writeHead("partition", queue)
+        writeHead("job-name", jobName)
+        writeHead("mail-user", "anton.jansen@scilifelab.org")
         writeHead("mail-type", "ALL")
         file.write('\n')
+
+        file.write("module purge\nmodule load slurm\n")
+        
+        if (self.d_constantpH):
+            file.write("\n# compile our custom Gromacs version on cluster backend node\n")
+            file.write("mkdir build\n")
+            file.write("cd build\n")
+            file.write("cmake ~/gromacs_dev -DGMX_GPU=OFF -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=${PWD}/..\n")
+            file.write("make -j\n")
+            file.write("make install\n")
+            file.write("cd ..\n")
+            file.write("rm -r build\n")
+            file.write("source ${PWD}/bin/GMXRC\n\n")
+        else:
+            file.write("module load gromacs/2020.3\n\n")
 
         file.write("if [ ! -f \"%s_NPT.pdb\" ]\nthen\n" % self.d_pdbName)
         

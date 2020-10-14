@@ -44,7 +44,7 @@ sim.generate_index("NON_PROTEIN", group_NON_PROTEIN)
 sim.generate_mdp('EM',  dt=0.01,  nsteps=10000,  output=0,    tgroups=[['SYSTEM', 0.5, 300]])
 sim.generate_mdp('NVT', dt=0.002, nsteps=25000,  output=0,    tgroups=[['SYSTEM', 0.5, 300]])
 sim.generate_mdp('NPT', dt=0.002, nsteps=25000,  output=0,    tgroups=[['SYSTEM', 0.5, 300]])
-sim.generate_mdp('MD',  dt=0.002, nsteps=500000, output=1000, tgroups=[['SYSTEM', 0.5, 300]])
+sim.generate_mdp('MD',  dt=0.002, nsteps=5000,   output=1,    tgroups=[['SYSTEM', 0.5, 300]])
 
 # GENERATE CONSTANT-PH .DAT FILE
 
@@ -53,7 +53,7 @@ sim.generate_phdata(4.5)
 # WRITE BASH SCRIPTS
 
 sim.write_run("/usr/local/gromacs", "/usr/local/gromacs_dev")
-sim.write_jobscript("test", "longq", 36, 32, 1)
+sim.write_jobscript("test", 1, 1, 32, "tcb")
 sim.write_reset()
 
 # EQUILIBRATE
