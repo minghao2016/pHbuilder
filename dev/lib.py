@@ -41,7 +41,7 @@ class sim:
         self.d_pdbName  = ""    # Store the .pdb name (without extention).
 
     def processpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
-        self.__loadpdb(fname, MODEL, ALI, CHAIN)    # Load the .pdb file.
+        self.loadpdb(fname, MODEL, ALI, CHAIN)    # Load the .pdb file.
 
         chainString = ""                            # Create userinfo message.
         if self.d_chainl[0] == "all":
@@ -62,7 +62,7 @@ class sim:
     def setconstantpH(self, value):
         self.d_constantpH = value
 
-    def __loadpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
+    def loadpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
         self.d_fname    = fname         # Set internal states.
         self.d_model    = MODEL
         self.d_ALI      = ALI
@@ -208,14 +208,14 @@ class sim:
         # Generate topology and protonate (make neutral) all GLU and ASP:
         os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s -water %s >> builder.log 2>&1 %s" % (self.d_pdbName, self.d_pdbName, modelFF, modelWater, xstr))
 
-        self.__loadpdb("%s_PR2.pdb" % self.d_pdbName) # Update internal d_residues.
+        self.loadpdb("%s_PR2.pdb" % self.d_pdbName) # Update internal d_residues.
 
     def protein_add_box(self, boxSizeMargin):
         self.__update("protein_add_box", "running gmx editconf...")
 
         os.system("gmx editconf -f %s_PR2.pdb -o %s_BOX.pdb -c -d %s -bt cubic >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName, boxSizeMargin))
 
-        self.__loadpdb("%s_BOX.pdb" % self.d_pdbName) # Update internal d_residues.
+        self.loadpdb("%s_BOX.pdb" % self.d_pdbName) # Update internal d_residues.
 
     def protein_add_buffer(self, minSep):
         if (not self.d_constantpH):
@@ -225,15 +225,12 @@ class sim:
         self.__update("protein_add_buffer", "adding buffer molecules...")
 
         def extractMinimum():                   # Extract the required value
-            def getfloat(file, line, column):   # from our mindist.xvg
-	            x = open(file,'r')
-	            for y, z in enumerate(x):
-		            if y == line-1:
-			            number = z.split()[column-1]
-	            x.close()
-	            return float(number)
+            def Float(fileName, line, col):
+                for x, y in enumerate(open(fileName)):
+                    if x == line - 1:
+                        return float(y.split()[col-1])
                                                     # Position of mindist in
-            return getfloat("mindist.xvg", 25, 2)   # .xvg file.
+            return Float("mindist.xvg", 25, 2)   # .xvg file.
 
         def clean():
             os.system("rm -f \\#mindist.xvg.*\\# \\#%s_BUF.pdb.*\\# mindist.xvg" % (self.d_pdbName))
@@ -283,7 +280,7 @@ class sim:
             file.write("BUF\t\t\t\t\t  %s\n" % (countACID))
         topList.clear()
 
-        self.__loadpdb("%s_BUF.pdb" % self.d_pdbName) # Update internal d_residues.
+        self.loadpdb("%s_BUF.pdb" % self.d_pdbName) # Update internal d_residues.
 
     def protein_add_water(self):
         self.__update("protein_add_water", "running gmx solvate...")
@@ -293,7 +290,7 @@ class sim:
         else:
             os.system("gmx solvate -cp %s_BOX.pdb -o %s_SOL.pdb -p topol.top >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
 
-        self.__loadpdb("%s_SOL.pdb" % self.d_pdbName) # Update internal d_residues.
+        self.loadpdb("%s_SOL.pdb" % self.d_pdbName) # Update internal d_residues.
 
     def protein_add_ions(self):
         self.__update("protein_add_ions", "running gmx grompp and genion to add ions...")
@@ -301,11 +298,11 @@ class sim:
         os.system("gmx grompp -f IONS.mdp -c %s_SOL.pdb -p topol.top -o IONS.tpr >> builder.log 2>&1" % self.d_pdbName)
         os.system("gmx genion -s IONS.tpr -o %s_ION.pdb -p topol.top -pname NA -nname CL -neutral >> builder.log 2>&1 << EOF\nSOL\nEOF" % self.d_pdbName)
 
-        self.__loadpdb("%s_ION.pdb" % self.d_pdbName) # Update internal d_residues.
+        self.loadpdb("%s_ION.pdb" % self.d_pdbName) # Update internal d_residues.
 
 ################################################################################
 
-    def generate_mdp(self, Type, dt, nsteps, output, tgroups):
+    def generate_mdp(self, Type, nsteps = 25000, output = 0):
         self.firstLine = True
 
         if Type not in ['EM', 'NVT', 'NPT', 'MD']:
@@ -326,46 +323,41 @@ class sim:
             else:
                 file.write("\n; %s\n" % (title.upper()))
 
-        self.__update("generate_mdp", "Type=%s, dt=%s, nsteps=%s, output=%s" % (Type, dt, nsteps, output))
+        self.__update("generate_mdp", "Type=%s, nsteps=%s, output=%s" % (Type, nsteps, output))
 
         # POSITION RESTRAIN
+        addTitle('Position restrain')
         if (Type in ['EM', 'MD'] and self.d_constantpH):
-            addTitle('Position restrain')
             addParam('define', '-DPOSRES_BUF', 'Position restraints.')
 
         if (Type in ['NVT', 'NPT']): # position restrain temp and press coupling
             if (self.d_constantpH):
                 addParam('define', '-DPOSRES -DPOSRES_BUF', 'Position restraints.')
             else:
-                addTitle('Position restrain')
                 addParam('define', '-DPOSRES', 'Position restraints.')
 
         # RUN CONTROL
         addTitle("Run control")
 
         if (Type == 'EM'): # emtol hardcored, pretty typical for normal MD.
+            dt = 0.01
             addParam('integrator', 'steep', 'Use steep for EM.')
             addParam('emtol', 1000, 'Stop when max force < 1000 kJ/mol/nm.')
             addParam('emstep', dt, 'Time step (ps).')
 
         if (Type in ['NVT', 'NPT', 'MD']):
+            dt = 0.002
             addParam('integrator', 'md')
             addParam('dt', dt, 'Time step (ps).')
         
         addParam('nsteps', nsteps, '%.1f ns' % ((dt * nsteps)/1000.0))
 
         # OUTPUT CONTROL
-        addTitle("Output control")
-
         if (output):
-            addParam('nstxout',   output, 'Write frame every %s ps.' % int(dt * output))
-            addParam('nstenergy', output, 'Write frame every %s ps.' % int(dt * output))
-            addParam('nstlog',    output, 'Write frame every %s ps.' % int(dt * output))
-
-        if (not output):
-            addParam('nstxout',   0, 'Only write last frame to .trr.')
-            addParam('nstenergy', 0, 'Only write last frame to .edr.')
-            addParam('nstlog',    0, 'Only write last frame to .log.')
+            addTitle("Output control")
+            addParam('nstxout', output, 'Write frame every %.3f ps.' % (dt * output))
+            addParam('nstvout', output, 'Write frame every %.3f ps.' % (dt * output))
+            # addParam('nstenergy', output, 'Write frame every %s ps.' % int(dt * output))
 
         # NEIGHBOUR SEARCHING PARAMETERS
         addTitle("Neighbour searching")
@@ -401,6 +393,8 @@ class sim:
             addParam('rvdw', 1.0, 'Van der Waals cut-off (nm).')
 
         # TEMPERATURE COUPLING
+        tgroups = [['SYSTEM', 0.5, 300]]
+
         if (Type in ['NVT', 'NPT', 'MD']):
             addTitle("Temperature coupling")
             addParam('tcoupl', 'v-rescale')
@@ -486,7 +480,7 @@ class sim:
         if (not foundAtLeastOneAtom):
             self.__update("generate_index", "no atoms belonging to [ %s ] were found..." % name)
 
-    def generate_phdata(self, pH):
+    def generate_phdata(self, pH, lambdaM, nstOut, barrierE):
         if (not self.d_constantpH):
             self.__update("generate_phdata", "skipping this step...")
             return
@@ -507,16 +501,16 @@ class sim:
         addParam('nr_lambdagroups', countACID)      # Number of lambda groups
         file.write('\n')
 
-        addParam('m_lambda', 10.0)                  # mass of l-particles
-        addParam('T_lambda', 300)                   # ref. temp. of l-particles
+        addParam('m_lambda', lambdaM)               # mass of l-particles
+        addParam('T_lambda', "300")                 # ref. temp. of l-particles
         addParam('tau', 0.1)                        # time constant for thermostat
         addParam('thermostat', 'v-rescale')         # 'v-rescale' or 'langevin'
-        addParam('nst_lambda', 100)                 # numSteps between output
+        addParam('nst_lambda', nstOut)              # numSteps between output
 
         addParam('charge_constraint', 'yes')
         addParam('N_buffers', 1)                    # number of collective buffers
 
-        addParam('m_buf', 10.0)                     # mass of buffer particles
+        addParam('m_buf', lambdaM)                  # mass of buffer particles
         addParam('multistate_constraint', 'no')     # NOT RELEVANT FOR NOW
         addParam('n_multigroups', 0)                # NOT RELEVANT FOR NOW
         file.write('\n')
@@ -572,7 +566,7 @@ class sim:
                 addParam('name', 'ASP')                         # hardcoded
                 addParam('residue_number', residue.d_resid)     # pull from .pdb
                 addParam('initial_lambda', '0.5')               # hardcoded
-                addParam('barrier', 7.5)                        # parameter
+                addParam('barrier', barrierE)                   # parameter
                 addParam('n_atoms', '5')                        # hardcoded
                 
                 for atom in residue.d_atoms:    # Add indices of relevant atoms
@@ -593,9 +587,9 @@ class sim:
                 addParam('name', 'GLU')                         # hardcoded
                 addParam('residue_number', residue.d_resid)     # pull from .pdb
                 addParam('initial_lambda', '0.5')               # hardcoded
-                addParam('barrier', 7.5)                        # parameter
+                addParam('barrier', barrierE)                   # parameter
                 addParam('n_atoms', '5')                        # hardcoded
-                
+
                 for atom in residue.d_atoms:
                     if atom in GLU_atoms:
                         indexList.append(count)
@@ -758,15 +752,7 @@ class sim:
 
         file.close()
 
-########################## MISCELLANEOUS FUNCTIONS #############################
+    ############################################################################
 
-def backupFile(fname):
-    if os.path.isfile(fname):
-        num = 1
-        while (True):
-            if os.path.isfile("#%s.%s#" % (fname, num)):
-                num += 1
-                continue
-
-            os.system("mv %s '#%s.%s#'" % (fname, fname, num))
-            break
+    def ana_velocity_autocorr(self):
+        pass
