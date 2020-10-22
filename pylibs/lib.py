@@ -494,7 +494,7 @@ class sim:
         ######### PART 1 - GENERAL INPUT SETTINGS FOR CONSTANT PH MD ###########
 
         def addParam(name, value): # Formatting function for parameters.
-            file.write("{:21s} = {:13s}\n".format(name, str(value)))
+            file.write("{:21s} = {}\n".format(name, str(value)))
 
         addParam('ph', pH)                          # Simulation pH
         addParam('nr_residues', countACID)          # Number of acidic residues
@@ -506,19 +506,23 @@ class sim:
         addParam('tau', 0.1)                        # time constant for thermostat
         addParam('thermostat', 'v-rescale')         # 'v-rescale' or 'langevin'
         addParam('nst_lambda', nstOut)              # numSteps between output
-
-        addParam('charge_constraint', 'yes')
-        addParam('N_buffers', countACID)            # Number of individual
-                                                    # buffer molecules.
-        addParam('m_buf', lambdaM)                  # mass of buffer particles
         addParam('multistate_constraint', 'no')     # NOT RELEVANT FOR NOW
         addParam('n_multigroups', 0)                # NOT RELEVANT FOR NOW
-        file.write('\n')
+        addParam('n_states', 1)                     # NOT RELEVANT FOR NOW
+        addParam('charge_constraint', 'yes')
+        addParam('N_buffers', countACID)            # Number of individual buffer molecules.
+        addParam('m_buf', lambdaM)                  # mass of buffer particles
+        
+        file.write('constrained_lambdas   = ')      # write constrained lambdas
+        for num in range(1, (countACID + 1) + 1):   # (new in newer commit)
+            file.write("%d " % num)
+        file.write('\n\n')
 
         ################ PART 2 - RESIDUE-TYPE SPECIFIC PARAMETERS #############
 
         def addRes1(name, n_coeffs, dvdl_coeffs, ref_pka):  # formatting function.
             addParam('residue', name)
+            addParam('ref_pka', ref_pka)
             addParam('n_coeffs', n_coeffs)
 
             file.write("{:21s} = ".format('dvdl_coeffs'))
@@ -526,14 +530,13 @@ class sim:
                 file.write('%.3f ' % (coeff))
             file.write('\n')
 
-            addParam('ref_pka', ref_pka)
             file.write('\n')
 
         #   resName  numParams  params for ref. potential   refpKa
         addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25)
         addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65)
         # addRes1('BUF', 4, [2010.3, -2023.2, 249.56, -450.63], 4.25)   # old
-        addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 4.25) # new, but might not be necessary in newer commits.
+        addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 0) # new, but might not be necessary in newer commits.
 
         ################## PART 3 - RESIDUE-SPECIFIC PARAMETERS ################
 
@@ -557,14 +560,14 @@ class sim:
 
             file.write('\n\n')
 
-        count = 1
+        count = 1; Lidx = 1
         for residue in self.d_residues:      # loop through all residues
 
             indexList = []
 
             if (residue.d_resname == 'ASP'):    # if we find an ASP
                 addParam('name', 'ASP')                         # hardcoded
-                addParam('residue_number', residue.d_resid)     # pull from .pdb
+                addParam('residue_number', Lidx); Lidx += 1     # this is not related to the resid, it only has to do with the lambda.
                 addParam('initial_lambda', '0.5')               # hardcoded
                 addParam('barrier', barrierE)                   # parameter
                 addParam('n_atoms', '5')                        # hardcoded
@@ -585,7 +588,7 @@ class sim:
 
             elif (residue.d_resname == 'GLU'):
                 addParam('name', 'GLU')                         # hardcoded
-                addParam('residue_number', residue.d_resid)     # pull from .pdb
+                addParam('residue_number', Lidx); Lidx += 1     # this is not related to the resid, it only has to do with the lambda.
                 addParam('initial_lambda', '0.5')               # hardcoded
                 addParam('barrier', barrierE)                   # parameter
                 addParam('n_atoms', '5')                        # hardcoded
@@ -610,7 +613,7 @@ class sim:
 
         # WRITE BUFFER HEAD
         addParam('name', 'BUF')
-        addParam('residue_number', 1)
+        addParam('residue_number', Lidx)
         addParam('initial_lambda', '0.5')
         addParam('barrier', 0.0)
         addParam('n_atoms', 3 * countACID)
