@@ -1,5 +1,5 @@
 # DEFAULT
-import os, scipy, fnmatch
+import os, scipy, numpy, fnmatch
 import matplotlib.pyplot as plt
 from multiprocess import Pool; THREAD_MAX = 16
 
@@ -48,6 +48,27 @@ def coordinate(fileName=""):
         plt.savefig("{0}.pdf".format(fileName))
     else:
         plt.show()
+
+def checkArrhenius(barrier, lambdaNum):
+    coefficient = numpy.exp( -(barrier*10**3)/(8.3145 * 300) )
+
+    print("Barrier energy = %.3f kJ/mol" % barrier)
+    print("Gast constant  = 8.3145 kJ/(K*mol)")
+    print("Temperature    = 300 K")
+    print("coefficient    = %.4f" % (coefficient))
+
+    transitions = 0; low = False
+    x = load.Col("lambda_{0}.dat".format(lambdaNum), 2)
+    for coord in x:
+        if coord < 0 and low == False:
+            transitions += 1
+            low = True
+        
+        if coord > 1 and low == True:
+            transitions += 1
+            low = False
+
+    print(transitions)
 
 def velocity(fileName="", axis=[0, 1, -1, 1]):
     # Set show or savefig
