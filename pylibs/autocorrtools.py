@@ -45,7 +45,7 @@ def coordinate(fileName=""):
     plt.grid()
 
     if save:
-        plt.savefig("{0}.xvg".format(fileName))
+        plt.savefig("{0}.pdf".format(fileName))
     else:
         plt.show()
 
@@ -139,7 +139,7 @@ def velocity(fileName="", axis=[0, 1, -1, 1]):
         plt.grid()
         
         if save:
-            plt.savefig("%s_%s.xvg" % (fileName, idx))
+            plt.savefig("%s_%s.pdf" % (fileName, idx))
         else:
             plt.show()
 
@@ -233,6 +233,6 @@ def velocity_FT(fileName="", axis=[0, 1, -1, 1]):
         plt.grid()
         
         if save:
-            plt.savefig("%s_%s.xvg" % (fileName, idx))
+            plt.savefig("%s_%s.pdf" % (fileName, idx))
         else:
             plt.show()
