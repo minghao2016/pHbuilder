@@ -42,10 +42,10 @@ sim.generate_index("NON_PROTEIN", group_NON_PROTEIN)
 sim.generate_mdp('EM')
 sim.generate_mdp('NVT')
 sim.generate_mdp('NPT')
-sim.generate_mdp('MD',  nsteps=5000,  output=1)
+sim.generate_mdp('MD',  nsteps=500000, output=1)
 
 # GENERATE CONSTANT-PH .DAT FILE
-sim.generate_phdata(pH=4.5, lambdaM=10, nstOut=1, barrierE=7.5)
+sim.generate_phdata(pH=4.5, lambdaM=3, nstOut=1, barrierE=7.5)
 
 # WRITE BASH SCRIPTS
 sim.write_run("/usr/local/gromacs", "/usr/local/gromacs_dev")
