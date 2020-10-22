@@ -497,9 +497,9 @@ class sim:
             file.write("{:21s} = {:13s}\n".format(name, str(value)))
 
         addParam('ph', pH)                          # Simulation pH
-        addParam('nr_residues', 3)                  # ASP, GLU, BUF
-        addParam('nr_lambdagroups', countACID)      # Number of lambda groups
-        file.write('\n')
+        addParam('nr_residues', countACID)          # Number of acidic residues
+        addParam('nr_lambdagroups', countACID + 1)  # Number of lambda groups
+        file.write('\n')                            # one for each acidic residue + buffer
 
         addParam('m_lambda', lambdaM)               # mass of l-particles
         addParam('T_lambda', "300")                 # ref. temp. of l-particles
@@ -508,8 +508,8 @@ class sim:
         addParam('nst_lambda', nstOut)              # numSteps between output
 
         addParam('charge_constraint', 'yes')
-        addParam('N_buffers', 1)                    # number of collective buffers
-
+        addParam('N_buffers', countACID)            # Number of individual
+                                                    # buffer molecules.
         addParam('m_buf', lambdaM)                  # mass of buffer particles
         addParam('multistate_constraint', 'no')     # NOT RELEVANT FOR NOW
         addParam('n_multigroups', 0)                # NOT RELEVANT FOR NOW
