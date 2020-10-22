@@ -2,6 +2,7 @@
 
 import autocorrtools
 
-# autocorrtools.coordinate()
-# autocorrtools.velocity()
-# autocorrtools.velocity_FT()
+autocorrtools.coordinate("coordinate")
+autocorrtools.velocity("velocity")
+autocorrtools.velocity_FT("velocity_FT")
+
