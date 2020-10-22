@@ -94,3 +94,19 @@ src/gromacs/nbnxm/cuda
 -Maar ff kijken of je uit het toevoegen van GPU support constant pH.
 -De float4 zit in cuda/nbnxm_cuda_types.h 
 
+--------------------------------------------------------------------------------
+
+float3 -> float4 in:
+cu_atomdata
+
+float3 -> typedef die float4 gebruikt in:
+nbnxn_cuda_kernel.cuh
+nbnxn_cuda_kernel_utils.cuh
+
+Potential uitrekenen voor: zelf + paren + exclusies
+
+Controleren dat een simulatie zonder constant-pH nog correct is.
+
+Ik kan dan later de dV/dl uit de force buffer naar de dV/dl buffer kopieren.
+
+--------------------------------------------------------------------------------
