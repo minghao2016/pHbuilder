@@ -29,7 +29,7 @@ def coordinate(fileName=""):
     x.loadpdb(inferFullName())
 
     countAcid = x.protein_countRes("ASP") + x.protein_countRes("GLU")
-
+    countAcid = 1
     plt.figure()
     for idx in range(1, countAcid + 1):
         t = load.Col("lambda_{0}.dat".format(idx), 1)

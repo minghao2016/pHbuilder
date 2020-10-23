@@ -110,3 +110,16 @@ Controleren dat een simulatie zonder constant-pH nog correct is.
 Ik kan dan later de dV/dl uit de force buffer naar de dV/dl buffer kopieren.
 
 --------------------------------------------------------------------------------
+
+- Alles zit in /nbnxm/cuda
+
+In nbnxm_cuda_types.h voeg je toe:
+
+    typdef float4 ForceBufferElementType;
+
+    en in in struct cu_atomdata verander je *f van een float3 naar een
+    ForceBufferElementType.
+
+vervolgens compile je en krijg je overal foutmeldingen, dan moet je overal
+die errors vervangen float3 --> ForceBufferElementType
+
