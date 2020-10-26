@@ -123,3 +123,43 @@ In nbnxm_cuda_types.h voeg je toe:
 vervolgens compile je en krijg je overal foutmeldingen, dan moet je overal
 die errors vervangen float3 --> ForceBufferElementType
 
+--------------------------------------------------------------------------------
+
+Changed files:
+
+mdlib/sim_util.cpp
+    -Add "gmx::ArrayRef<real> electrostaticPotential" to input of definition of function "alternatePmeNbGpuWaitReduce"
+        -In this function we call nbv->"atomdata_add_nbat_f_to_f" with the extra parameter "electrostaticPotential"
+
+    -The function "atomdata_add_nbat_f_to_f" is called a bunch of different times for different scenarios in this file,
+     each time with the extra parameter "electrostaticPotential"
+
+nbnxm/nbnxm.h
+    -Add "gmx::ArrayRef<real> electrostaticPotential" to input of declaration of function "atomdata_add_nbat_f_to_f".
+
+nbnxm/nbnxm.cpp
+    -Add "gmx::ArrayRef<real> electrostaticPotential" to input of definiton of function "atomdata_add_nbat_f_to_f".
+        -In this function we call "reduceForces" with the extra parameter "electrostaticPotential".
+
+nbnxm/atomdata.h
+    -Add "gmx::ArrayRef<real> electrostaticPotential" to input of declaration of function "reduceForces".
+
+nbnxm/atomdata.cpp
+    -Changed line 667
+    -Add "gmx::ArrayRef<real> electrostaticPotential" to input of definition of function "nbnxn_atomdata_add_nbat_f_to_f_part".
+    -Add "gmx::ArrayRef<real> electrostaticPotential" to input of definition of funtion "reduceForces".
+        -In this function we call "nbnxn_atomdata_add_nbat_f_to_f_part" with the extra parameter "electrostaticPotential".
+
+nbnxm/cuda/nbnxm_cuda_types.h
+    -Added "typdef float4 ForceBufferElementType".
+    -In "struct cu_atomdata", changed "float3 *f" to "ForceBufferElementType *f".
+
+nbnxm/cuda/nbnxm_cuda_kernel.cuh
+    -Change the parameter *f we get from adat.f (adat is a c_atomdata struct) from floa3 to ForceBufferElementType.
+    -
+
+nbnxm/cuda/nbnxm_cuda_kernel_utils.cuh
+    -Changed shuffles in definition of function "reduce_force_j_warp_shfl", depending on what "ForceBufferElementType" is.
+
+nbnxm/cuda/nbnxm_cuda.cu
+    -Changed input of "cu_copy_D2H_async" using the nbatom->fstride.
