@@ -18,34 +18,29 @@ def inferName():
 ################################################################################
 
 def coordinate(fileName=""):
-    # Set show or savefig
-    if (fileName == ""):
-        save = False
-    else:
-        save = True
-
     # Load *_MD.pdb
-    x = sim()
-    x.loadpdb(inferFullName())
+    xx = sim()
+    xx.loadpdb(inferFullName())
 
-    countAcid = x.protein_countRes("ASP") + x.protein_countRes("GLU")
+    countAcid = xx.protein_countRes("ASP") + xx.protein_countRes("GLU")
     countAcid = 1
+    
     plt.figure()
     for idx in range(1, countAcid + 1):
         t = load.Col("lambda_{0}.dat".format(idx), 1)
-        x = load.Col("lambda_{0}.dat".format(idx), 2)
+        x = scipy.fft(load.Col("lambda_{0}.dat".format(idx), 2))
         
-        plt.plot(t, x)
+        plt.plot(t, x, label=idx, linewidth=0.5)
 
-    plt.title("Lambda position for {0}".format(inferName()))
     plt.xlabel("Time (ps)")
     plt.ylabel(r"$\lambda$-coordinate")
 
     plt.legend()
     plt.grid()
 
-    if save:
+    if (not fileName == ""):
         plt.savefig("{0}.pdf".format(fileName))
+        os.system("pdfcrop {0}.pdf {0}.pdf".format(fileName))
     else:
         plt.show()
 
@@ -57,26 +52,76 @@ def checkArrhenius(barrier, lambdaNum):
     print("Temperature    = 300 K")
     print("coefficient    = %.4f" % (coefficient))
 
-    transitions = 0; low = False
     x = load.Col("lambda_{0}.dat".format(lambdaNum), 2)
-    for coord in x:
-        if coord < 0 and low == False:
-            transitions += 1
-            low = True
-        
-        if coord > 1 and low == True:
-            transitions += 1
-            low = False
+    
+    N_10 = 0; N_01 = 0
+    low  = False; high = False
 
-    print(transitions)
+    # Get the number of up and down transitions
+    for coord in x:
+        if (coord < 0 and (low == False and high == False)):
+            low = True # the initial transition from 0.5 to 0 does not count
+
+        if (coord > 1 and (low == False and high == False)):
+            high = True # the initial transition from 0.5 to 1 does not count
+
+        if coord < 0 and (low == False and high == True):
+            N_10 += 1
+            low = True; high = False
+        
+        if coord > 1 and (low == True and high == False):
+            N_01 += 1
+            low = False; high = True
+
+    # Get the amount of time in the 1 and 0 states
+    time0 = 0; time1 = 0
+
+    for coord in x:
+        if (coord < 0.1):
+            time0 += 1
+    
+        if (coord > 0.9):
+            time1 += 1
+
+    nst_lambda = 1      # hardcoded
+    dt = 0.002          # hardcoded
+
+    time0 = (nst_lambda * time0) / (1000 / dt) # in ns ipv Nsteps
+    time1 = (nst_lambda * time1) / (1000 / dt) # in ns ipv Nsteps
+
+    # # Get the amount of time a transition takes
+    # timer = 0
+    # for coord in x:
+    #     if (coord < 0.0):
+    #         timer = 0
+        
+    #     if (coord > 0.0 and coord < 1.0):
+    #         timer += 1
+        
+    #     if (coord > 1.0 and timer != 0):
+    #         print(timer / (1000 / dt))
+    #         timer = 0
+
+    k_01  = N_01 / time0 # rate constant
+    k_10  = N_10 / time1 # rate constant
+
+    # A_01  = 1 / time0
+    # A_10  = 1 / time1
+
+    print("N_01 (up)      = {0}".format(N_01))
+    print("N_10 (down)    = {0}".format(N_10))
+    print("trans_total    = {0}".format(N_01 + N_10))
+    print("\n")
+    print("time in 0      = {0} ns".format(time0))
+    print("time in 1      = {0} ns".format(time1))
+
+    print("k_01           = {0} ns^-1".format(k_01))
+    print("k_10           = {0} ns^-1".format(k_10))
+
+    # print("A_01           = {0} ns^-1".format(A_01))
+    # print("A_10           = {0} ns^-1".format(A_10))
 
 def velocity(fileName="", axis=[0, 1, -1, 1]):
-    # Set show or savefig
-    if (fileName == ""):
-        save = False
-    else:
-        save = True
-    
     # Load *_MD.pdb
     x = sim()
     x.loadpdb(inferFullName())
@@ -132,7 +177,8 @@ def velocity(fileName="", axis=[0, 1, -1, 1]):
                 file.write("{0}\t{1}\n".format(t[i], v[i]))
 
         # Run gmx analyze to create the velocity-autocorrelation for the lambda.
-        os.system("gmx analyze -f lambda_{0}_velocity.xvg -ac lambda_{0}_autocorr.xvg".format(idx))
+        if (not os.path.isfile("lambda_{0}_autocorr.xvg".format(idx))):
+            os.system("gmx analyze -f lambda_{0}_velocity.xvg -ac lambda_{0}_autocorr.xvg".format(idx))
 
         # Plot
         a = load.Col("lambda_{0}_autocorr.xvg".format(idx), 1)
@@ -151,26 +197,20 @@ def velocity(fileName="", axis=[0, 1, -1, 1]):
         plt.plot(x1, y1, label="{0}".format(array[count-2]))
         plt.plot(x2, y2, label="{0}".format(array[count-1]))
 
-        plt.title("Velocity-autocorrelation for {0}".format(inferName()))
-        plt.xlabel("Time (ps)")
+        plt.xlabel("Time (ns)")
         plt.ylabel("C(t)")
 
         plt.axis(axis)
         plt.legend()
         plt.grid()
         
-        if save:
-            plt.savefig("%s_%s.pdf" % (fileName, idx))
+        if (not fileName == ""):
+            plt.savefig("{0}_{1}.pdf".format(fileName, idx))
+            os.system("pdfcrop {0}_{1}.pdf {0}_{1}.pdf".format(fileName, idx))
         else:
             plt.show()
 
 def velocity_FT(fileName="", axis=[0, 1, -1, 1]):
-    # Set show or savefig
-    if (fileName == ""):
-        save = False
-    else:
-        save = True
-    
     # Load *_MD.pdb
     x = sim()
     x.loadpdb(inferFullName())
@@ -226,7 +266,8 @@ def velocity_FT(fileName="", axis=[0, 1, -1, 1]):
                 file.write("{0}\t{1}\n".format(t[i], v[i]))
 
         # Run gmx analyze to create the velocity-autocorrelation for the lambda.
-        os.system("gmx analyze -f lambda_{0}_velocity.xvg -ac lambda_{0}_autocorr.xvg".format(idx))
+        if (not os.path.isfile("lambda_{0}_autocorr.xvg".format(idx))):
+            os.system("gmx analyze -f lambda_{0}_velocity.xvg -ac lambda_{0}_autocorr.xvg".format(idx))
 
         # Plot
         a = load.Col("lambda_{0}_autocorr.xvg".format(idx), 1)
@@ -245,7 +286,6 @@ def velocity_FT(fileName="", axis=[0, 1, -1, 1]):
         plt.plot(x1, y1, label="{0}".format(array[count-2]))
         plt.plot(x2, y2, label="{0}".format(array[count-1]))
 
-        plt.title("FT of velocity-autocorrelation for {0}".format(inferName()))
         plt.xlabel(r"$\omega$")
         plt.ylabel("a.u.")
 
@@ -253,7 +293,8 @@ def velocity_FT(fileName="", axis=[0, 1, -1, 1]):
         plt.legend()
         plt.grid()
         
-        if save:
-            plt.savefig("%s_%s.pdf" % (fileName, idx))
+        if (not fileName == ""):
+            plt.savefig("{0}_{1}.pdf".format(fileName, idx))
+            os.system("pdfcrop {0}_{1}.pdf {0}_{1}.pdf".format(fileName, idx))
         else:
             plt.show()
