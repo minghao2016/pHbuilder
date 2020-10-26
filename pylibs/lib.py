@@ -659,7 +659,7 @@ class sim:
 
 ################################################################################
 
-    def write_run(self, gmxDefaultPath, gmxPhPath):
+    def write_run(self, gmxPhPath):
         self.__update("write_run", "writing run.sh")
         
         with open("run.sh", "w+") as file:
@@ -676,13 +676,9 @@ class sim:
             else:
                 file.write("gmx mdrun %s\n\n" % self.g_MD_md)
 
-            file.write("# CONTINUE\n")
-            file.write("# gmx convert-tpr -s MD.tpr -o MD.tpr -extend <ps>\n")
-            file.write("# gmx mdrun %s -cpi state.cpt -append \n\n" % self.g_MD_md)
-
-            if (self.d_constantpH):
-                file.write("# source default gromacs version\n")
-                file.write("source %s/bin/GMXRC\n" % gmxDefaultPath)
+            # file.write("# CONTINUE\n")
+            # file.write("# gmx convert-tpr -s MD.tpr -o MD.tpr -extend <ps>\n")
+            # file.write("# gmx mdrun %s -cpi state.cpt -append \n\n" % self.g_MD_md)
 
         os.system("chmod +x run.sh")
 
@@ -693,7 +689,7 @@ class sim:
             file.write("#!/bin/bash\n\n")
             
             file.write("rm -rf \\_\\_py* charmm*\n")
-            file.write("rm -f *.itp *.top *.mdp *.tpr *.log *.ndx *.edr *.trr *.cpt *.dat\n")
+            file.write("rm -f *.itp *.top *.mdp *.tpr *.log *.ndx *.edr *.trr *.cpt *.dat *.pdf *.xvg\n")
             file.write("rm -f \\#*\\#\n")
             file.write("rm -f buffer.pdb %s_*.pdb\n" % self.d_pdbName)
             file.write("rm -f run.sh reset.sh jobscript.sh\n")

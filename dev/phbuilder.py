@@ -48,7 +48,7 @@ sim.generate_mdp('MD',  nsteps=500000, output=1)
 sim.generate_phdata(pH=4.5, lambdaM=3, nstOut=1, barrierE=7.5)
 
 # WRITE BASH SCRIPTS
-sim.write_run("/usr/local/gromacs", "/usr/local/gromacs_dev")
+sim.write_run("/usr/local/gromacs_dev")
 sim.write_jobscript(jobName="test", time=1, nodes=1, ntasks=32, queue="tcb")
 sim.write_reset()
 
