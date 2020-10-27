@@ -129,8 +129,8 @@ Changed files:
 
 mdlib/sim_util.cpp
     -Add "gmx::ArrayRef<real> electrostaticPotential" to input of definition of function "alternatePmeNbGpuWaitReduce"
-        -In this function we call nbv->"atomdata_add_nbat_f_to_f" with the extra parameter "electrostaticPotential"
-
+        -In this function we call nbv->"atomdata_add_nbat_f_to_f" with the extra parameter "electrostaticPotential"         kopieert naar van nbnxm data naar krachtenarray
+                                                                                                                            / outputbuffer
     -The function "atomdata_add_nbat_f_to_f" is called a bunch of different times for different scenarios in this file,
      each time with the extra parameter "electrostaticPotential"
 
@@ -148,7 +148,7 @@ nbnxm/atomdata.cpp
     -Changed line 667
     -Add "gmx::ArrayRef<real> electrostaticPotential" to input of definition of function "nbnxn_atomdata_add_nbat_f_to_f_part".
     -Add "gmx::ArrayRef<real> electrostaticPotential" to input of definition of funtion "reduceForces".
-        -In this function we call "nbnxn_atomdata_add_nbat_f_to_f_part" with the extra parameter "electrostaticPotential".
+        -In this function we call "nbnxn_atomdata_add_nbat_f_to_f_part" with the extra parameter "electrostaticPotential".          hier kopie toevoegen en hier print doen
 
 nbnxm/cuda/nbnxm_cuda_types.h
     -Added "typdef float4 ForceBufferElementType".
