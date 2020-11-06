@@ -23,12 +23,11 @@ def coordinate(fileName=""):
     xx.loadpdb(inferFullName())
 
     countAcid = xx.protein_countRes("ASP") + xx.protein_countRes("GLU")
-    countAcid = 1
-    
+
     plt.figure()
     for idx in range(1, countAcid + 1):
         t = load.Col("lambda_{0}.dat".format(idx), 1)
-        x = scipy.fft(load.Col("lambda_{0}.dat".format(idx), 2))
+        x = load.Col("lambda_{0}.dat".format(idx), 2)
         
         plt.plot(t, x, label=idx, linewidth=0.5)
 
@@ -45,19 +44,20 @@ def coordinate(fileName=""):
         plt.show()
 
 def checkArrhenius(barrier, lambdaNum):
+    # Compute coefficient.
     coefficient = numpy.exp( -(barrier*10**3)/(8.3145 * 300) )
 
+    # Print coefficient information.
     print("Barrier energy = %.3f kJ/mol" % barrier)
     print("Gast constant  = 8.3145 kJ/(K*mol)")
     print("Temperature    = 300 K")
-    print("coefficient    = %.4f" % (coefficient))
+    print("coefficient    = %.4f\n" % (coefficient))
 
+    # Load lambda trajectory.
     x = load.Col("lambda_{0}.dat".format(lambdaNum), 2)
     
-    N_10 = 0; N_01 = 0
-    low  = False; high = False
-
-    # Get the number of up and down transitions
+    # Get N_01 and N_10 (number of up and down transitions).
+    N_10 = 0; N_01 = 0; low  = False; high = False
     for coord in x:
         if (coord < 0 and (low == False and high == False)):
             low = True # the initial transition from 0.5 to 0 does not count
@@ -73,9 +73,8 @@ def checkArrhenius(barrier, lambdaNum):
             N_01 += 1
             low = False; high = True
 
-    # Get the amount of time in the 1 and 0 states
+    # Get t_0 and t_1 (the amount of time spent lambda = 0 and lambda = 1).
     time0 = 0; time1 = 0
-
     for coord in x:
         if (coord < 0.1):
             time0 += 1
@@ -83,43 +82,64 @@ def checkArrhenius(barrier, lambdaNum):
         if (coord > 0.9):
             time1 += 1
 
-    nst_lambda = 1      # hardcoded
-    dt = 0.002          # hardcoded
+    # Convert time0 and time1 from Nsteps to ns.
+    nst_lambda = 1      # hardcoded for now
+    dt = 0.002          # hardcoded for now
 
-    time0 = (nst_lambda * time0) / (1000 / dt) # in ns ipv Nsteps
-    time1 = (nst_lambda * time1) / (1000 / dt) # in ns ipv Nsteps
+    time0 = (nst_lambda * time0) / (1000 / dt)
+    time1 = (nst_lambda * time1) / (1000 / dt)
 
-    # # Get the amount of time a transition takes
-    # timer = 0
-    # for coord in x:
-    #     if (coord < 0.0):
-    #         timer = 0
-        
-    #     if (coord > 0.0 and coord < 1.0):
-    #         timer += 1
-        
-    #     if (coord > 1.0 and timer != 0):
-    #         print(timer / (1000 / dt))
-    #         timer = 0
+    # Perform velocity-autocorrelation to obtain A.
 
-    k_01  = N_01 / time0 # rate constant
-    k_10  = N_10 / time1 # rate constant
+    # Create a lambda-velocity.xvg file
+    if (not os.path.isfile("lambda_{0}_velocity.xvg".format(lambdaNum))):
+        t = load.Col("lambda_{0}.dat".format(lambdaNum), 1)
+        v = load.Col("lambda_{0}.dat".format(lambdaNum), 5)
 
-    # A_01  = 1 / time0
-    # A_10  = 1 / time1
+        with open("lambda_{0}_velocity.xvg".format(lambdaNum), "w+") as file:
+            for i in range(0, len(t)):
+                file.write("{0}\t{1}\n".format(t[i], v[i]))
 
-    print("N_01 (up)      = {0}".format(N_01))
-    print("N_10 (down)    = {0}".format(N_10))
-    print("trans_total    = {0}".format(N_01 + N_10))
-    print("\n")
-    print("time in 0      = {0} ns".format(time0))
-    print("time in 1      = {0} ns".format(time1))
+    # Run gmx analyze to create the velocity-autocorrelation for the lambda.
+    if (not os.path.isfile("lambda_{0}_autocorr.xvg".format(lambdaNum))):
+        os.system("gmx analyze -f lambda_{0}_velocity.xvg -ac lambda_{0}_autocorr.xvg".format(lambdaNum))
 
-    print("k_01           = {0} ns^-1".format(k_01))
-    print("k_10           = {0} ns^-1".format(k_10))
+    # Extract the period from the velocity-autocorrelation.
+    
+    # load velocity autocorrelation data
+    t = load.Col("lambda_{0}_autocorr.xvg".format(lambdaNum), 1)
+    x = load.Col("lambda_{0}_autocorr.xvg".format(lambdaNum), 2)
+    
+    # Get the actual period
+    Max = 0; MaxIdx = 0; start = False
+    for idx in range(0, len(x)):
+        if x[idx] < 0:      # only start counting once first below zero
+            start = True
 
-    # print("A_01           = {0} ns^-1".format(A_01))
-    # print("A_10           = {0} ns^-1".format(A_10))
+        if x[idx] > Max and start:
+            Max = x[idx]
+            MaxIdx = idx
+    
+    print("debug: max location = %s\n" % (t[MaxIdx]))
+
+    A = 1 / (t[MaxIdx] * 10**-3) # 1 / (ps --> ns)
+
+    # Print all the results.
+    k_01 = N_01 / time0
+    print("N_01 (up)      = %d" % N_01)
+    print("t_0            = %.4f ns" % time0)
+    print("k_01           = %.4f ns^-1" % k_01)
+    print("A              = %.4f ns^-1" % A)
+    print("k_01/A         = %.4f" % (k_01/A))
+    print("factor         = %.4f\n" % ((k_01/A)/coefficient))
+
+    k_10 = N_10 / time1
+    print("N_10 (down)    = %d" % N_10)
+    print("t_1            = %.4f ns" % time1)
+    print("k_10           = %.4f ns^-1" % k_10)
+    print("A              = %.4f ns^-1" % (A))
+    print("k_10/A         = %.4f" % (k_10/A))
+    print("factor         = %.4f\n" % ((k_10/A)/coefficient))
 
 def velocity(fileName="", axis=[0, 1, -1, 1]):
     # Load *_MD.pdb
@@ -197,7 +217,7 @@ def velocity(fileName="", axis=[0, 1, -1, 1]):
         plt.plot(x1, y1, label="{0}".format(array[count-2]))
         plt.plot(x2, y2, label="{0}".format(array[count-1]))
 
-        plt.xlabel("Time (ns)")
+        plt.xlabel("Time (ps)")
         plt.ylabel("C(t)")
 
         plt.axis(axis)
