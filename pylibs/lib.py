@@ -302,7 +302,7 @@ class sim:
 
 ################################################################################
 
-    def generate_mdp(self, Type, nsteps = 25000, output = 0):
+    def generate_mdp(self, Type, nsteps = 25000, nstxout = 0, nstvout = 0):
         self.firstLine = True
 
         if Type not in ['EM', 'NVT', 'NPT', 'MD']:
@@ -323,7 +323,7 @@ class sim:
             else:
                 file.write("\n; %s\n" % (title.upper()))
 
-        self.__update("generate_mdp", "Type=%s, nsteps=%s, output=%s" % (Type, nsteps, output))
+        self.__update("generate_mdp", "Type=%s, nsteps=%s, nstxout=%s, nstvout=%s" % (Type, nsteps, nstxout, nstvout))
 
         # POSITION RESTRAIN
         addTitle('Position restrain')
@@ -349,15 +349,20 @@ class sim:
             dt = 0.002
             addParam('integrator', 'md')
             addParam('dt', dt, 'Time step (ps).')
-        
-        addParam('nsteps', nsteps, '%.1f ns' % ((dt * nsteps)/1000.0))
+
+        addParam('nsteps', nsteps, '%.1f ns.' % ((dt * nsteps)/1000.0))
+
+        # We restrain the COM to prevent protein from coming too close to the BUFs.
+        if (Type == 'MD'): 
+            addParam('comm-mode', 'Linear', 'Remove center of mass translation.')
 
         # OUTPUT CONTROL
-        if (output):
+        if (nstxout or nstvout):
             addTitle("Output control")
-            addParam('nstxout', output, 'Write frame every %.3f ps.' % (dt * output))
-            addParam('nstvout', output, 'Write frame every %.3f ps.' % (dt * output))
-            # addParam('nstenergy', output, 'Write frame every %s ps.' % int(dt * output))
+            if (nstxout):
+                addParam('nstxout', nstxout, 'Write frame every %.3f ps.' % (dt * nstxout))
+            if (nstvout):
+                addParam('nstvout', nstvout, 'Write frame every %.3f ps.' % (dt * nstvout))
 
         # NEIGHBOUR SEARCHING PARAMETERS
         addTitle("Neighbour searching")
