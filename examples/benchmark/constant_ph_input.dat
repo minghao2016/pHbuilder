@@ -1,0 +1,258 @@
+ph = 4.25
+nr_residues = 6
+nr_lambdagroups = 16
+
+m_lambda = 5.0
+T_lambda = 300
+tau = 0.1
+thermostat = v-rescale
+nst_lambda = 100
+multistate_constraint = no
+n_multigroups = 1
+n_states = 
+charge_constraint = no
+N_buffers = 1
+m_buf = 1.0
+constrained_lambdas =
+
+residue = NTER
+ref_pka = 4.25
+n_coeffs = 0
+dvdl_coeffs = 
+
+residue = GLU
+ref_pka = 4.25
+n_coeffs = 0
+dvdl_coeffs =
+
+residue = ASP
+ref_pka = 4.25
+n_coeffs = 0
+dvdl_coeffs = 
+
+residue = CYS
+ref_pka = 4.25
+n_coeffs = 0
+dvdl_coeffs = 
+
+residue = LYS
+ref_pka = 4.25
+n_coeffs = 0
+dvdl_coeffs = 
+
+residue = CTER
+ref_pka = 4.25
+n_coeffs = 0
+dvdl_coeffs = 
+
+name = NTER
+group_number = 1
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 6
+index = 1 2 3 4 5 6
+
+1   -0.3   -0.96
+2   0.33    0.34
+3   0.33    0.34
+4   0.33    0.00    
+5   0.21    0.19
+6    0.1    0.09
+
+name = ASP
+group_number = 2
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 5
+index = 23 26 27 28 29
+
+23  -0.21   -0.28
+26   0.75    0.62
+27  -0.55   -0.76
+28  -0.61   -0.76
+29   0.44    0.00
+
+name = CYS
+group_number = 3
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 4
+index = 36 37 38 39
+
+36  -0.11  -0.1
+37   0.09  0.09
+38   0.09  0.09
+39  -0.07 -0.08
+
+name = GLU
+group_number = 4
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 5
+index = 60 63 64 65 66
+
+60  -0.21   -0.28
+63   0.75    0.62
+64  -0.55   -0.76
+65  -0.61   -0.76
+66   0.44    0.00
+
+name = LYS
+group_number = 5
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 7
+index = 117 118 119 120 121 122 123
+
+117  0.21    0.13 
+118  0.05    0.075
+119  0.05    0.075
+120  -0.3   -0.96
+121  0.33    0.34
+122  0.33    0.34
+123  0.33    0.00
+
+name = GLU
+group_number = 6
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 5
+index = 200 203 204 205 206
+
+200  -0.21   -0.28
+203  0.75    0.62
+204 -0.55   -0.76
+205 -0.61   -0.76
+206  0.44    0.00
+
+name = CYS
+group_number = 7
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 4
+index = 291 292 293 294
+
+291  -0.11  -0.1
+292   0.09  0.09
+293   0.09  0.09
+394  -0.07 -0.08
+
+name = ASP
+group_number = 8
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 5
+index = 319 322 323 324 325
+
+319  -0.21   -0.28
+322   0.75    0.62
+323  -0.55   -0.76
+324  -0.61   -0.76
+325   0.44    0.00
+
+name = LYS
+group_number = 9
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 7
+index = 355 356 357 358 359 360 361
+
+355  0.21    0.13 
+356  0.05    0.075
+357  0.05    0.075
+358  -0.3   -0.96
+359  0.33    0.34
+360  0.33    0.34
+361  0.33    0.00
+
+name = LYS
+group_number = 10
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 7
+index = 433 434 435 436 437 438 439
+
+433  0.21    0.13 
+434  0.05    0.075
+435  0.05    0.075
+436  -0.3   -0.96
+437  0.33    0.34
+438  0.33    0.34
+439  0.33    0.00
+
+name = CYS
+group_number = 11
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 4
+index = 446 447 448 449
+
+446  -0.11  -0.1
+447   0.09  0.09
+448   0.09  0.09
+449  -0.07 -0.08
+
+name = CYS
+group_number = 12
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 4
+index = 490 491 492 493
+
+490  -0.11  -0.1
+491   0.09  0.09
+492   0.09  0.09
+493  -0.07 -0.08
+
+name = GLU
+group_number = 13
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 5
+index = 559 562 563 564 565
+
+559  -0.21   -0.28
+562  0.75    0.62
+563 -0.55   -0.76
+564 -0.61   -0.76
+565  0.44    0.00
+
+name = LYS
+group_number = 14
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 7
+index = 734 735 736 737 738 739 740
+
+734  0.21    0.13 
+735  0.05    0.075
+736  0.05    0.075
+737  -0.3   -0.96
+738  0.33    0.34
+739  0.33    0.34
+740  0.33    0.00
+
+name = CYS
+group_number = 15
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 4
+index = 747 748 749 750
+
+747  -0.11  -0.1
+748   0.09  0.09
+749   0.09  0.09
+750  -0.07 -0.08
+
+name = CTER
+group_number = 16
+initial_lambda = 0.0
+barrier = 5.0
+n_atoms = 4
+index = 751 752 753 754
+
+751   0.72   0.34
+752  -0.55  -0.67
+753  -0.61  -0.67
+754   0.44   0.00
+

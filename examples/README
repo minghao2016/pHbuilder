@@ -1,0 +1,10 @@
+orig        Is het original cardiotoxin example.
+            Note that constant_ph_input.dat contains two mistakes!
+
+orig_new    Is a newer version of the constant_ph_input.dat with a slighlty
+            different order.
+
+multistate  contains an example simulation of cardiotoxin using the multistate
+            constraint.
+
+benchmark   Contains files for benchmarking.
