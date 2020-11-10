@@ -59,8 +59,9 @@ class sim:
 
         self.__defineGromacsCommands()      # Define energy-related gmx commands.
 
-    def setconstantpH(self, value):
+    def setconstantpH(self, value, restrain = True):
         self.d_constantpH = value
+        self.d_restrainpH = restrain
 
     def loadpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"]):
         self.d_fname    = fname         # Set internal states.
@@ -153,7 +154,7 @@ class sim:
     def __update(self, tool, message):      # For formating user messages.
         print("{:22s} : {:s}".format(tool, message))
 
-################################################################################
+    ############################################################################
 
     def protein_inspectRes(self, resid, CHAIN = 'A'):
         for residue in self.d_residues:
@@ -182,7 +183,7 @@ class sim:
             residue.d_resid = num
             num += 1
 
-################################################################################
+    ############################################################################
 
     def protein_add_forcefield(self, modelFF, modelWater):
         # User update
@@ -194,6 +195,7 @@ class sim:
             if residue.d_resname in ['ASP', 'GLU']:
                 self.__update("protein_add_forcefield", "{:3s} {:<4d}".format(residue.d_resname, count))
             count += 1
+        self.__update("protein_add_forcefield", "(setting protonation state to true for all of these)")
 
         self.d_modelFF = modelFF        # Set internal force field variable
         self.__update("protein_add_forcefield", "using the %s force field with the %s water model..." % (modelFF, modelWater))
@@ -218,7 +220,7 @@ class sim:
         self.loadpdb("%s_BOX.pdb" % self.d_pdbName) # Update internal d_residues.
 
     def protein_add_buffer(self, minSep):
-        if (not self.d_constantpH):
+        if (not (self.d_constantpH and self.d_restrainpH)):
             self.__update("protein_add_buffer", "skipping this step...")
             return
 
@@ -285,7 +287,7 @@ class sim:
     def protein_add_water(self):
         self.__update("protein_add_water", "running gmx solvate...")
 
-        if (self.d_constantpH):
+        if (self.d_constantpH and self.d_restrainpH):
             os.system("gmx solvate -cp %s_BUF.pdb -o %s_SOL.pdb -p topol.top >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
         else:
             os.system("gmx solvate -cp %s_BOX.pdb -o %s_SOL.pdb -p topol.top >> builder.log 2>&1" % (self.d_pdbName, self.d_pdbName))
@@ -300,9 +302,9 @@ class sim:
 
         self.loadpdb("%s_ION.pdb" % self.d_pdbName) # Update internal d_residues.
 
-################################################################################
+    ############################################################################
 
-    def generate_mdp(self, Type, nsteps = 25000, nstxout = 0, nstvout = 0):
+    def generate_mdp(self, Type, nsteps = 25000, nstxout = 0, nstvout = 0, compress = 0):
         self.firstLine = True
 
         if Type not in ['EM', 'NVT', 'NPT', 'MD']:
@@ -313,7 +315,7 @@ class sim:
         def addParam(name, value, comment = "NUL"):
             if (comment == "NUL"):
                 file.write("{:20s} = {:13s}\n".format(name, str(value)))
-            else:
+            else:            
                 file.write("{:20s} = {:13s} ; {:13s}\n".format(name, str(value), comment))    
 
         def addTitle(title=""):
@@ -323,15 +325,16 @@ class sim:
             else:
                 file.write("\n; %s\n" % (title.upper()))
 
-        self.__update("generate_mdp", "Type=%s, nsteps=%s, nstxout=%s, nstvout=%s" % (Type, nsteps, nstxout, nstvout))
+        self.__update("generate_mdp", "Type=%s, nsteps=%s, nstxout=%s, nstvout=%s, compress=%s" % (Type, nsteps, nstxout, nstvout, compress))
 
         # POSITION RESTRAIN
-        addTitle('Position restrain')
-        if (Type in ['EM', 'MD'] and self.d_constantpH):
+        if (Type in ['EM', 'MD'] and self.d_constantpH and self.d_restrainpH):
+            addTitle('Position restrain')
             addParam('define', '-DPOSRES_BUF', 'Position restraints.')
 
         if (Type in ['NVT', 'NPT']): # position restrain temp and press coupling
-            if (self.d_constantpH):
+            addTitle('Position restrain')
+            if (self.d_constantpH and self.d_restrainpH):
                 addParam('define', '-DPOSRES -DPOSRES_BUF', 'Position restraints.')
             else:
                 addParam('define', '-DPOSRES', 'Position restraints.')
@@ -353,16 +356,21 @@ class sim:
         addParam('nsteps', nsteps, '%.1f ns.' % ((dt * nsteps)/1000.0))
 
         # We restrain the COM to prevent protein from coming too close to the BUFs.
-        if (Type == 'MD'): 
+        if (Type == 'MD' and self.d_constantpH):
             addParam('comm-mode', 'Linear', 'Remove center of mass translation.')
+            addParam('comm-grps', 'Protein Non-Protein') # not our index but default gmx
 
         # OUTPUT CONTROL
-        if (nstxout or nstvout):
-            addTitle("Output control")
-            if (nstxout):
-                addParam('nstxout', nstxout, 'Write frame every %.3f ps.' % (dt * nstxout))
-            if (nstvout):
-                addParam('nstvout', nstvout, 'Write frame every %.3f ps.' % (dt * nstvout))
+        if (nstvout and compress):
+            raise Exception("Cannot combine nstxout-compressed and nstvout.")
+        
+        addTitle("Output control")
+        if (compress):
+            addParam('nstxout-compressed', nstxout, 'Write frame every %.3f ps.' % (dt * nstxout))
+            addParam('nstvout', nstvout, 'Write frame every %.3f ps.' % (dt * nstvout))
+        else:
+            addParam('nstxout', nstxout, 'Write frame every %.3f ps.' % (dt * nstxout))
+            addParam('nstvout', nstvout, 'Write frame every %.3f ps.' % (dt * nstvout))
 
         # NEIGHBOUR SEARCHING PARAMETERS
         addTitle("Neighbour searching")
@@ -449,62 +457,44 @@ class sim:
 
         file.close()
 
-    def generate_index(self, name, group):
-        # Warn user if the energy group already exists
-        if (os.path.isfile("index.ndx")):
-            self.__update("generate_index", "detected existing index.ndx, appending [ %s ]..." % name)
-
-            with open("index.ndx", "r") as file:
-                if name in file.read():
-                    self.__update("generate_index", "warning : [ %s ] in index.ndx already exists. Skipping..." % name)
-                    return
-        else:
-            self.__update("generate_index", "no existing index.ndx found. Will create...")
-            self.__update("generate_index", "writing [ %s ]..." % name)
-
-        with open("index.ndx", "a+") as file:
-            file.write("[ %s ]\n" % (name))
-
-            count = 0; atom = 1; foundAtLeastOneAtom = False
-            for residue in self.d_residues:
-                for _ in range(0, len(residue.d_atoms)):
-                
-                    if residue.d_resname in group:
-                        file.write("{:<6d} ".format(atom))
-                        count += 1
-                        foundAtLeastOneAtom = True
-
-                        if (count == 11): # Keep rows within 80 chars.
-                            file.write("\n")
-                            count = 0
-
-                    atom += 1
-
-            file.write("\n\n")
-        
-        if (not foundAtLeastOneAtom):
-            self.__update("generate_index", "no atoms belonging to [ %s ] were found..." % name)
+    def generate_index(self):
+        self.__update("generate_index", "running gmx make_ndx to create index.ndx...")
+        os.system("gmx make_ndx -f {0}_ION.pdb -o index.ndx >> builder.log 2>&1 << EOF\nq\nEOF".format(self.d_pdbName))
 
     def generate_phdata(self, pH, lambdaM, nstOut, barrierE):
         if (not self.d_constantpH):
             self.__update("generate_phdata", "skipping this step...")
             return
 
-        self.__update("generate_phdata", "pH=%s" % pH)
-        
-        countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
+        self.__update("generate_phdata", "pH=%s, lambdaM=%s, nstOut=%s, barrierE=%s" % (pH, lambdaM, nstOut, barrierE))
 
         file = open("constant_ph_input.dat", "w+")
-
+        
         ######### PART 1 - GENERAL INPUT SETTINGS FOR CONSTANT PH MD ###########
-
         def addParam(name, value): # Formatting function for parameters.
             file.write("{:21s} = {}\n".format(name, str(value)))
 
-        addParam('ph', pH)                          # Simulation pH
-        addParam('nr_residues', countACID)          # Number of acidic residues
-        addParam('nr_lambdagroups', countACID + 1)  # Number of lambda groups
-        file.write('\n')                            # one for each acidic residue + buffer
+        addParam('ph', pH)          # Simulation pH
+
+        countGLU  = self.protein_countRes("GLU")
+        countASP  = self.protein_countRes("ASP")
+        countACID = countGLU + countASP
+        
+        resTypeCount = 0
+        if (countGLU > 0):          # If we have at least one GLU ...
+            resTypeCount += 1
+        if (countASP > 0):          # If we have at least one ASP ...
+            resTypeCount += 1
+        if (self.d_restrainpH):     # If we constrain the charge we have
+            resTypeCount += 1       # at least one BUF
+
+        addParam('nr_residues', resTypeCount) # Number of different TYPES of residues (including BUF if it exists)
+        
+        if (self.d_restrainpH): # Number of lambda groups (including the one for BUF if it exists)
+            addParam('nr_lambdagroups', countACID + 1)
+        else:  
+            addParam('nr_lambdagroups', countACID)
+        file.write('\n')
 
         addParam('m_lambda', lambdaM)               # mass of l-particles
         addParam('T_lambda', "300")                 # ref. temp. of l-particles
@@ -514,13 +504,22 @@ class sim:
         addParam('multistate_constraint', 'no')     # NOT RELEVANT FOR NOW
         addParam('n_multigroups', 0)                # NOT RELEVANT FOR NOW
         addParam('n_states', 1)                     # NOT RELEVANT FOR NOW
-        addParam('charge_constraint', 'yes')
-        addParam('N_buffers', countACID)            # Number of individual buffer molecules.
-        addParam('m_buf', lambdaM)                  # mass of buffer particles
         
-        file.write('constrained_lambdas   = ')      # write constrained lambdas
-        for num in range(1, (countACID + 1) + 1):   # (new in newer commit)
-            file.write("%d " % num)
+        if (self.d_restrainpH):
+            addParam('charge_constraint', 'yes')
+            addParam('N_buffers', countACID)        # Number of individual buffer molecules.
+            addParam('m_buf', lambdaM)              # Mass of buffer particles.
+
+            file.write('constrained_lambdas   = ')      
+            for num in range(1, (countACID + 1) + 1):   
+                file.write("%d " % num)             # Write constrained lambdas.
+
+        else:
+            addParam('charge_constraint', 'no')
+            addParam('N_buffers', 0)                # Number of individual buffer molecules.
+            addParam('m_buf', 0)                    # Mass of buffer particles.
+            file.write('constrained_lambdas   = ')  # Write constrained lambdas.
+
         file.write('\n\n')
 
         ################ PART 2 - RESIDUE-TYPE SPECIFIC PARAMETERS #############
@@ -540,8 +539,9 @@ class sim:
         #   resName  numParams  params for ref. potential   refpKa
         addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25)
         addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65)
-        # addRes1('BUF', 4, [2010.3, -2023.2, 249.56, -450.63], 4.25)   # old
-        addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 0) # new, but might not be necessary in newer commits.
+
+        if (self.d_restrainpH): # New, but might not be necessary in newer commits.
+            addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 0)
 
         ################## PART 3 - RESIDUE-SPECIFIC PARAMETERS ################
 
@@ -576,7 +576,7 @@ class sim:
                 addParam('initial_lambda', '0.5')               # hardcoded
                 addParam('barrier', barrierE)                   # parameter
                 addParam('n_atoms', '5')                        # hardcoded
-                
+
                 for atom in residue.d_atoms:    # Add indices of relevant atoms
                     if atom in ASP_atoms:       # of ASP to list
                         indexList.append(count)
@@ -616,34 +616,35 @@ class sim:
                 for atom in residue.d_atoms:
                     count += 1
 
-        # WRITE BUFFER HEAD
-        addParam('name', 'BUF')
-        addParam('residue_number', Lidx)
-        addParam('initial_lambda', '0.5')
-        addParam('barrier', 0.0)
-        addParam('n_atoms', 3 * countACID)
+        if (self.d_restrainpH):
+            # WRITE BUFFER HEAD
+            addParam('name', 'BUF')
+            addParam('residue_number', Lidx)
+            addParam('initial_lambda', '0.5')
+            addParam('barrier', 0.0)
+            addParam('n_atoms', 3 * countACID)
 
-        # GET INDEXLIST FOR BUFFER
-        indexList = []; count = 1
-        
-        for residue in self.d_residues:
-            for atom in residue.d_atoms:
+            # GET INDEXLIST FOR BUFFER
+            indexList = []; count = 1
+            
+            for residue in self.d_residues:
+                for atom in residue.d_atoms:
 
-                if (residue.d_resname == 'BUF'):
-                    indexList.append(count)
-                    
-                count += 1
+                    if (residue.d_resname == 'BUF'):
+                        indexList.append(count)
+                        
+                    count += 1
 
-        # WRITE INDEXLIST FOR BUFFER
-        writeIndexLine(indexList)
+            # WRITE INDEXLIST FOR BUFFER
+            writeIndexLine(indexList)
 
-        # WRITE CHARGES FOR BUFFER ATOMS
-        for idx in range(0, len(indexList)):
-            file.write("{:<7d} {:7.4f}  {:7.4f}\n".format(indexList[idx], BUF_charge1[idx % 3], BUF_charge2[idx % 3]))
+            # WRITE CHARGES FOR BUFFER ATOMS
+            for idx in range(0, len(indexList)):
+                file.write("{:<7d} {:7.4f}  {:7.4f}\n".format(indexList[idx], BUF_charge1[idx % 3], BUF_charge2[idx % 3]))
 
         file.close()
 
-################################################################################
+    ############################################################################
 
     def energy_minimize(self):
         self.__update("energy_minimize", "running gmx grompp and mdrun for energy minimization...")
@@ -662,28 +663,27 @@ class sim:
         os.system("gmx grompp %s >> builder.log 2>&1" % self.g_NPT_gromm)
         os.system("gmx mdrun  %s >> builder.log 2>&1" % self.g_NPT_md)
 
-################################################################################
+    ############################################################################
 
-    def write_run(self, gmxPhPath):
-        self.__update("write_run", "writing run.sh")
+    def write_run(self, gmxPath = 'usr/local/gromacs', mode = ''):
+        self.__update("write_run", "gmxPath={0}, mode={1}".format(gmxPath, mode))
         
         with open("run.sh", "w+") as file:
             file.write("#!/bin/bash\n\n")
 
-            if (self.d_constantpH):
-                file.write("# source constant-pH gromacs version\n")
-                file.write("source %s/bin/GMXRC\n\n" % gmxPhPath)
+            file.write("# source specified gromacs version\n")
+            file.write("source %s/bin/GMXRC\n\n" % gmxPath)
 
             file.write("gmx grompp %s\n\n" % self.g_MD_gromm)
             
-            if (self.d_constantpH):
-                file.write("gmx mdrun %s -nb cpu\n\n" % self.g_MD_md)
-            else:
+            if   (mode == ''):
                 file.write("gmx mdrun %s\n\n" % self.g_MD_md)
-
-            # file.write("# CONTINUE\n")
-            # file.write("# gmx convert-tpr -s MD.tpr -o MD.tpr -extend <ps>\n")
-            # file.write("# gmx mdrun %s -cpi state.cpt -append \n\n" % self.g_MD_md)
+            elif (mode == 'cpu'):
+                file.write("gmx mdrun %s -nb cpu\n\n" % self.g_MD_md)
+            elif (mode == 'gpu'):
+                file.write("gmx mdrun %s -bonded cpu -pme cpu\n\n" % self.g_MD_md)
+            else:
+                raise Exception("Unknown mode specified")
 
         os.system("chmod +x run.sh")
 
@@ -693,11 +693,23 @@ class sim:
         with open("reset.sh", "w+") as file:
             file.write("#!/bin/bash\n\n")
             
-            file.write("rm -rf \\_\\_py* charmm*\n")
-            file.write("rm -f *.itp *.top *.mdp *.tpr *.log *.ndx *.edr *.trr *.cpt *.dat *.pdf *.xvg\n")
-            file.write("rm -f \\#*\\#\n")
-            file.write("rm -f buffer.pdb %s_*.pdb\n" % self.d_pdbName)
-            file.write("rm -f run.sh reset.sh jobscript.sh\n")
+            file.write("if [ -f \"%s_MD.pdb\" ]\nthen\n" % self.d_pdbName)
+            file.write("\tread -p \"Warning: simulation has finished. Proceed? (y)\" var\n")
+            file.write("else\n")
+            file.write("\trm -rf \\_\\_py* charmm*\n")
+            file.write("\trm -f *.itp *.top *.mdp *.tpr *.log *.ndx *.edr *.trr *.xtc *.cpt *.dat *.pdf *.xvg\n")
+            file.write("\trm -f \\#*\\#\n")
+            file.write("\trm -f buffer.pdb %s_*.pdb\n" % self.d_pdbName)
+            file.write("\trm -f run.sh reset.sh jobscript.sh\n")                   
+            file.write("fi\n\n")
+
+            file.write("if [ \"${var}\" = \"y\" ]\nthen\n")
+            file.write("\trm -rf \\_\\_py* charmm*\n")
+            file.write("\trm -f *.itp *.top *.mdp *.tpr *.log *.ndx *.edr *.trr *.xtc *.cpt *.dat *.pdf *.xvg\n")
+            file.write("\trm -f \\#*\\#\n")
+            file.write("\trm -f buffer.pdb %s_*.pdb\n" % self.d_pdbName)
+            file.write("\trm -f run.sh reset.sh jobscript.sh\n")            
+            file.write("fi\n\n")
 
         os.system("chmod +x reset.sh")
     
@@ -726,7 +738,7 @@ class sim:
             file.write("\n# compile our custom Gromacs version on cluster backend node\n")
             file.write("mkdir build\n")
             file.write("cd build\n")
-            file.write("cmake ~/gromacs_dev -DGMX_GPU=OFF -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=${PWD}/..\n")
+            file.write("cmake ~/gromacs_dev -DGMX_GPU=OFF -DGMX_USE_RDTSCP=ON -DGMX_SIMD=AVX2_256 -DCMAKE_INSTALL_PREFIX=${PWD}/..\n")
             file.write("make -j\n")
             file.write("make install\n")
             file.write("cd ..\n")
