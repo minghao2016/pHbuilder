@@ -8,11 +8,11 @@ from lib import sim
 import loaddata as load
 
 def inferFullName():
-    filtered = fnmatch.filter(os.listdir('.'), "*_MD.pdb")
+    filtered = fnmatch.filter(os.listdir('.'), "*_NPT.pdb")
     return filtered[0]
 
 def inferName():
-    filtered = fnmatch.filter(os.listdir('.'), "*_MD.pdb")
+    filtered = fnmatch.filter(os.listdir('.'), "*_NPT.pdb")
     return filtered[0][0:len(filtered[0])-7]
 
 ################################################################################
