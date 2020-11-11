@@ -1,4 +1,13 @@
 import os
+import fnmatch
+
+def inferFullName():
+    filtered = fnmatch.filter(os.listdir('.'), "*_NPT.pdb")
+    return filtered[0]
+
+def inferName():
+    filtered = fnmatch.filter(os.listdir('.'), "*_NPT.pdb")
+    return filtered[0][0:len(filtered[0])-7]
 
 def backupFile(fname):
     if os.path.isfile(fname):
