@@ -728,7 +728,7 @@ class sim:
         writeHead("ntasks", ntasks)
         writeHead("partition", queue)
         writeHead("job-name", jobName)
-        writeHead("mail-user", "anton.jansen@scilifelab.org")
+        writeHead("mail-user", "anton.jansen@scilifelab.se")
         writeHead("mail-type", "ALL")
         file.write('\n')
 
@@ -738,7 +738,7 @@ class sim:
             file.write("\n# compile our custom Gromacs version on cluster backend node\n")
             file.write("mkdir build\n")
             file.write("cd build\n")
-            file.write("cmake ~/gromacs_dev -DGMX_GPU=OFF -DGMX_USE_RDTSCP=ON -DGMX_SIMD=AVX2_256 -DCMAKE_INSTALL_PREFIX=${PWD}/..\n")
+            file.write("cmake ~/gromacs_dev -DGMX_GPU=OFF -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=${PWD}/..\n")
             file.write("make -j\n")
             file.write("make install\n")
             file.write("cd ..\n")
