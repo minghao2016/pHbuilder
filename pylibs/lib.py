@@ -537,8 +537,11 @@ class sim:
             file.write('\n')
 
         #   resName  numParams  params for ref. potential   refpKa
-        addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25)
-        addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65)
+        if (countGLU > 0):
+            addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25)
+
+        if (countASP > 0):
+            addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65)
 
         if (self.d_restrainpH): # New, but might not be necessary in newer commits.
             addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 0)
