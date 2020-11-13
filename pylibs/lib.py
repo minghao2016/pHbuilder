@@ -304,7 +304,7 @@ class sim:
 
     ############################################################################
 
-    def generate_mdp(self, Type, nsteps = 25000, nstxout = 0, nstvout = 0, compress = 0):
+    def generate_mdp(self, Type, nsteps = 25000, nstxout = 0, nstvout = 0, compress = 0, posres = False):
         self.firstLine = True
 
         if Type not in ['EM', 'NVT', 'NPT', 'MD']:
@@ -328,9 +328,13 @@ class sim:
         self.__update("generate_mdp", "Type=%s, nsteps=%s, nstxout=%s, nstvout=%s, compress=%s" % (Type, nsteps, nstxout, nstvout, compress))
 
         # POSITION RESTRAIN
-        if (Type in ['EM', 'MD'] and self.d_constantpH and self.d_restrainpH):
-            addTitle('Position restrain')
-            addParam('define', '-DPOSRES_BUF', 'Position restraints.')
+        if (Type in ['EM', 'MD']):
+            if (self.d_constantpH and self.d_restrainpH and posres):
+                addTitle('Position restrain')
+                addParam('define', '-DPOSRES -DPOSRES_BUF', 'Position restraints.')
+            elif (self.d_constantpH and self.d_restrainpH):
+                addTitle('Position restrain')
+                addParam('define', '-DPOSRES_BUF', 'Position restraints.')
 
         if (Type in ['NVT', 'NPT']): # position restrain temp and press coupling
             addTitle('Position restrain')
