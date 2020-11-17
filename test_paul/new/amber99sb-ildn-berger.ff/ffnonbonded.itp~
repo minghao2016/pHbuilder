@@ -1,0 +1,18 @@
+#include "amber99sb-ildn.ff/ffnonbonded.itp"
+
+[ atomtypes ]
+LC3N          LC3N         15.0350  0.000   A   0.396        0.60668  ; opls_107
+LNL           LNL          14.0067  0.000   A   0.325        0.71128  ; opls_103 (R4N+) or opls_287 (-NH3).
+LC2           LC2          14.0270  0.000   A   0.3905       0.493712 ; opls_071. Note the difference from the Berger paper. There epsilon was (incorrectly) 0.606.
+LC2O          LC2O         14.0270  0.000   A   0.380        0.493712 ; opls_110. Ether CH2 in CH2-O-R.
+LOS           LOS          15.9994  0.000   A   0.300        0.71128  ; opls_108. Ether	O in R-O-R.
+LO2           LO2          15.9994  0.000   A   0.296        0.87864  ; opls_059. Ester =O.
+LP            LP           30.9738  0.000   A   0.374        0.8368   ; opls_393
+LC            LC           12.0110  0.000   A   0.375        0.43932  ; opls_058. C in Ester
+LCH1          LCH1         13.0190  0.000   A   0.380        0.33472  ; opls_073. Alkane CH1.
+LCH2          LCH2         14.0270  0.000   A   0.3905       0.493712 ; opls_071. Alkane CH2.
+LCM1          LCM1         13.0190  0.000   A   0.385        0.58576  ; opls_072. Alkene CH2.
+LCH2_Berger   LCH2_Berger  14.0270  0.000   A   0.396        0.380    ; Lipid tails. Berger/Edholm/Jahnig paper: Biophys J. 72(5): 2002-13 (1997)
+LCH3_Berger   LCH3_Berger  15.0350  0.000   A   0.396        0.570    ; Lipid tails. Berger/Edholm/Jahnig paper: Biophys J. 72(5): 2002-13 (1997)
+LOH           LOH          15.9994  0.000   A   0.312        0.71128  ; opls_154
+LH            LH            1.0080  0.000   A   0.0          0.0      ; opls_155 (-OH) or opls_290 (-NH3)

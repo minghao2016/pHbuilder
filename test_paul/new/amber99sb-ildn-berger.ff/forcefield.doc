@@ -1,0 +1,18 @@
+AMBER99SB-ILDN force field, extended with Berger united-atom lipids
+
+********************************************************************
+* For the Berger lipid extensions and combination with Amber, you  *
+* can cite e.g. one of                                             *
+* - Kasson, Lindahl, Pande. Atomic-resolution simulations predict  *
+* a transition state for vesicle fusion defined by contact of a    *
+* few lipid tails. PLoS Computational Biology 6 e1000829 (2010)    *
+* - Kasson, Lindahl, Pande. Water ordering at membrane interfaces  *
+* controls fusion dynamics. J Am Chem Soc 133, 3812-6 (2011)       *
+* Note that this force field directory includes files from the     *
+* original Amber directory, so any updates there will propagate.   *
+*                                                                  *
+* You can also easily use these parameters with any other Amber    *
+* force field; just change the include prefixes in the files in    *
+* this directory (a bash for-loop with sed should do it in 10 sec) *
+********************************************************************
+

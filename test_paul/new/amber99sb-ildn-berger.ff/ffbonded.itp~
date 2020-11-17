@@ -1,0 +1,114 @@
+#include "amber99sb-ildn.ff/ffbonded.itp"
+
+[ bondtypes ]
+; lipid particles from Berger force field
+  LNL   	LC3N    	1    0.147      376560.
+  LNL   	LCH2     	1    0.147      376560.
+  LNL   	LC      	1    0.147      376560.
+  LNL   	LCH1    	1    0.147      376560.
+  LCH2   	LC2O    	1    0.153      334720.
+  LOS   	LC2O    	1    0.143      251040.
+  LOS   	LP      	1    0.161      251040.
+  LO2   	LP      	1    0.148      376560.
+  LO2   	LC      	1    0.123      502080.
+  LCH1  	LC2O    	1    0.153      334720.
+  LCH1  	LCH2     	1    0.153      334720.
+  LCH1  	LC      	1    0.153      334720.
+  LCH2   	LC2O    	1    0.153      334720.
+  LOS   	LCH1    	1    0.143      251040.
+  LOS   	LC      	1    0.136      251040.
+  LC    	LCH2_Berger    	1    0.153      334720.
+  LCH2_Berger   LCH3_Berger     1    0.153      334720.
+  LCH2_Berger   LCH2_Berger     1    0.153      334720.
+  LCH1  	LCH2_Berger     1    0.153      334720.
+  LCM1  	LCM1    	1    0.139      418400.
+  LCH2_Berger   LCM1    	1    0.153      334720.
+  LCH2_Berger   LCM1    	1    0.153      334720.
+  LH   		LOH     	1    0.100      313800.
+  LOH   	LCH1    	1    0.143      334720.
+  LOH   	LCH2_Berger     1    0.143      334720.
+  LNL   	LH      	1    0.101      363171.2
+
+
+[ constrainttypes ]
+; Berger lipid virtual sites
+ MNH3   LCH2    2    0.158255
+ MNH3   LCH1    2    0.158255
+
+[ angletypes ]
+  LNL   	LC  		LO2    		1   109.5       460.24
+  LNL   	LC 		LCH2_Berger     1   109.5       460.24
+  LC3N  	LNL   		LC    		1   109.5       460.24
+  LCH2 		LNL   		LC    		1   109.5       460.24
+  LC3N  	LNL 		LC3N    	1   109.5       460.24
+  LC3N  	LNL  		LCH2   		1   109.5       460.24
+  LC3N  	LNL 		LCH1    	1   109.5       460.24
+  LNL  		LCH2 		LC2O    	1   109.5       460.24
+  LNL 		LCH1 		LC2O    	1   109.5       460.24
+  LNL 		LCH1   		LC    		1   109.5       460.24
+  LC 		LCH1 		LC2O    	1   109.5       460.24
+  LCH2 		LC2O  		LOS    		1   109.5       460.24
+  LC2O  	LOS   		LP    		1   120.0       397.48
+  LOS   	LP  		LO2    		1   109.6       397.48
+  LOS   	LP  		LOS    		1   103.0       397.48
+  LO2   	LP  		LO2    		1   120.0       585.76
+  LOS 		LC2O 		LCH1    	1   111.0       460.24
+  LC2O 		LCH1  		LOS    		1   109.5       460.24
+  LC2O 		LCH1 		LC2O    	1   109.5       460.24
+  LCH1  	LOS   		LC    		1   120.0       418.40
+  LC2O  	LOS   		LC    		1   120.0       418.40
+  LOS   	LC  		LO2    		1   124.0       502.08
+  LO2   	LC  		LO2    		1   124.0       502.08
+  LOS   	LC 		LCH2_Berger     1   115.0       502.08
+  LO2   	LC 		LCH2_Berger     1   121.0       502.08
+  LO2   	LC 		LCH1    	1   121.0       502.08
+  LC 		LCH2_Berger 	LCH2_Berger     1   111.0       460.24
+  LCH2_Berger 	LCH2_Berger 	LCH2_Berger     1   111.0       460.24
+  LCH2_Berger 	LCH2_Berger 	LCH3_Berger    	1   111.0       460.24
+  LCH2_Berger 	LCH2_Berger 	LCM1    	1   111.0       460.24
+  LCH2_Berger 	LCM1 		LCM1    	1   120.0       502.08
+  LCH2_Berger 	LCH2_Berger 	LCM1    	1   111.0       460.24
+  LCH2_Berger 	LCM1 		LCM1    	1   120.0       502.08
+  LH   		LNL  		LH      	1   109.5       292.88
+  LCH2 		LNL  		LH      	1   109.5       292.88
+  LH   		LNL  		LCH1    	1   109.5       292.88
+  LCH2 		LNL  		H3      	1   109.5       292.88
+  LNL  		LCH2  		LCH1    	1   109.5       460.24
+  LCH2 		LCH1  		LC2O    	1   109.5       460.24
+  LCH2 		LCH1  		LOS     	1   109.5       460.24
+  LCH1 		LNL  		LH      	1   109.5       292.88
+  LH   		LOH  		LCH1    	1   109.5       397.48
+  LH   		LOH  		LCH2_Berger     1   109.5       397.48
+  LOH  		LCH1 		LCH2_Berger     1   109.5       460.24
+  LOH  		LCH2_Berger 	LCH1    	1   109.5       460.24
+  LCH2_Berger 	LCH1 		LC2O    	1   106.0       397.48
+  LOH  		LCH1 		LC2O    	1   109.5       460.24
+
+
+; Berger dihedral types
+[ dihedraltypes ]
+  LNL  		LCH2   		1     0.0        3.7656      3
+  LNL 		LCH1    	1     0.0        3.7656      3
+  LCH2 		LC2O    	1     0.0        5.8576      3
+  LOS 		LC2O    	1     0.0        3.7656      3
+  LOS   	LP    		1     0.0        1.046       3
+  LCH1 	        LC2O   	        1     0.0        2.092       2
+  LCH1  	LCH2   		1     0.0        2.092       2
+  LOS 		LCH1    	1     0.0        3.7656      3
+  LOS   	LC    		1   180.0       16.736       2
+  LC 		LCH2_Berger     1     0.0        0.4184      6
+  LCH2_Berger   LCH2_Berger     1     0.0        5.8576      3
+  LCH2_Berger   LCM1    	1     0.0        5.8576      3
+  LCH2_Berger   LCM1    	1     0.0        5.8576      3
+  LCH2_Berger   LOH    		1     0.0        1.255       3
+  LCH1  	LOH    		1     0.0        1.255       3
+  LCH1 		LCH2_Berger    	1     0.0        5.8576      3
+  LCH2_Berger   LC2O    	1     0.0        5.8576      3
+  LCH1   	LC    		1     0.0        5.8576      3
+
+[ dihedraltypes ]
+; berger dihedraltype for lipid chains (remember to exclude all 1,4 interactions for this one)
+  X      LCH2_Berger   LCH2_Berger   X       3      9.2789   12.156   -13.120   -3.0597  26.240  -31.495
+  X      LCH2_Berger   LCM1          X       3      4.00266 -12.9342    3.94385 12.1537  -2.77794  4.25275
+
+
