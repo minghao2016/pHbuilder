@@ -1,10 +1,7 @@
-orig        Is het original cardiotoxin example.
-            Note that constant_ph_input.dat contains two mistakes!
+input_clean-cpHMD-GPU/constrain     Example input for everything that was moved now 
+input_clean-cpHMD-GPU/noconstrain   to grompp / .mdp instead of constant_ph_input.dat file.
 
-orig_new    Is a newer version of the constant_ph_input.dat with a slighlty
-            different order.
-
-multistate  contains an example simulation of cardiotoxin using the multistate
-            constraint.
-
-benchmark   Contains files for benchmarking.
+input_legacy/orig           Original constant_ph_input.dat format (contains mistakes!).
+input_legacy/orig_new       Updated.
+input_legacy/multistate     Cardiotoxin multistate example.
+input_legacy/benchmark      Benchmark example.

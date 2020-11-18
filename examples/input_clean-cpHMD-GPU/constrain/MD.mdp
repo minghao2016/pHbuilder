@@ -1,0 +1,108 @@
+; POSITION RESTRAIN
+define               = -DPOSRES_BUF  ; Position restraints.
+
+; RUN CONTROL
+integrator           = md           
+dt                   = 0.002         ; Time step (ps).
+nsteps               = 500000        ; 1 ns.
+comm-mode            = Linear        ; Remove center of mass translation.
+comm-grps            = Protein Non-Protein
+
+; OUTPUT CONTROL
+nstxout              = 1000          ; Write frame every 2.000 ps.
+nstvout              = 0             ; Write frame every 0.000 ps.
+
+; NEIGHBOUR SEARCHING
+cutoff-scheme        = Verlet        ; Related params are inferred by Gromacs.
+
+; BOND PARAMETERS
+constraints          = h-bonds       ; Constrain H-bond vibrations.
+constraint_algorithm = lincs         ; Holonomic constraints.
+lincs_iter           = 1             ; Related to accuracy of LINCS.
+lincs_order          = 4             ; Related to accuracy of LINCS.
+
+; ELECTROSTATICS
+coulombtype          = PME           ; Use Particle Mesh Ewald.
+rcoulomb             = 1.2           ; Berk: CHARMM was calibrated for 1.2 nm.
+fourierspacing       = 0.14          ; Berk: set this to 0.14 for CHARMM.
+
+; VAN DER WAALS
+vdwtype              = cut-off       ; Twin range cut-off with nblist cut-off.
+rvdw                 = 1.2           ; Berk: CHARMM was calibrated for 1.2 nm.
+vdw-modifier         = force-switch  ; Berk: specific for CHARMM.
+rvdw-switch          = 1.0           ; Berk: specific for CHARMM.
+
+; TEMPERATURE COUPLING
+tcoupl               = v-rescale    
+tc-grps              = SYSTEM       
+tau-t                = 0.5           ; Berk: change from 0.1 to 0.5.
+ref-t                = 300           ; Reference temp. (K) (for each group).
+
+; PRESSURE COUPLING
+pcoupl               = Parrinello-Rahman
+pcoupltype           = isotropic     ; Uniform scaling of box.
+tau_p                = 5.0           ; Berk: better to change from 2.0 to 5.0.
+ref_p                = 1.0           ; Reference pressure (bar).
+compressibility      = 4.5e-05       ; Isothermal compressbility of water.
+refcoord_scaling     = all           ; Required with position restraints.
+
+; PERIODIC BOUNDARY CONDITION
+pbc                  = xyz           ; To keep molecule(s) in box.
+
+; CONSTANT PH
+lambda-dynamics = yes
+lambda-dynamics-simulation-ph = 4.5
+lambda-dynamics-lambda-particle-mass = 5.0
+lambda-dynamics-update-nst = 1
+lambda-dynamics-tau = 0.1
+lambda-dynamics-calibration = no
+lambda-dynamics-charge-constraints = yes
+lambda-dynamics-number-lambda-residues = 3
+lambda-dynamics-number-atom-collections = 4
+
+lambda-dynamics-residue1-name = ASP
+lambda-dynamics-residue1-dvdl-coefficients = 37.822 -566.010 117.970 -158.790 
+lambda-dynamics-residue1-reference-pka = 3.65
+lambda-dynamics-residue1-barrier = 5.0
+lambda-dynamics-residue1-charges-state-A = -0.210 0.750 -0.550 -0.610 0.440
+lambda-dynamics-residue1-charges-state-B = -0.280 0.620 -0.760 -0.760 0.000
+
+lambda-dynamics-residue2-name = GLU
+lambda-dynamics-residue2-dvdl-coefficients = 24.685 -577.050 137.390 -172.690 
+lambda-dynamics-residue2-reference-pka = 4.25
+lambda-dynamics-residue2-barrier = 5.0
+lambda-dynamics-residue2-charges-state-A = -0.210 0.750 -0.550 -0.610 0.440
+lambda-dynamics-residue2-charges-state-B = -0.280 0.620 -0.760 -0.760 0.000
+
+lambda-dynamics-residue3-name = BUF
+lambda-dynamics-residue3-dvdl-coefficients = 2010.300 -2023.200 249.570 -450.630 
+lambda-dynamics-residue3-reference-pka = 0 ; ignored
+lambda-dynamics-residue3-barrier = 0 ; ignored
+lambda-dynamics-residue3-charges-state-A = -0.0656	0.5328	0.5238
+lambda-dynamics-residue3-charges-state-B = -0.834	0.417	0.417
+
+lambda-dynamics-atom-set1-charge-restraint-group-index = 1 ; this is just for when you do something weird like having multiple restraint groups
+lambda-dynamics-atom-set1-name = GLU
+lambda-dynamics-atom-set1-lambda-residues-index = 2
+lambda-dynamics-atom-set1-index-group-name = GLU1
+lambda-dynamics-atom-set1-initial-lambda = 0.5
+
+lambda-dynamics-atom-set2-charge-restraint-group-index = 1
+lambda-dynamics-atom-set2-name = ASP
+lambda-dynamics-atom-set2-lambda-residues-index = 1
+lambda-dynamics-atom-set2-index-group-name = ASP1
+lambda-dynamics-atom-set2-initial-lambda = 0.5
+
+lambda-dynamics-atom-set3-charge-restraint-group-index = 1
+lambda-dynamics-atom-set3-name = ASP
+lambda-dynamics-atom-set3-lambda-residues-index = 1
+lambda-dynamics-atom-set3-index-group-name = ASP2
+lambda-dynamics-atom-set3-initial-lambda = 0.5
+
+lambda-dynamics-atom-set4-charge-restraint-group-index = 1
+lambda-dynamics-atom-set4-buffer-residue = yes ; this will tell gromacs that this is the buffer
+lambda-dynamics-atom-set4-name = BUF
+lambda-dynamics-atom-set4-lambda-residues-index = 3
+lambda-dynamics-atom-set4-index-group-name = BUF
+lambda-dynamics-atom-set4-initial-lambda = 0.5
+lambda-dynamics-atom-set4-buffer-residue-multiplier = 3
