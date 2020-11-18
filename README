@@ -1,0 +1,12 @@
+Python-based system builder for constant-pH simulation in Gromacs.
+
+/dev        Main testing simulation.
+/examples   Example simulations for various things (to be) implemented.
+/grom       Files to-be-imported for every simulation.
+/pylibs     Python libraries.
+/testing    Proteins used for simulating/testing/benchmarking.
+
+TODO:
+
+-Change builder to work with the new clean-cpHMD constant-pH input.
+-Implement multi-state / virtual-sites.
