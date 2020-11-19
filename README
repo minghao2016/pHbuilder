@@ -8,5 +8,8 @@ Python-based system builder for constant-pH simulation in Gromacs.
 
 TODO:
 
--Change builder to work with the new clean-cpHMD constant-pH input.
 -Implement multi-state / virtual-sites.
+
+DONE:
+
+-Change builder to work with the new clean-cpHMD constant-pH input.
