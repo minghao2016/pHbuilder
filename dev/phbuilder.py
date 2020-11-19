@@ -1,6 +1,6 @@
-#!/usr/bin/python3
+#!/bin/python3
 
-import os, sys
+import os
 from lib import sim
 
 # Set up environment/external files.
@@ -10,7 +10,7 @@ os.system("cp {0}/buffer.itp {0}/buffer.pdb {0}/IONS.mdp ./".format(gromPath))
 ################################################################################
 
 sim = sim()
-sim.setconstantpH(True, restrain=True)
+sim.setconstantpH(True, restrain=False)
 sim.processpdb("1cvo.pdb")
 
 sim.protein_add_forcefield("charmm36-mar2019", "tip3p")
@@ -23,10 +23,11 @@ sim.generate_index()
 
 sim.generate_mdp('EM')
 sim.generate_mdp('NVT')
-sim.generate_mdp('NPT') # 20 ns, output every 2 ps.
-sim.generate_mdp('MD', nsteps=10000000, nstxout=1000, nstvout=0)
+sim.generate_mdp('NPT')
+sim.generate_mdp('MD', nsteps=500000, nstxout=1000)
 
-sim.generate_phdata(pH=4.5, lambdaM=5, nstOut=1, barrierE=5.0)
+# sim.generate_phdata(pH=4.5, lambdaM=5.0, nstOut=1, barrierE=5.0)
+sim.generate_phdata_legacy(pH=4.5, lambdaM=5.0, nstOut=1, barrierE=5.0)
 
 sim.write_run("/usr/local/gromacs_test", mode='gpu')
 sim.write_reset()

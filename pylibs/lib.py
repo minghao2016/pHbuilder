@@ -43,7 +43,7 @@ class sim:
     def processpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"], resetResId = False):
         self.loadpdb(fname, MODEL, ALI, CHAIN)    # Load the .pdb file.
 
-        chainString = ""                            # Create userinfo message.
+        chainString = ""                          # Create userinfo message.
         if self.d_chainl[0] == "all":
             chainString = "all"
         else:
@@ -51,12 +51,12 @@ class sim:
             for chain in self.d_chainl:
                 chainString += chain
             chainString += "]"
-                                                    # Chop off .pdb extention.
+                                                  # Chop off .pdb extention.
         self.d_pdbName = self.d_fname[0:len(self.d_fname)-4]
         self.__update("processpdb", "importing MODEL=%s, ALI=%s, chain(s)=%s, internal name is %s..." % (self.d_model, self.d_ALI, chainString, self.d_pdbName))
         
         if (resetResId):
-            self.__update("processpdb", "resetting resId numbering...")
+            self.__update("processpdb", "resetting resid numbering...")
             self.__protein_resetResId()
 
         self.__writepdb("%s_PR1.pdb" % self.d_pdbName)
@@ -83,12 +83,12 @@ class sim:
             for line in file.readlines():
                 
                 # Store the .pdb TITLE in d_title.
-                if (line[0:6]) == "TITLE ":
+                if ((line[0:6]) == "TITLE "):
                     self.d_title = line[10:(len(line) - 1)]
 
                 # This is to make sure we only import the specified MODEL.
-                if (line[0:6]) == "MODEL ":
-                    if ("MODEL {:8d}".format(self.d_model)) in line:
+                if ((line[0:6]) == "MODEL "):
+                    if ("MODEL {:8d}".format(self.d_model) in line):
                         read = True
                     else:
                         read = False
@@ -176,7 +176,7 @@ class sim:
     def protein_countRes(self, resname):    # Returns num of residues with a
         count = 0                           # specific resname.
         for residue in self.d_residues:
-            if residue.d_resname == resname:
+            if (residue.d_resname == resname):
                 count += 1
         
         return count
@@ -194,12 +194,17 @@ class sim:
         countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
         self.__update("protein_add_forcefield", "detected %s acidic residue(s):" % countACID)
 
-        count = 1
-        for residue in self.d_residues:
-            if residue.d_resname in ['ASP', 'GLU']:
-                self.__update("protein_add_forcefield", "{:3s} {:<4d}".format(residue.d_resname, count))
-            count += 1
-        self.__update("protein_add_forcefield", "(setting protonation state to true for all of these)")
+        if (countACID == 0):
+            self.__update("protein_add_forcefield", "no acidic residues detected, turning off constant-pH...")
+            self.d_constantpH = False
+            self.d_restrainpH = False
+        else:
+            count = 1
+            for residue in self.d_residues:
+                if (residue.d_resname in ['ASP', 'GLU']):
+                    self.__update("protein_add_forcefield", "{:3s} {:<4d}".format(residue.d_resname, count))
+                count += 1
+            self.__update("protein_add_forcefield", "(setting protonation state to true for all of these)")
 
         self.d_modelFF = modelFF        # Set internal force field variable
         self.__update("protein_add_forcefield", "using the %s force field with the %s water model..." % (modelFF, modelWater))
@@ -233,7 +238,7 @@ class sim:
         def extractMinimum():                   # Extract the required value
             def Float(fileName, line, col):
                 for x, y in enumerate(open(fileName)):
-                    if x == line - 1:
+                    if (x == line - 1):
                         return float(y.split()[col-1])
                                                     # Position of mindist in
             return Float("mindist.xvg", 25, 2)   # .xvg file.
@@ -275,7 +280,7 @@ class sim:
                     file.write(topList[idx])
 
                     # If we see that the next line is this:
-                    if topList[idx + 1] == "; Include water topology\n":
+                    if (topList[idx + 1] == "; Include water topology\n"):
                         # Then insert the buffer topology before that line:
                         file.write("; Include buffer topology\n")
                         file.write("#include \"buffer.itp\"\n\n")            
@@ -311,7 +316,7 @@ class sim:
     def generate_mdp(self, Type, nsteps = 25000, nstxout = 0, nstvout = 0, compress = 0, posres = False):
         self.firstLine = True
 
-        if Type not in ['EM', 'NVT', 'NPT', 'MD']:
+        if (Type not in ['EM', 'NVT', 'NPT', 'MD']):
             raise Exception("Unknown .mdp Type specified. Types are: EM, NVT, NPT, MD.")
 
         file = open("%s.mdp" % Type, 'w+')
@@ -364,7 +369,7 @@ class sim:
         addParam('nsteps', nsteps, '%.1f ns.' % ((dt * nsteps)/1000.0))
 
         # We restrain the COM to prevent protein from coming too close to the BUFs.
-        if (Type == 'MD' and self.d_constantpH):
+        if (Type == 'MD' and self.d_restrainpH):
             addParam('comm-mode', 'Linear', 'Remove center of mass translation.')
             addParam('comm-grps', 'Protein Non-Protein') # not our index but default gmx
 
@@ -466,7 +471,7 @@ class sim:
 
     def generate_phdata_legacy(self, pH, lambdaM, nstOut, barrierE):
         if (not self.d_constantpH):
-            self.__update("generate_phdata", "skipping this step...")
+            self.__update("generate_phdata_legacy", "skipping this step...")
             return
 
         # Throw exception if MD.mdp does not exist.
@@ -478,7 +483,7 @@ class sim:
             file.write('\n; CONSTANT PH\n')
             file.write('lambda-dynamics      = yes           ; Enable constant pH.\n')
 
-        self.__update("generate_phdata", "pH=%s, lambdaM=%s, nstOut=%s, barrierE=%s" % (pH, lambdaM, nstOut, barrierE))
+        self.__update("generate_phdata_legacy", "pH=%s, lambdaM=%s, nstOut=%s, barrierE=%s" % (pH, lambdaM, nstOut, barrierE))
 
         file = open("constant_ph_input.dat", "w+")
         
@@ -593,7 +598,7 @@ class sim:
                 addParam('n_atoms', '5')                        # hardcoded
 
                 for atom in residue.d_atoms:    # Add indices of relevant atoms
-                    if atom in ASP_atoms:       # of ASP to list
+                    if (atom in ASP_atoms):     # of ASP to list
                         indexList.append(count)
 
                     count += 1
@@ -614,7 +619,7 @@ class sim:
                 addParam('n_atoms', '5')                        # hardcoded
 
                 for atom in residue.d_atoms:
-                    if atom in GLU_atoms:
+                    if (atom in GLU_atoms):
                         indexList.append(count)
 
                     count += 1
@@ -678,7 +683,7 @@ class sim:
         BUF_qqA   = [-0.0656, 0.5328, 0.5328]
         BUF_qqB   = [-0.8476, 0.4238, 0.4328]
 
-        # Skip this entire step if constantpH is false.
+        # Skip this entire step if self.d_constantpH is false.
         if (not self.d_constantpH):
             self.__update("generate_phdata", "skipping this step...")
             return
@@ -762,12 +767,12 @@ class sim:
                     string += " "
                 return string
 
-            addParam('lambda-dynamics-residue%s-name' % (number), name)
+            addParam('lambda-dynamics-residue%s-name'              % (number), name)
             addParam('lambda-dynamics-residue%s-dvdl-coefficients' % (number), to_string(dvdl))
-            addParam('lambda-dynamics-residue%s-reference-pka' % (number), pKa)
-            addParam('lambda-dynamics-residue%s-barrier' % (number), barrierE)
-            addParam('lambda-dynamics-residue%s-charges-state-A' % (number), to_string(qqA))
-            addParam('lambda-dynamics-residue%s-charges-state-B' % (number), to_string(qqB))
+            addParam('lambda-dynamics-residue%s-reference-pka'     % (number), pKa)
+            addParam('lambda-dynamics-residue%s-barrier'           % (number), barrierE)
+            addParam('lambda-dynamics-residue%s-charges-state-A'   % (number), to_string(qqA))
+            addParam('lambda-dynamics-residue%s-charges-state-B'   % (number), to_string(qqB))
             
             file.write('\n')
 
@@ -784,10 +789,10 @@ class sim:
         # PART 3 - WRITE INDIVIDUAL RESIDUE/LAMBDA-GROUP STUF ##################
 
         def writeResBlock(number, name, indexLambda, indexName):
-            addParam('lambda-dynamics-atom-set%s-name' % (number), name)
+            addParam('lambda-dynamics-atom-set%s-name'                  % (number), name)
             addParam('lambda-dynamics-atom-set%s-lambda-residues-index' % (number), indexLambda)
-            addParam('lambda-dynamics-atom-set%s-index-group-name' % (number), indexName)
-            addParam('lambda-dynamics-atom-set%s-initial-lambda' % (number), 0.5) # hardcoded
+            addParam('lambda-dynamics-atom-set%s-index-group-name'      % (number), indexName)
+            addParam('lambda-dynamics-atom-set%s-initial-lambda'        % (number), 0.5) # hardcoded
             
             if (self.d_restrainpH):
                 addParam('lambda-dynamics-atom-set%s-charge-restraint-group-index' % (number), 1)
