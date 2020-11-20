@@ -571,7 +571,7 @@ class sim:
 
         if (countASP > 0):
             # addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65) # Orig Noora.
-            addRes1('GLU', 7, [37.660, -550.130, -464.667, 1894.405, -3173.931, 2280.307, -606.648], 3.65) # My own Gly-Asp-Gly cal.
+            addRes1('ASP', 7, [37.660, -550.130, -464.667, 1894.405, -3173.931, 2280.307, -606.648], 3.65) # My own Gly-Asp-Gly cal.
 
         if (self.d_restrainpH): # New, but might not be necessary in newer commits.
             # addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 0) # Orig Noora.
