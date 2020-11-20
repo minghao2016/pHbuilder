@@ -4,8 +4,8 @@
 
 while read initialLambda; do
 
-    sed -i "/initial_lambda/c\initial_lambda        = ${initialLambda}" constant_ph_input.dat \g
-    ./run.sh
-    ./calibrate.py
+    sed -i "/initial_lambda/c\initial_lambda        = ${initialLambda}" constant_ph_input.dat
+    ./run.sh &> /dev/null
+    ./calibrate.py ${initialLambda}
 
 done < initials.txt

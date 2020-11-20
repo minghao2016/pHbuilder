@@ -20,8 +20,10 @@ order = int(sys.argv[1])
 coeffs = np.polyfit(initLambdaList, dvdlMeanList, order)[::-1]
 print(coeffs)
 
+# MEASURED POINTS
 plt.scatter(initLambdaList, dvdlMeanList, label="average dV/dl value")
 
+# OUR FIT
 fit = []
 for i in initLambdaList:
     value = 0
@@ -29,10 +31,19 @@ for i in initLambdaList:
         value += coeffs[j] * i**j
     fit.append(value)
 
-    # fit.append(coeffs[0] + coeffs[1]*i + coeffs[2]*i**2 + coeffs[3]*i**3 + coeffs[4]*i**4 + coeffs[5]*i**5 + coeffs[6]*i**6)
-    # fit.append(coeffs[0] + coeffs[1]*i + coeffs[2]*i**2 + coeffs[3]*i**3)
-
 plt.plot(initLambdaList, fit, label="fit")
+
+# ORIGINAL FIT
+coeffsorig = [24.685, -577.05, 137.39, -172.69] # for GLU
+# coeffsorig = [37.822, -566.01, 117.97, -158.79] # for ASP
+orig = []
+for i in initLambdaList:
+    value = 0
+    for j in range(0, len(coeffsorig)):
+        value += coeffsorig[j] * i**j
+    orig.append(value)
+
+plt.plot(initLambdaList, orig, label="Noora original fit")
 
 plt.ylabel(r"dV/d$\lambda$")
 plt.xlabel(r"$\lambda$-coordinate")
