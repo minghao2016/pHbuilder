@@ -84,7 +84,7 @@ class sim:
                 
                 # Store the .pdb TITLE in d_title.
                 if ((line[0:6]) == "TITLE "):
-                    self.d_title = line[10:(len(line) - 1)]
+                    self.d_title = line[6:(len(line) - 1)]
 
                 # This is to make sure we only import the specified MODEL.
                 if ((line[0:6]) == "MODEL "):
@@ -189,7 +189,7 @@ class sim:
 
     ############################################################################
 
-    def protein_add_forcefield(self, modelFF, modelWater):
+    def protein_add_forcefield(self, modelFF, modelWater, neutralTermini = False):
         # User update
         countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
         self.__update("protein_add_forcefield", "detected %s acidic residue(s):" % countACID)
@@ -209,15 +209,26 @@ class sim:
         self.d_modelFF = modelFF        # Set internal force field variable
         self.__update("protein_add_forcefield", "using the %s force field with the %s water model..." % (modelFF, modelWater))
 
-        xstr = "<< EOF"                 # Create EOF string required for pdb2gmx 
-        for _ in range(0, countACID):   # to set the protonation state of ASP 
+        # Create EOF string to circumvent pd2gmx prompting for user input.
+        # The for-loop sets the protonation state of all GLUs and ASPs to 1 
+        # (True) if self.d_constantpH is True. The line below sets the termini
+        # to 0: NH3+, 0: COO- (charged, gmx default) if neutralTermini is False,
+        # and to 1: NH2, 1: COOH (neutral) if neutralTermini is True.
+        xstr = "<< EOF"
+        for _ in range(0, countACID):
             xstr += "\n%d" % self.d_constantpH
-        xstr += "\nEOF"                 # and GLU to true (specify 1 for user input option.
+        xstr += "\n%d\n%d" % (neutralTermini, neutralTermini)
+        xstr += "\nEOF"
 
+        if (neutralTermini):
+            self.__update("protein_add_forcefield", "setting termini to neutral (NH2 and COOH)...")
+        else:
+            self.__update("protein_add_forcefield", "setting termini to charged (NH3+ and COO-) (gmx default)...")
+        
         self.__update("protein_add_forcefield", "running pdb2gmx to create topol.top...")
 
         # Generate topology and protonate (make neutral) all GLU and ASP:
-        os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s -water %s >> builder.log 2>&1 %s" % (self.d_pdbName, self.d_pdbName, modelFF, modelWater, xstr))
+        os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s -water %s -ter >> builder.log 2>&1 %s" % (self.d_pdbName, self.d_pdbName, modelFF, modelWater, xstr))
 
         self.loadpdb("%s_PR2.pdb" % self.d_pdbName) # Update internal d_residues.
 
@@ -555,13 +566,16 @@ class sim:
 
         #   resName  numParams  params for ref. potential   refpKa
         if (countGLU > 0):
-            addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25)
+            # addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25) # Orig Noora.
+            addRes1('GLU', 7, [28.616, -531.510, -118.499, -138.554, 823.016, -926.582, 276.761], 4.25) # My own Gly-Glu-Gly cal.
 
         if (countASP > 0):
-            addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65)
+            # addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65) # Orig Noora.
+            addRes1('GLU', 7, [37.660, -550.130, -464.667, 1894.405, -3173.931, 2280.307, -606.648], 3.65) # My own Gly-Asp-Gly cal.
 
         if (self.d_restrainpH): # New, but might not be necessary in newer commits.
-            addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 0)
+            # addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 0) # Orig Noora.
+            addRes1('BUF', 7, [i * countACID for i in [663.748, -657.681, 316.416, -2058.574, 4757.230, -4837.960, 1747.500]], 0) # My own calibration.
 
         ################## PART 3 - RESIDUE-SPECIFIC PARAMETERS ################
 
@@ -667,18 +681,21 @@ class sim:
     def generate_phdata(self, pH, lambdaM, nstOut, barrierE):
         # Data (hardcoded, specific for CHARMM2019)
         GLU_pKa   = 4.25
-        GLU_dvdl  = [24.685, -577.05, 137.39, -172.69]
+        # GLU_dvdl  = [24.685, -577.05, 137.39, -172.69] # Orig Noora.
+        GLU_dvdl  = [28.616, -531.510, -118.499, -138.554, 823.016, -926.582, 276.761] # My own Gly-Glu-Gly cal.
         GLU_atoms = [' CG ', ' CD ', ' OE1', ' OE2', ' HE2'] # atoms part of model
         GLU_qqA   = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
         GLU_qqB   = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
         
         ASP_pKa   = 3.65
-        ASP_dvdl  = [37.822, -566.01, 117.97, -158.79]
+        # ASP_dvdl  = [37.822, -566.01, 117.97, -158.79] # Orig Noora.
+        ASP_dvdl  = [37.660, -550.130, -464.667, 1894.405, -3173.931, 2280.307, -606.648] # My own Gly-Asp-Gly cal.
         ASP_atoms = [' CB ', ' CG ', ' OD1', ' OD2', ' HD2'] # atoms part of model
         ASP_qqA   = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
         ASP_qqB   = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
 
-        BUF_dvdl  = [670.1, -674.4, 83.19, -150.21]
+        # BUF_dvdl  = [670.1, -674.4, 83.19, -150.21] # Orig Noora.
+        BUF_dvdl  = [663.748, -657.681, 316.416, -2058.574, 4757.230, -4837.960, 1747.500] # My own calibration.
         #           [' OW ' , ' HW1', ' HW2']
         BUF_qqA   = [-0.0656, 0.5328, 0.5328]
         BUF_qqB   = [-0.8476, 0.4238, 0.4328]
@@ -871,22 +888,40 @@ class sim:
 
     ############################################################################
 
-    def energy_minimize(self):
-        self.__update("energy_minimize", "running gmx grompp and mdrun for energy minimization...")
+    def energy_minimize(self, skip = False):
+        if (skip):
+            self.__update("energy_minimize", "skipping energy minimization (only copying .pdb)...")
+            
+            os.system("cp {0}_ION.pdb {0}_EM.pdb".format(self.d_pdbName))
+        else:
+            self.__update("energy_minimize", "running gmx grompp and mdrun for energy minimization...")
 
-        os.system("gmx grompp %s >> builder.log 2>&1" % self.g_EM_gromm)
-        os.system("gmx mdrun  %s >> builder.log 2>&1" % self.g_EM_md)
+            os.system("gmx grompp %s >> builder.log 2>&1" % self.g_EM_gromm)
+            os.system("gmx mdrun  %s >> builder.log 2>&1" % self.g_EM_md)
 
-    def energy_tcouple(self):
-        self.__update("energy_tcouple", "running gmx grompp and mdrun for temperature coupling...")
+    def energy_tcouple(self, skip = False):
+        if (skip):
+            self.__update("energy_tcouple", "skipping temperature coupling (only copying .pdb)...")
+            self.__update("energy_tcouple", "WARNING: skipping this step means velocities will NOT be generated!")
+            self.__update("energy_tcouple", "WARNING: This can have consequences for sampling of parameter space.")
 
-        os.system("gmx grompp %s >> builder.log 2>&1" % self.g_NVT_gromm)
-        os.system("gmx mdrun  %s >> builder.log 2>&1" % self.g_NVT_md)
+            os.system("cp {0}_EM.pdb {0}_NVT.pdb".format(self.d_pdbName))
+        else:
+            self.__update("energy_tcouple", "running gmx grompp and mdrun for temperature coupling...")
 
-    def energy_pcouple(self):
-        self.__update("energy_pcouple", "running gmx grompp and mdrun for pressure coupling...")
-        os.system("gmx grompp %s >> builder.log 2>&1" % self.g_NPT_gromm)
-        os.system("gmx mdrun  %s >> builder.log 2>&1" % self.g_NPT_md)
+            os.system("gmx grompp %s >> builder.log 2>&1" % self.g_NVT_gromm)
+            os.system("gmx mdrun  %s >> builder.log 2>&1" % self.g_NVT_md)
+
+    def energy_pcouple(self, skip = False):
+        if (skip):
+            self.__update("energy_pcouple", "skipping pressure coupling (only copying .pdb)...")
+        
+            os.system("cp {0}_NVT.pdb {0}_NPT.pdb".format(self.d_pdbName))
+        else:
+            self.__update("energy_pcouple", "running gmx grompp and mdrun for pressure coupling...")
+        
+            os.system("gmx grompp %s >> builder.log 2>&1" % self.g_NPT_gromm)
+            os.system("gmx mdrun  %s >> builder.log 2>&1" % self.g_NPT_md)
 
     ############################################################################
 
