@@ -566,16 +566,18 @@ class sim:
 
         #   resName  numParams  params for ref. potential   refpKa
         if (countGLU > 0):
-            # addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25) # Orig Noora.
-            addRes1('GLU', 7, [28.616, -531.510, -118.499, -138.554, 823.016, -926.582, 276.761], 4.25) # My own Gly-Glu-Gly cal.
+            addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25) # Orig Noora.
+            # addRes1('GLU', 4, [24.49, -552.60, 28.79, -87.39], 4.25) # My own Gly-Asp-Gly cal.
+            # addRes1('GLU', 7, [28.616, -531.510, -118.499, -138.554, 823.016, -926.582, 276.761], 4.25) # My own Gly-Glu-Gly cal.
 
         if (countASP > 0):
-            # addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65) # Orig Noora.
-            addRes1('ASP', 7, [37.660, -550.130, -464.667, 1894.405, -3173.931, 2280.307, -606.648], 3.65) # My own Gly-Asp-Gly cal.
+            addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65) # Orig Noora.
+            # addRes1('ASP', 4, [31.011, -558.85, 52.88, -101.71], 3.65) # My own Gly-Asp-Gly cal.
+            # addRes1('ASP', 7, [37.660, -550.130, -464.667, 1894.405, -3173.931, 2280.307, -606.648], 3.65) # My own Gly-Asp-Gly cal.
 
         if (self.d_restrainpH): # New, but might not be necessary in newer commits.
-            # addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 0) # Orig Noora.
-            addRes1('BUF', 7, [i * countACID for i in [663.748, -657.681, 316.416, -2058.574, 4757.230, -4837.960, 1747.500]], 0) # My own calibration.
+            addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 0) # Orig Noora.
+            # addRes1('BUF', 7, [i * countACID for i in [663.748, -657.681, 316.416, -2058.574, 4757.230, -4837.960, 1747.500]], 0) # My own calibration.
 
         ################## PART 3 - RESIDUE-SPECIFIC PARAMETERS ################
 
@@ -681,21 +683,21 @@ class sim:
     def generate_phdata(self, pH, lambdaM, nstOut, barrierE):
         # Data (hardcoded, specific for CHARMM2019)
         GLU_pKa   = 4.25
-        # GLU_dvdl  = [24.685, -577.05, 137.39, -172.69] # Orig Noora.
-        GLU_dvdl  = [28.616, -531.510, -118.499, -138.554, 823.016, -926.582, 276.761] # My own Gly-Glu-Gly cal.
+        GLU_dvdl  = [24.685, -577.05, 137.39, -172.69] # Orig Noora.
+        # GLU_dvdl  = [28.616, -531.510, -118.499, -138.554, 823.016, -926.582, 276.761] # My own Gly-Glu-Gly cal.
         GLU_atoms = [' CG ', ' CD ', ' OE1', ' OE2', ' HE2'] # atoms part of model
         GLU_qqA   = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
         GLU_qqB   = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
         
         ASP_pKa   = 3.65
-        # ASP_dvdl  = [37.822, -566.01, 117.97, -158.79] # Orig Noora.
-        ASP_dvdl  = [37.660, -550.130, -464.667, 1894.405, -3173.931, 2280.307, -606.648] # My own Gly-Asp-Gly cal.
+        ASP_dvdl  = [37.822, -566.01, 117.97, -158.79] # Orig Noora.
+        # ASP_dvdl  = [37.660, -550.130, -464.667, 1894.405, -3173.931, 2280.307, -606.648] # My own Gly-Asp-Gly cal.
         ASP_atoms = [' CB ', ' CG ', ' OD1', ' OD2', ' HD2'] # atoms part of model
         ASP_qqA   = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
         ASP_qqB   = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
 
-        # BUF_dvdl  = [670.1, -674.4, 83.19, -150.21] # Orig Noora.
-        BUF_dvdl  = [663.748, -657.681, 316.416, -2058.574, 4757.230, -4837.960, 1747.500] # My own calibration.
+        BUF_dvdl  = [670.1, -674.4, 83.19, -150.21] # Orig Noora.
+        # BUF_dvdl  = [663.748, -657.681, 316.416, -2058.574, 4757.230, -4837.960, 1747.500] # My own calibration.
         #           [' OW ' , ' HW1', ' HW2']
         BUF_qqA   = [-0.0656, 0.5328, 0.5328]
         BUF_qqB   = [-0.8476, 0.4238, 0.4328]
