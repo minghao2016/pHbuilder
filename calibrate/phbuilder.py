@@ -11,7 +11,7 @@ os.system("cp {0}/buffer.itp {0}/buffer.pdb {0}/IONS.mdp ./".format(gromPath))
 
 sim = sim()
 sim.setconstantpH(True, restrain=False)
-sim.processpdb("GlyGluGly.pdb", resetResId=True)
+sim.processpdb("GlyAspGly.pdb")
 
 sim.write_reset()
                                                       # VI to have neutral terminii!
@@ -25,7 +25,7 @@ sim.generate_index()
 
 sim.generate_mdp('EM')
 sim.generate_mdp('NVT')
-sim.generate_mdp('NPT') # 10'000 steps enough for obtaining good dV/dl average. (?)
+sim.generate_mdp('NPT') # 10'000 steps enough for obtaining good dV/dl average.
 sim.generate_mdp('MD', nsteps=10000, nstxout=0, nstvout=0)
 
 sim.generate_phdata_legacy(4.5, lambdaM=0, nstOut=1, barrierE=5.0)
@@ -35,4 +35,4 @@ sim.write_reset()
 
 sim.energy_minimize()
 sim.energy_tcouple()
-sim.energy_pcouple(skip=True)
+sim.energy_pcouple()
