@@ -1,10 +1,11 @@
 Python-based system builder for constant-pH simulation in Gromacs.
 
+/calibrate  Calibration of dv/dl coefficients.
 /dev        Main testing simulation.
 /examples   Example simulations for various things (to be) implemented.
 /grom       Files to-be-imported for every simulation.
+/proteins   Proteins used for simulating/testing/benchmarking.
 /pylibs     Python libraries.
-/testing    Proteins used for simulating/testing/benchmarking.
 
 TODO:
 
@@ -12,4 +13,5 @@ TODO:
 
 DONE:
 
+-Figure out and add dV/dl calibration stuff.
 -Change builder to work with the new clean-cpHMD constant-pH input.
