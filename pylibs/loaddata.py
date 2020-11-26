@@ -1,3 +1,5 @@
+import re   # module for doing regular expressions
+
 def Int(fileName, line, col):
     for x, y in enumerate(open(fileName)):
         if x == line - 1:
@@ -37,3 +39,13 @@ def Col(fileName, col, start = 0, stop = 0):
         pass
 
     return data
+
+def grepLine(fileName, word):
+    for _, line in enumerate(open(fileName)):
+        if (re.search(word, line)):
+            return line
+
+def grepLineNumber(fileName, word):
+    for count, line in enumerate(open(fileName)):
+        if (re.search(word, line)):
+            return count + 1
