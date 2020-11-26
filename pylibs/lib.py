@@ -190,21 +190,29 @@ class sim:
     ############################################################################
 
     def protein_add_forcefield(self, modelFF, modelWater, neutralTermini = False):
-        # User update
         countACID = self.protein_countRes("ASP") + self.protein_countRes("GLU")
-        self.__update("protein_add_forcefield", "detected %s acidic residue(s):" % countACID)
 
-        if (countACID == 0):
-            self.__update("protein_add_forcefield", "no acidic residues detected, turning off constant-pH...")
-            self.d_constantpH = False
-            self.d_restrainpH = False
+        # USERINFO STUFF
+        if (self.d_constantpH):
+            self.__update("protein_add_forcefield", 'constant-pH is turned on...')
+            
+            if (countACID > 0):
+                self.__update("protein_add_forcefield", "detected %s acidic residue(s):" % countACID)
+
+                count = 1
+                for residue in self.d_residues:
+                    if (residue.d_resname in ['ASP', 'GLU']):
+                        self.__update("protein_add_forcefield", "{:3s} {:<4d}".format(residue.d_resname, count))
+                    count += 1
+                self.__update("protein_add_forcefield", "(setting protonation state to true for all of these)")
+
+            else:
+                self.__update("protein_add_forcefield", "no acidic residues detected, turning off constant-pH...")
+                self.d_constantpH = False
+                self.d_restrainpH = False
+
         else:
-            count = 1
-            for residue in self.d_residues:
-                if (residue.d_resname in ['ASP', 'GLU']):
-                    self.__update("protein_add_forcefield", "{:3s} {:<4d}".format(residue.d_resname, count))
-                count += 1
-            self.__update("protein_add_forcefield", "(setting protonation state to true for all of these)")
+            self.__update("protein_add_forcefield", 'constant-pH is turned off...')
 
         self.d_modelFF = modelFF        # Set internal force field variable
         self.__update("protein_add_forcefield", "using the %s force field with the %s water model..." % (modelFF, modelWater))
@@ -566,7 +574,8 @@ class sim:
 
         #   resName  numParams  params for ref. potential   refpKa
         if (countGLU > 0):
-            addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25) # Orig Noora.
+            # addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25) # Orig Noora.
+            addRes1('GLU', 4, [19.543, -596.473, 164.418, -178.376], 4.25) # Zondagavond.
             # addRes1('GLU', 4, [24.49, -552.60, 28.79, -87.39], 4.25) # My own Gly-Asp-Gly cal.
             # addRes1('GLU', 7, [28.616, -531.510, -118.499, -138.554, 823.016, -926.582, 276.761], 4.25) # My own Gly-Glu-Gly cal.
 
@@ -576,7 +585,9 @@ class sim:
             # addRes1('ASP', 7, [37.660, -550.130, -464.667, 1894.405, -3173.931, 2280.307, -606.648], 3.65) # My own Gly-Asp-Gly cal.
 
         if (self.d_restrainpH): # New, but might not be necessary in newer commits.
-            addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 0) # Orig Noora.
+            # addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 0) # Orig Noora.
+            addRes1('BUF', 4, [i * countACID for i in [660.613, -662.534, 77.058, -134.331]], 0) # Zondagavond.
+
             # addRes1('BUF', 7, [i * countACID for i in [663.748, -657.681, 316.416, -2058.574, 4757.230, -4837.960, 1747.500]], 0) # My own calibration.
 
         ################## PART 3 - RESIDUE-SPECIFIC PARAMETERS ################
@@ -927,7 +938,7 @@ class sim:
 
     ############################################################################
 
-    def write_run(self, gmxPath = 'usr/local/gromacs', mode = ''):
+    def write_run(self, gmxPath = '/usr/local/gromacs', mode = 'default'):
         self.__update("write_run", "gmxPath={0}, mode={1}".format(gmxPath, mode))
         
         with open("run.sh", "w+") as file:
@@ -938,12 +949,12 @@ class sim:
 
             file.write("gmx grompp %s\n\n" % self.g_MD_gromm)
             
-            if   (mode == ''):
+            if   (mode == 'default'):
                 file.write("gmx mdrun %s\n\n" % self.g_MD_md)
             elif (mode == 'cpu'):
                 file.write("gmx mdrun %s -nb cpu\n\n" % self.g_MD_md)
             elif (mode == 'gpu'):
-                file.write("gmx mdrun %s -bonded cpu -pme cpu\n\n" % self.g_MD_md)
+                file.write("gmx mdrun %s -pme cpu\n\n" % self.g_MD_md)
             else:
                 raise Exception("Unknown mode specified")
 
