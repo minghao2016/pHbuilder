@@ -1,5 +1,6 @@
 Python-based system builder for constant-pH simulation in Gromacs.
 
+/benchmark  Contains benchmarking related sims and scripts.
 /calibrate  Calibration of dv/dl coefficients.
 /dev        Main testing simulation.
 /examples   Example simulations for various things (to be) implemented.
@@ -15,3 +16,4 @@ DONE:
 
 -Figure out and add dV/dl calibration stuff.
 -Change builder to work with the new clean-cpHMD constant-pH input.
+-Ovomucoid benchmark.
