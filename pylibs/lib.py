@@ -217,6 +217,20 @@ class sim:
         self.d_modelFF = modelFF        # Set internal force field variable
         self.__update("protein_add_forcefield", "using the %s force field with the %s water model..." % (modelFF, modelWater))
 
+        # Count how many different chains we have
+        listChains = []
+        atomCount  = 1
+        for residue in self.d_residues:
+            # throw if a residue/atom does not have any chain identifier
+            if residue.d_chain == ' ':
+                string = "residue {} (atom {}) does not belong to any chain (does not have a chain-identifier)!".format(residue.d_resid, atomCount)
+                raise Exception(string)
+            for _ in residue.d_atoms:
+                atomCount += 1
+
+            if residue.d_chain not in listChains:
+                listChains.append(residue.d_chain)
+
         # Create EOF string to circumvent pd2gmx prompting for user input.
         # The for-loop sets the protonation state of all GLUs and ASPs to 1 
         # (True) if self.d_constantpH is True. The line below sets the termini
@@ -225,7 +239,8 @@ class sim:
         xstr = "<< EOF"
         for _ in range(0, countACID):
             xstr += "\n%d" % self.d_constantpH
-        xstr += "\n%d\n%d" % (neutralTermini, neutralTermini)
+        for _ in range(0, len(listChains)):
+            xstr += "\n%d\n%d" % (neutralTermini, neutralTermini)
         xstr += "\nEOF"
 
         if (neutralTermini):
@@ -236,7 +251,10 @@ class sim:
         self.__update("protein_add_forcefield", "running pdb2gmx to create topol.top...")
 
         # Generate topology and protonate (make neutral) all GLU and ASP:
-        os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s -water %s -ter >> builder.log 2>&1 %s" % (self.d_pdbName, self.d_pdbName, modelFF, modelWater, xstr))
+        if (neutralTermini):
+            os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s -water %s -ter >> builder.log 2>&1 %s" % (self.d_pdbName, self.d_pdbName, modelFF, modelWater, xstr))
+        else: # Still a bug here if we have multiple chains, so have to specify the termini multiple times
+            os.system("gmx pdb2gmx -f %s_PR1.pdb -o %s_PR2.pdb -asp -glu -ignh -ff %s -water %s >> builder.log 2>&1 %s" % (self.d_pdbName, self.d_pdbName, modelFF, modelWater, xstr))
 
         self.loadpdb("%s_PR2.pdb" % self.d_pdbName) # Update internal d_residues.
 
