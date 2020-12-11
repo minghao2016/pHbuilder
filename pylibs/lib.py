@@ -1,4 +1,5 @@
 import os
+import string
 
 class sim:
     
@@ -40,7 +41,7 @@ class sim:
 
         self.d_pdbName  = ""    # Store the .pdb name (without extention).
 
-    def processpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"], resetResId = False):
+    def processpdb(self, fname, MODEL = 1, ALI = "A", CHAIN = ["all"], resetResId = False, genMissingChains = False):
         self.loadpdb(fname, MODEL, ALI, CHAIN)    # Load the .pdb file.
 
         chainString = ""                          # Create userinfo message.
@@ -54,7 +55,11 @@ class sim:
                                                   # Chop off .pdb extention.
         self.d_pdbName = self.d_fname[0:len(self.d_fname)-4]
         self.__update("processpdb", "importing MODEL=%s, ALI=%s, chain(s)=%s, internal name is %s..." % (self.d_model, self.d_ALI, chainString, self.d_pdbName))
-        
+
+        if (genMissingChains):
+            self.__update('processpdb', 'generating missing chain-identifiers...')
+            self.__protein_genMissingChainIdentifiers()
+
         if (resetResId):
             self.__update("processpdb", "resetting resid numbering...")
             self.__protein_resetResId()
@@ -187,6 +192,26 @@ class sim:
             residue.d_resid = num
             num += 1
 
+    def __protein_genMissingChainIdentifiers(self):
+        # This function is based on the fact that the resid resets for every
+        # separate chain. If that does not happen, this won't work.
+        capIdx = 0
+        caps   = string.ascii_uppercase
+
+        for idx in range(0, len(self.d_residues)):
+            try:
+                current = self.d_residues[idx]
+                Next    = self.d_residues[idx + 1]
+
+                self.d_residues[idx].d_chain = caps[capIdx]
+
+                # If the resid resets, we know we're at the end of a chain.
+                if (current.d_resid + 1 != Next.d_resid):
+                    capIdx += 1
+            
+            except IndexError:
+                self.d_residues[idx].d_chain = caps[capIdx]
+
     ############################################################################
 
     def protein_add_forcefield(self, modelFF, modelWater, neutralTermini = False):
@@ -219,14 +244,14 @@ class sim:
 
         # Count how many different chains we have
         listChains = []
-        atomCount  = 1
+        # atomCount  = 1
         for residue in self.d_residues:
             # throw if a residue/atom does not have any chain identifier
-            if residue.d_chain == ' ':
-                string = "residue {} (atom {}) does not belong to any chain (does not have a chain-identifier)!".format(residue.d_resid, atomCount)
-                raise Exception(string)
-            for _ in residue.d_atoms:
-                atomCount += 1
+            # if residue.d_chain == ' ':
+                # string = "residue {} (atom {}) does not belong to any chain (does not have a chain-identifier)!".format(residue.d_resid, atomCount)
+                # raise Exception(string)
+            # for _ in residue.d_atoms:
+                # atomCount += 1
 
             if residue.d_chain not in listChains:
                 listChains.append(residue.d_chain)
@@ -592,21 +617,15 @@ class sim:
 
         #   resName  numParams  params for ref. potential   refpKa
         if (countGLU > 0):
-            # addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25) # Orig Noora.
-            addRes1('GLU', 4, [19.543, -596.473, 164.418, -178.376], 4.25) # Zondagavond.
-            # addRes1('GLU', 4, [24.49, -552.60, 28.79, -87.39], 4.25) # My own Gly-Asp-Gly cal.
-            # addRes1('GLU', 7, [28.616, -531.510, -118.499, -138.554, 823.016, -926.582, 276.761], 4.25) # My own Gly-Glu-Gly cal.
+            addRes1('GLU', 4, [24.685, -577.05, 137.39, -172.69], 4.25) # Orig Noora.
+            # addRes1('GLU', 4, [19.543, -596.473, 164.418, -178.376], 4.25) # Zondagavond.
 
         if (countASP > 0):
             addRes1('ASP', 4, [37.822, -566.01, 117.97, -158.79], 3.65) # Orig Noora.
-            # addRes1('ASP', 4, [31.011, -558.85, 52.88, -101.71], 3.65) # My own Gly-Asp-Gly cal.
-            # addRes1('ASP', 7, [37.660, -550.130, -464.667, 1894.405, -3173.931, 2280.307, -606.648], 3.65) # My own Gly-Asp-Gly cal.
 
         if (self.d_restrainpH): # New, but might not be necessary in newer commits.
-            # addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 0) # Orig Noora.
-            addRes1('BUF', 4, [i * countACID for i in [660.613, -662.534, 77.058, -134.331]], 0) # Zondagavond.
-
-            # addRes1('BUF', 7, [i * countACID for i in [663.748, -657.681, 316.416, -2058.574, 4757.230, -4837.960, 1747.500]], 0) # My own calibration.
+            addRes1('BUF', 4, [i * countACID for i in [670.1, -674.4, 83.19, -150.21]], 0) # Orig Noora.
+            # addRes1('BUF', 4, [i * countACID for i in [660.613, -662.534, 77.058, -134.331]], 0) # Zondagavond.
 
         ################## PART 3 - RESIDUE-SPECIFIC PARAMETERS ################
 
