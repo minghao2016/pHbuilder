@@ -848,7 +848,9 @@ class sim:
                 writeBlock(idx + 1, 'ASP', ASP_dvdl, ASP_pKa, barrierE, ASP_qqA, ASP_qqB)
 
             if (acidicResidueTypeList[idx] == 'BUF'):
-                writeBlock(idx + 1, 'BUF', [i * len(acidicResidueNameList) for i in BUF_dvdl], 0, 0, BUF_qqA, BUF_qqB)
+                # Multiplication is no-longer necessary because of Paul's commit on January 25th:
+                # writeBlock(idx + 1, 'BUF', [i * len(acidicResidueNameList) for i in BUF_dvdl], 0, 0, BUF_qqA, BUF_qqB)
+                writeBlock(idx + 1, 'BUF', BUF_dvdl, 0, 0, BUF_qqA, BUF_qqB)
 
         # PART 3 - WRITE INDIVIDUAL RESIDUE/LAMBDA-GROUP STUF ##################
 
