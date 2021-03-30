@@ -1,0 +1,18 @@
+d_fileName    = "1cvo.pdb"
+d_model       = 1
+d_ALI         = 'A'
+d_chain       = ["all"]
+d_resetResIds = False
+d_genChainIDs = False
+
+d_forcefield  = "charmm36-mar2019"
+d_watermodel  = "tip3p"
+d_neutralTer  = False
+
+d_genBox      = True
+d_boxMargin   = 1.5
+
+d_nsteps      = 100000
+d_xOut        = 0
+d_compress    = True
+d_posres      = False
