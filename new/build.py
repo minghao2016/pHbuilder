@@ -15,9 +15,9 @@ def PRINT(): # Displays all variables (name, data, type) stored in the universe.
         for item in shelf:
             # If item is a long list, only print first, last element (to save screen space)
             if (type(shelf[item]) == type([]) and len(shelf[item]) > 2):
-                print("{0:{arg}s} = [{1}, ..., {2}]  ({3})".format(item, shelf[item][0], shelf[item][-1], type([]), arg=longest).replace('\n', ''))
+                print("{0:{arg}s} = [{1}, ..., {2}]  {3}".format(item, shelf[item][0], shelf[item][-1], type([]), arg=longest).replace('\n', ''))
             else:
-                print("{0:{arg}s} = {1}  ({2})".format(item, shelf[item], type(shelf[item]), arg=longest))
+                print("{0:{arg}s} = {1}  {2}".format(item, shelf[item], type(shelf[item]), arg=longest))
 
 def SET(var): # Add/update variable to universe.
     with shelve.open('universe') as shelf:
@@ -734,31 +734,275 @@ def energy_pcouple(skip=False):
 ################################################################################
 
 def generate_phdata(pH, lambdaM, nstOut, barrierE):
-    pass
+    # Data (hardcoded, specific for CHARMM2019)
+    GLU_pKa   = 4.25
+    GLU_dvdl  = [24.685, -577.05, 137.39, -172.69] # Orig Noora.
+    GLU_atoms = [' CG ', ' CD ', ' OE1', ' OE2', ' HE2'] # atoms part of model
+    GLU_qqA   = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
+    GLU_qqB   = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
+    
+    ASP_pKa   = 3.65
+    ASP_dvdl  = [37.822, -566.01, 117.97, -158.79] # Orig Noora.
+    ASP_atoms = [' CB ', ' CG ', ' OD1', ' OD2', ' HD2'] # atoms part of model
+    ASP_qqA   = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
+    ASP_qqB   = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
+
+    BUF_dvdl  = [670.1, -674.4, 83.19, -150.21] # Orig Noora.
+    #           [' OW ' , ' HW1', ' HW2']
+    BUF_qqA   = [-0.0656, 0.5328, 0.5328]
+    BUF_qqB   = [-0.8476, 0.4238, 0.4328]
+
+    # Skip this entire step if self.d_constantpH is false.
+    if (not GET('d_constantpH')):
+        __update("generate_phdata", "skipping this step...")
+        return
+
+    # Throw exception if MD.mdp does not exist.
+    if (not os.path.isfile("MD.mdp")):
+        raise Exception("MD.mdp does not exist! Did you generate MD.mdp before calling generate_phdata?")
+    
+    # Throw exception if index.ndx does not exist.
+    if (not os.path.isfile("index.ndx")):
+        raise Exception("index.ndx does not exist! Did you generate index.ndx before calling generate_phdata?")
+
+    # Update user.
+    __update("generate_phdata", "pH=%s, lambdaM=%s, nstOut=%s, barrierE=%s" % (pH, lambdaM, nstOut, barrierE))
+
+    file = open('MD.mdp', 'a')
+
+    # Formatting function.
+    def addParam(name, value, comment = "NUL"):
+        if (comment == "NUL"):
+            file.write("{:54s} = {:13s}\n".format(name, str(value)))
+        else:            
+            file.write("{:54s} = {:13s} ; {:13s}\n".format(name, str(value), comment))
+
+    file.write("\n; CONSTANT PH\n")
+
+    # PART 1 - WRITE GENERAL PARAMETERS ########################################
+    
+    addParam('lambda-dynamics', 'yes')
+    addParam('lambda-dynamics-simulation-ph', pH)
+    addParam('lambda-dynamics-lambda-particle-mass', lambdaM)
+    addParam('lambda-dynamics-update-nst', nstOut)
+    addParam('lambda-dynamics-tau', 0.1) # hardcoded
+
+    if GET('d_restrainpH'):
+        addParam('lambda-dynamics-charge-constraints', 'yes')
+
+    # Compile a list of acidic residues and their ResIDs.
+    acidicResidueNameList = []; acidicResidueNumberList = []
+    acidicResidueTypeList = []
+    
+    for residue in GET('d_residues'):
+        if (residue.d_resname == 'GLU'):
+            acidicResidueNameList.append('GLU')
+            acidicResidueNumberList.append(residue.d_resid)
+        
+        if (residue.d_resname == 'ASP'):
+            acidicResidueNameList.append('ASP')
+            acidicResidueNumberList.append(residue.d_resid)
+
+    if ('GLU' in acidicResidueNameList):
+        acidicResidueTypeList.append('GLU')
+    
+    if ('ASP' in acidicResidueNameList):
+        acidicResidueTypeList.append('ASP')
+
+    if GET('d_restrainpH'):                   # If we restrain the charge 
+        acidicResidueTypeList.append('BUF')   # we also have BUF.
+
+    addParam('lambda-dynamics-number-lambda-residues', len(acidicResidueTypeList))
+    
+    if GET('d_restrainpH'):
+        addParam('lambda-dynamics-number-atom-collections', len(acidicResidueNameList) + 1)
+    else:
+        addParam('lambda-dynamics-number-atom-collections', len(acidicResidueNameList))
+
+    file.write('\n')
+
+    # print(acidicResidueNameList)   # debug
+    # print(acidicResidueNumberList) # debug
+    # print(acidicResidueTypeList)   # debug
+
+    # PART 2 - WRITE RESIDUE-TYPE SPECIFIC STUFF ###############################
+
+    def writeBlock(number, name, dvdl, pKa, barrierE, qqA, qqB):
+
+        def to_string(Input):
+            string = ""
+            for element in Input:
+                string += str(element)
+                string += " "
+            return string
+
+        addParam('lambda-dynamics-residue%s-name'              % (number), name)
+        addParam('lambda-dynamics-residue%s-dvdl-coefficients' % (number), to_string(dvdl))
+        addParam('lambda-dynamics-residue%s-reference-pka'     % (number), pKa)
+        addParam('lambda-dynamics-residue%s-barrier'           % (number), barrierE)
+        addParam('lambda-dynamics-residue%s-charges-state-A'   % (number), to_string(qqA))
+        addParam('lambda-dynamics-residue%s-charges-state-B'   % (number), to_string(qqB))
+        
+        file.write('\n')
+
+    for idx in range(0, len(acidicResidueTypeList)):
+        if (acidicResidueTypeList[idx] == 'GLU'):
+            writeBlock(idx + 1, 'GLU', GLU_dvdl, GLU_pKa, barrierE, GLU_qqA, GLU_qqB)
+
+        if (acidicResidueTypeList[idx] == 'ASP'):
+            writeBlock(idx + 1, 'ASP', ASP_dvdl, ASP_pKa, barrierE, ASP_qqA, ASP_qqB)
+
+        if (acidicResidueTypeList[idx] == 'BUF'):
+            # Multiplication is no-longer necessary because of Paul's commit on January 25th:
+            # writeBlock(idx + 1, 'BUF', [i * len(acidicResidueNameList) for i in BUF_dvdl], 0, 0, BUF_qqA, BUF_qqB)
+            writeBlock(idx + 1, 'BUF', BUF_dvdl, 0, 0, BUF_qqA, BUF_qqB)
+
+    # PART 3 - WRITE INDIVIDUAL RESIDUE/LAMBDA-GROUP STUF ######################
+
+    def writeResBlock(number, name, indexLambda, indexName):
+        addParam('lambda-dynamics-atom-set%s-name'                  % (number), name)
+        addParam('lambda-dynamics-atom-set%s-lambda-residues-index' % (number), indexLambda)
+        addParam('lambda-dynamics-atom-set%s-index-group-name'      % (number), indexName)
+        addParam('lambda-dynamics-atom-set%s-initial-lambda'        % (number), 0.5) # hardcoded
+        
+        if GET('d_restrainpH'):
+            addParam('lambda-dynamics-atom-set%s-charge-restraint-group-index' % (number), 1)
+
+        if (name == 'BUF'):
+            addParam('lambda-dynamics-atom-set%s-buffer-residue' % (number), 'yes')
+            addParam('lambda-dynamics-atom-set%s-buffer-residue-multiplier' % (number), len(acidicResidueNameList))
+
+        file.write('\n')
+
+    for idx in range(0, len(acidicResidueNameList)):
+        writeResBlock(
+                        idx + 1, 
+                        acidicResidueNameList[idx],
+                        acidicResidueTypeList.index(acidicResidueNameList[idx]) + 1,
+                        'LAMBDA%s' % (idx + 1)
+                        )
+
+    if GET('d_restrainpH'):
+        writeResBlock(
+                        len(acidicResidueNameList) + 1,
+                        'BUF',
+                        acidicResidueTypeList.index('BUF') + 1,
+                        'LAMBDA%s' % (len(acidicResidueNameList) + 1)
+                        )
+
+    file.close() # MD.mdp
+
+    # PART 4 - APPEND THE LAMBDA INDEX GROUPS TO INDEX.NDX #####################
+
+    file = open('index.ndx', 'a') # Append to existing index.ndx
+
+    # Function for adding an indexList to index.ndx
+    def writeTheGroup(number, indexList):
+        file.write('\n[ LAMBDA{} ]\n'.format(number))
+        for index in indexList:
+            file.write('{} '.format(index))
+        file.write('\n')
+
+    atomCount = 1   # Keeps track of the atom number.
+    grpNum    = 1   # Keeps track of the group (the LAMBDA%s).
+    
+    for residue in GET('d_residues'):       # loop through all residues
+
+        indexList = []                      # clear indexList
+
+        for atom in residue.d_atoms:        # for each residue, loop through the atoms
+
+            if (residue.d_resname == 'GLU' and atom in GLU_atoms):
+                indexList.append(atomCount)
+
+            elif (residue.d_resname == 'ASP' and atom in ASP_atoms):
+                indexList.append(atomCount)
+
+            atomCount += 1                  # increment atomcount
+
+        if (len(indexList) > 0):
+            writeTheGroup(grpNum, indexList)
+            grpNum += 1
+
+    if GET('d_restrainpH'):
+
+        atomCount = 1; indexList = []
+
+        for residue in GET('d_residues'):
+            for atom in residue.d_atoms:
+            
+                if (residue.d_resname == 'BUF'):
+                    indexList.append(atomCount)
+            
+                atomCount += 1
+        
+        writeTheGroup(grpNum, indexList)
+
+    file.close() # index.ndx
+
+def restrain_dihedrals(resName, atomNameList, Type, phi, dphi, fc):
+    __update("restrain_dihedrals", "will add restraints for {0} (all chains)...".format(resName))
+
+    # Every chain has its own .itp file, so we loop through every file:
+    for letter in GET('d_chain'):
+        
+        # This is to make sure we don't have multiple headers when we add multiple different restraints.
+        first = False
+        if not "[ dihedral_restraints ]" in open("topol_Protein_chain_{0}.itp".format(letter)).read():
+            first = True
+
+        # Append to the end of relevant .itp file:
+        with open("topol_Protein_chain_{0}.itp".format(letter), 'a') as file:
+            if first:
+                file.write("[ dihedral_restraints ]\n")
+                file.write("; ai aj ak al type phi dphi fc\n")
+
+            # Write the atoms as an extra comment.
+            file.write("; {0} {1} {2} {3}\n".format(atomNameList[0], atomNameList[1], atomNameList[2], atomNameList[3]))
+
+            # Atomcount resets for every separate .itp file.
+            count = 0
+            for residue in GET('d_residues'):
+                idxList = []
+                for atom in residue.d_atoms:
+                    # only increase atomcount when we read the relevant chain
+                    if residue.d_chain == letter:
+                        count += 1
+
+                        if residue.d_resname == resName and atom in atomNameList:
+                            idxList.append(count)
+
+                # dihedrals have always four atoms so only activate if we have a length of four.                
+                if len(idxList) == 4:
+                    __update("restrain_dihedrals", "adding restraints for chain {0} {1}-{2}...".format(residue.d_chain, resName, residue.d_resid))
+                    file.write("{:<6d} {:<6d} {:<6d} {:<6d}  {}  {}  {}  {}\n".format(idxList[0], idxList[1], idxList[2], idxList[3], Type, phi, dphi, fc))
 
 # MAIN #########################################################################
 
 UPD('d_constantpH', True)
-UPD('d_restrainpH', True)
+UPD('d_restrainpH', False)
 
-processpdb('3lr2.pdb')
+processpdb('1cvo.pdb')
 write_reset()
 
 generate_topology("charmm36-mar2019", "tip3p")
-protein_add_box(d_boxMargin=2.0)
+
+restrain_dihedrals('GLU', [' OE1', ' CD ', ' OE2', ' HE2'], 1,  0, 0, 10)
+restrain_dihedrals('GLU', [' HA ', ' CA ', ' CB ', ' HB1'], 1, 60, 0, 10)
+
+protein_add_box(d_boxMargin=1.0)
 protein_add_buffer("/home/anton/GIT/phbuilder/grom/buffer.pdb", "/home/anton/GIT/phbuilder/grom/buffer.itp", 1.5)
 protein_add_water()
 protein_add_ions()
 
-generate_index()
-
-write_run()
+write_run(gmxPath="/usr/local/gromacs_test2", options="-pme cpu")
 write_jobscript('test', 48, 1, 32, 'lindahl')
 
-generate_mdp('MD', nsteps=500000, nstxout=10000)
+generate_mdp('MD', nsteps=50000, nstxout=10000)
+generate_phdata(2.0, 5.0, 1, 5.0)
 
 energy_minimize()
 energy_tcouple()
 energy_pcouple(skip=True)
 
-# PRINT()
+PRINT()
