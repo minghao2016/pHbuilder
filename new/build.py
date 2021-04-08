@@ -1,10 +1,26 @@
 #!/bin/python3
 
-import shelve       # This module allows retrieving of variable names.
-import varname      # https://github.com/pwwang/python-varname
+import shelve
 import os
 
-def PRINT(): # Displays all variables (name, data, type) stored in the universe.
+# Set/update variable to universe.
+def SET(varName, value):
+    with shelve.open('universe') as shelf:
+        shelf[varName] = value
+
+# Retrieve variable from universe.
+def GET(varName):
+    with shelve.open('universe') as shelf:
+        try:
+            return shelf[varName]
+        except KeyError:
+            data = eval(input("GET couldn't retrieve var \"{0}\" from {1}. Enter manually: ".format(varName, 'universe')))
+            shelf[varName] = data
+            print("SET {0} = {1}  {2}".format(varName, shelf[varName], type(shelf[varName])))
+            return shelf[varName]
+
+# Display all variables (name, data, type) stored in the universe.
+def PRINT():
     with shelve.open('universe') as shelf:
         # Determine longest valueName for formatting:
         longest = 0
@@ -19,26 +35,8 @@ def PRINT(): # Displays all variables (name, data, type) stored in the universe.
             else:
                 print("{0:{arg}s} = {1}  {2}".format(item, shelf[item], type(shelf[item]), arg=longest))
 
-def SET(var): # Add/update variable to universe.
-    with shelve.open('universe') as shelf:
-        shelf[varname.nameof(var, frame=2)] = var
-        # Not sure how stable this is, thread carefully!
-
-def UPD(varName, value): # Update variable to universe.
-    with shelve.open('universe') as shelf:
-        shelf[varName] = value
-
-def GET(var): # Retrieve variable from universe.
-    with shelve.open('universe') as shelf:
-        try:
-            return shelf[var]
-        except KeyError:
-            data = eval(input("GET couldn't retrieve var \"{0}\" from {1}. Enter manually: ".format(var, 'universe')))
-            shelf[var] = data
-            print("SET {0} = {1}  ({2})".format(var, shelf[var], type(shelf[var])))
-            return shelf[var]
-
-def __update(tool, message): # For formating user messages.
+# For formating user messages.
+def __update(tool, message):
     print("{:22s} : {:s}".format(tool, message))
 
 # PDB STUFF
@@ -72,11 +70,11 @@ def loadpdb(d_fname, d_model=1, d_ALI='A', d_chain=["all"]):
             
             # Get title.
             if ((line[0:6]) == "TITLE "):
-                d_title = line[7:80].rstrip(); SET(d_title)
+                d_title = line[7:80].rstrip(); SET('d_title', d_title)
 
             # Get periodic box information (if any).
             if ((line[0:6]) == "CRYST1"):
-                d_box   = line[7:80].rstrip(); SET(d_box)
+                d_box   = line[7:80].rstrip(); SET('d_box', d_box)
                 
             # if our line specifies an ATOM,
             if (line[0:6] == "ATOM  "):                 
@@ -125,7 +123,20 @@ def loadpdb(d_fname, d_model=1, d_ALI='A', d_chain=["all"]):
             # Reset.
             atoms = []; ali = []; xCoord = []; yCoord = []; zCoord = []
 
-    SET(d_residues)
+    SET('d_residues', d_residues)
+
+def __add_to_nameList(name):
+    with shelve.open('universe') as shelf:
+        # If d_nameList does not exist, add it as an empty list.
+        try:
+            shelf['d_nameList']
+        except KeyError:
+            shelf['d_nameList'] = []
+    
+        # Append name to d_nameList.
+        temp = shelf['d_nameList']
+        temp.append(name)
+        shelf['d_nameList'] = temp
 
 # Write (modified) .pdb file.
 def __writepdb(name):            
@@ -134,13 +145,15 @@ def __writepdb(name):
         file.write("CRYST1{0}\n".format(GET('d_box')))
         file.write("MODEL {:8d}\n".format(GET('d_model')))
 
-        num = 1                         # Write actual residues.
+        atomNumber = 1
         for residue in GET('d_residues'):
             for idx in range(0, len(residue.d_atoms)):
-                file.write("{:6s}{:5d} {:^4s}{:1s}{:3s} {:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', num, residue.d_atoms[idx], residue.d_ali[idx], residue.d_resname, residue.d_chain, residue.d_resid, '', residue.d_x[idx], residue.d_y[idx], residue.d_z[idx]))
-                num += 1                # .pdb format string.
+                file.write("{:6s}{:5d} {:^4s}{:1s}{:3s} {:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', atomNumber, residue.d_atoms[idx], residue.d_ali[idx], residue.d_resname, residue.d_chain, residue.d_resid, '', residue.d_x[idx], residue.d_y[idx], residue.d_z[idx]))
+                atomNumber += 1
 
-        file.write("TER\nENDMDL\n")     # Write EOF information.
+        file.write("TER\nENDMDL\n")
+
+    __add_to_nameList(name)
 
 # Inspect a specific residue.
 def inspectRes(resid, chain='A'):
@@ -193,32 +206,37 @@ def __genMissingChainIdentifiers():
             GET('d_residues')[idx].d_chain = caps[capIdx]    
 
 def processpdb(d_fname, d_model=1, d_ALI='A', d_chain=["all"], resetResId=False, genMissingChainsIDs=False):
-    SET(d_fname)
-    SET(d_model)
-    SET(d_ALI)
-    
-    loadpdb(d_fname, d_model, d_ALI, d_chain)       # Load.
+    SET('d_fname', d_fname)
+    SET('d_pdbName', d_fname[0:len(d_fname)-4])
+    SET('d_model', d_model)
+    SET('d_ALI', d_ALI)
 
-    d_pdbName = d_fname[0:len(d_fname)-4]           # Set internal name.
-    SET(d_pdbName)
+    loadpdb(d_fname, d_model, d_ALI, d_chain)
 
-    d_chain = []                                    # Update d_chain from ["all"] 
-    for residue in GET('d_residues'):               # to a list of actual chains used.
+    # Update d_chain from ["all"] to a list of actual chains used:
+    d_chain = []                                    
+    for residue in GET('d_residues'):
         d_chain.append(residue.d_chain)
     d_chain = list(set(d_chain))
     d_chain.sort()
-    SET(d_chain)
+    SET('d_chain', d_chain)
 
-    if (genMissingChainsIDs):                       # Optional stuff.
+    __update("processpdb", 'filename = {0}, MODEL = {1}, ALI = {2}, chain(s) = {3}...'.format(d_fname, d_model, d_ALI, d_chain))
+    
+    # Some optional stuff:
+    if genMissingChainsIDs:
+        __update("processpdb", "generating missing chain-identifiers...")
         __genMissingChainIdentifiers()
 
-    if (resetResId):
+    if resetResId:
+        __update("processpdb", "resetting resid order...")
         __resetResId()
-                                                    # Write processed file.
+
+    # Write processed.pdb to file:
     __writepdb("{0}_PR1.pdb".format(GET('d_pdbName')))
 
     # Update index.ndx
-    generate_index()
+    __generate_index()
 
 # MDP
 ################################################################################
@@ -360,9 +378,9 @@ def generate_mdp(Type, nsteps=25000, nstxout=0, posres=False):
 
     # PUT RELEVANT PARAMETERS IN UNIVERSE
     if (Type == 'MD'):
-        UPD('d_dt', dt)
-        UPD('d_nsteps', nsteps)
-        UPD('d_nstxout', nstxout)
+        SET('d_dt', dt)
+        SET('d_nsteps', nsteps)
+        SET('d_nstxout', nstxout)
 
 # TOPOLOGY/SIMULATION BUILDER STUFF
 ################################################################################
@@ -430,10 +448,10 @@ def __rebuild_topol():
             file.write("Protein_chain_{0}\t\t1\n".format(letter))
 
 def generate_topology(d_modelFF, d_modelWater, d_neutralTermini=False):
-    SET(d_modelFF)
-    SET(d_modelWater)
-    SET(d_neutralTermini)
-    
+    SET('d_modelFF', d_modelFF)
+    SET('d_modelWater', d_modelWater)
+    SET('d_neutralTermini', d_neutralTermini)
+
     countACID = countRes("ASP") + countRes("GLU")
 
     # If constant-pH is on,
@@ -453,8 +471,8 @@ def generate_topology(d_modelFF, d_modelWater, d_neutralTermini=False):
 
         else:
             __update("protein_add_forcefield", "no acidic residues detected, turning off constant-pH...")
-            UPD('d_constantpH', False)
-            UPD('d_restrainpH', False)
+            SET('d_constantpH', False)
+            SET('d_restrainpH', False)
 
     else:
         __update("protein_add_forcefield", 'constant-pH is turned off...')
@@ -496,26 +514,36 @@ def generate_topology(d_modelFF, d_modelWater, d_neutralTermini=False):
 
     # Generate topology and protonate (make neutral) all GLU and ASP:
     if (d_neutralTermini):
-        os.system("gmx pdb2gmx -f {0}_PR1.pdb -o {0}_PR2.pdb -asp -glu -ignh -ff {1} -water {2} -ter >> builder.log 2>&1 {3}".format(GET('d_pdbName'), d_modelFF, d_modelWater, xstr))
+        os.system("gmx pdb2gmx -f {0} -o {1}_PR2.pdb -asp -glu -ignh -ff {2} -water {3} -ter >> builder.log 2>&1 {4}".format(GET('d_nameList')[-1], GET('d_pdbName'), d_modelFF, d_modelWater, xstr))
     else: # Still a bug here if we have multiple chains, so have to specify the termini multiple times
-        os.system("gmx pdb2gmx -f {0}_PR1.pdb -o {0}_PR2.pdb -asp -glu -ignh -ff {1} -water {2} >> builder.log 2>&1 {3}".format(GET('d_pdbName'), d_modelFF, d_modelWater, xstr))
+        os.system("gmx pdb2gmx -f {0} -o {1}_PR2.pdb -asp -glu -ignh -ff {2} -water {3} >> builder.log 2>&1 {4}".format(GET('d_nameList')[-1], GET('d_pdbName'), d_modelFF, d_modelWater, xstr))
 
-    # Rebuild topology
+    # Rebuild topology.
     __rebuild_topol()
 
-    # Update d_residues.
+    # To update d_residues.
     loadpdb("{0}_PR2.pdb".format(GET('d_pdbName')))
 
-    # Update index.ndx
-    generate_index()
+    # To update d_nameList.
+    __add_to_nameList("{0}_PR2.pdb".format(GET('d_pdbName')))
+
+    # To update index.ndx.
+    __generate_index()
 
 def protein_add_box(d_boxMargin, d_boxType='cubic'):
-    __update("protein_add_box", "running gmx editconf...")
+    __update("protein_add_box", "running gmx editconf (boxMargin = {0}, boxType = {1})...".format(d_boxMargin, d_boxType))
 
-    os.system("gmx editconf -f {0}_PR2.pdb -o {0}_BOX.pdb -d {1} -bt {2} >> builder.log 2>&1".format(GET('d_pdbName'), d_boxMargin, d_boxType))
+    os.system("gmx editconf -f {0} -o {1}_BOX.pdb -d {2} -bt {3} >> builder.log 2>&1".format(GET('d_nameList')[-1], GET('d_pdbName'), d_boxMargin, d_boxType))
 
-    SET(d_boxMargin)
-    SET(d_boxType)
+    # To set d_boxMargin and d_boxType.
+    SET('d_boxMargin', d_boxMargin)
+    SET('d_boxType', d_boxType)
+
+    # To update d_box.
+    loadpdb("{0}_BOX.pdb".format(GET('d_pdbName')))
+
+    # To update d_nameList.
+    __add_to_nameList("{0}_BOX.pdb".format(GET('d_pdbName')))
 
 def protein_add_buffer(bufpdbName, bufitpname, minSep=1.5):
     if not (GET('d_constantpH') and GET('d_restrainpH')):
@@ -524,7 +552,8 @@ def protein_add_buffer(bufpdbName, bufitpname, minSep=1.5):
     
     __update("protein_add_buffer", "adding buffer molecules...")
 
-    def extractMinimum():                  # Extract the required value.
+    # Extract the required value.
+    def extractMinimum():
         def Float(fileName, line, col):
             for x, y in enumerate(open(fileName)):
                 if (x == line - 1):
@@ -539,7 +568,7 @@ def protein_add_buffer(bufpdbName, bufitpname, minSep=1.5):
 
     attempts = 0
     while (True):           # Randomly add the buffer molecules
-        os.system("gmx insert-molecules -f {0}_BOX.pdb -o {0}_BUF.pdb -ci {1} -nmol {2} >> builder.log 2>&1".format(GET('d_pdbName'), bufpdbName, countACID))
+        os.system("gmx insert-molecules -f {0} -o {1}_BUF.pdb -ci {2} -nmol {3} >> builder.log 2>&1".format(GET('d_nameList')[-1], GET('d_pdbName'), bufpdbName, countACID))
                             # Determine the minimum distance between the protein and the buffers
         os.system("gmx mindist -f {0}_BUF.pdb -s {0}_BUF.pdb >> builder.log 2>&1 << EOF\n1\n13\nEOF".format(GET('d_pdbName')))
 
@@ -560,28 +589,31 @@ def protein_add_buffer(bufpdbName, bufitpname, minSep=1.5):
     # Add buffer topology to topol.top.
     add_mol_to_topol(bufitpname, "Include buffer topology", 'BUF', countACID)
 
-    # Update d_residues.
-    loadpdb("{0}_BUF.pdb".format(GET('d_pdbName'))) 
+    # To update d_residues.
+    loadpdb("{0}_BUF.pdb".format(GET('d_pdbName')))
 
-    # Update index.ndx
-    generate_index()
+    # To update d_nameList.
+    __add_to_nameList("{0}_BUF.pdb".format(GET('d_pdbName')))
+
+    # To update index.ndx.
+    __generate_index()
 
 def protein_add_water():
     __update("protein_add_water", "running gmx solvate...")
     
-    # Add water molecules to .pdb and update [ molecules ] in .top:
-    if (GET('d_constantpH') and GET('d_restrainpH')):
-        os.system("gmx solvate -cp {0}_BUF.pdb -o {0}_SOL.pdb -p topol.top >> builder.log 2>&1".format(GET('d_pdbName')))
-    else:
-        os.system("gmx solvate -cp {0}_BOX.pdb -o {0}_SOL.pdb -p topol.top >> builder.log 2>&1".format(GET('d_pdbName')))
+    os.system("gmx solvate -cp {0} -o {1}_SOL.pdb -p topol.top >> builder.log 2>&1".format(GET('d_nameList')[-1], GET('d_pdbName')))
 
-    # Update topol.top
+    # To update topol.top.
     add_mol_to_topol("{0}.ff/{1}.itp".format(GET('d_modelFF'), GET('d_modelWater')), "Include water topology", "SOL", countRes('SOL'))
 
-    loadpdb("{0}_SOL.pdb".format(GET('d_pdbName'))) # Update d_residues.
+    # To update d_residues.
+    loadpdb("{0}_SOL.pdb".format(GET('d_pdbName')))
 
-    # Update index.ndx
-    generate_index()
+    # To update d_nameList.
+    __add_to_nameList("{0}_SOL.pdb".format(GET('d_pdbName')))
+
+    # To update index.ndx.
+    __generate_index()
 
 def protein_add_ions():
     __update("protein_add_ions", "running gmx grompp and genion to add ions...")
@@ -593,20 +625,22 @@ def protein_add_ions():
     add_mol_to_topol("{0}.ff/ions.itp".format(GET('d_modelFF')), "Include ion topology")
 
     # Run gmx genion.
-    os.system("gmx grompp -f IONS.mdp -c {0}_SOL.pdb -p topol.top -o IONS.tpr >> builder.log 2>&1".format(GET('d_pdbName')))
+    os.system("gmx grompp -f IONS.mdp -c {0} -p topol.top -o IONS.tpr >> builder.log 2>&1".format(GET('d_nameList')[-1]))
     os.system("gmx genion -s IONS.tpr -o {0}_ION.pdb -p topol.top -pname NA -nname CL -neutral >> builder.log 2>&1 << EOF\nSOL\nEOF".format(GET('d_pdbName')))
 
-    # Update d_residues.
+    # To update d_residues.
     loadpdb("{0}_ION.pdb".format(GET('d_pdbName')))
 
-    # Update index.ndx
-    generate_index()
+    # To update d_nameList.
+    __add_to_nameList("{0}_ION.pdb".format(GET('d_pdbName')))
+
+    # To update index.ndx.
+    __generate_index()
 
 # INDEX, JOBSCRIPT, RUN, RESET
 ################################################################################
-def generate_index():
-    #__update("generate_index", "running gmx make_ndx to create index.ndx...")
-    os.system("gmx make_ndx -f {0}_ION.pdb -o index.ndx >> builder.log 2>&1 << EOF\nq\nEOF".format(GET('d_pdbName')))
+def __generate_index():
+    os.system("gmx make_ndx -f {0} >> builder.log 2>&1 << EOF\nq\nEOF".format(GET('d_nameList')[-1]))
 
 def write_run(gmxPath="/usr/local/gromacs", options=""):
     __update("write_run", "gmxPath={0}, additional options= {1}".format(gmxPath, options))
@@ -617,7 +651,7 @@ def write_run(gmxPath="/usr/local/gromacs", options=""):
         file.write("# Gromacs version to use:\n")
         file.write("source {0}/bin/GMXRC\n\n".format(gmxPath))
 
-        file.write("gmx grompp -f MD.mdp -c {0}_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r {0}_NPT.pdb\n".format(GET('d_pdbName')))
+        file.write("gmx grompp -f MD.mdp -c {0} -p topol.top -n index.ndx -o MD.tpr -r {0}\n".format(GET('d_nameList')[-1]))
         file.write("gmx mdrun -v -s MD.tpr -x MD.xtc -c {0}_MD.pdb -g MD.log -e MD.edr {1}\n".format(GET('d_pdbName'), options))
 
     os.system("chmod +x run.sh")
@@ -664,7 +698,7 @@ def write_jobscript(jobName, jobTime, nodes, ntasks, queue):
     else:
         file.write("module load gromacs/2021.1\n\n")
 
-    file.write("gmx grompp -f MD.mdp -c {0}_NPT.pdb -p topol.top -n index.ndx -o MD.tpr -r {0}_NPT.pdb\n".format(GET('d_pdbName')))
+    file.write("gmx grompp -f MD.mdp -c {0} -p topol.top -n index.ndx -o MD.tpr -r {0}\n".format(GET('d_nameList')[-1]))
     
     if GET('d_constantpH'):
         file.write("gmx mdrun -s MD.tpr -x MD.xtc -c {0}_MD.pdb -g MD.log -e MD.edr -pme cpu\n".format(GET('d_pdbName')))
@@ -701,34 +735,34 @@ def write_reset():
 ################################################################################
 
 def energy_minimize():
-    generate_mdp('EM') # Create .mdp file for EM run.
+    generate_mdp('EM')
 
     __update("energy_minimize", "running gmx grompp and mdrun for energy minimization...")
 
-    os.system("gmx grompp -f EM.mdp -c {0}_ION.pdb -p topol.top -n index.ndx -o EM.tpr -r {0}_ION.pdb >> builder.log 2>&1".format(GET('d_pdbName')))
+    os.system("gmx grompp -f EM.mdp -c {0} -p topol.top -n index.ndx -o EM.tpr -r {0} >> builder.log 2>&1".format(GET('d_nameList')[-1]))
     os.system("gmx mdrun -s EM.tpr -o EM.trr -c {0}_EM.pdb -g EM.log -e EM.edr >> builder.log 2>&1".format(GET('d_pdbName')))
 
+    __add_to_nameList("{0}_EM.pdb".format(GET('d_pdbName')))
+
 def energy_tcouple():
-    generate_mdp('NVT') # Create .mdp file for temperature coupling run.
+    generate_mdp('NVT')
     
     __update("energy_tcouple", "running gmx grompp and mdrun for temperature coupling...")
 
-    os.system("gmx grompp -f NVT.mdp -c {0}_EM.pdb -p topol.top -n index.ndx -o NVT.tpr -r {0}_EM.pdb >> builder.log 2>&1".format(GET('d_pdbName')))
+    os.system("gmx grompp -f NVT.mdp -c {0} -p topol.top -n index.ndx -o NVT.tpr -r {0} >> builder.log 2>&1".format(GET('d_nameList')[-1]))
     os.system("gmx mdrun -s NVT.tpr -o NVT.trr -c {0}_NVT.pdb -g NVT.log -e NVT.edr >> builder.log 2>&1".format(GET('d_pdbName')))
 
-def energy_pcouple(skip=False):
-    generate_mdp('NPT') # Create .mdp file for pressure coupling run.
+    __add_to_nameList("{0}_NVT.pdb".format(GET('d_pdbName')))
+
+def energy_pcouple():
+    generate_mdp('NPT')
+
     __update("energy_pcouple", "running gmx grompp and mdrun for pressure coupling...")
 
-    if (skip): # This can save some time in some cases.
-        __update("energy_pcouple", "skipping pressure coupling (only copying .pdb)...")
-    
-        os.system("cp {0}_NVT.pdb {0}_NPT.pdb".format(GET('d_pdbName')))
-    else:
-        __update("energy_pcouple", "running gmx grompp and mdrun for pressure coupling...")
+    os.system("gmx grompp -f NPT.mdp -c {0} -p topol.top -n index.ndx -o NPT.tpr -r {0} >> builder.log 2>&1".format(GET('d_nameList')[-1]))
+    os.system("gmx mdrun -s NPT.tpr -o NPT.trr -c {0}_NPT.pdb -g NPT.log -e NPT.edr >> builder.log 2>&1".format(GET('d_pdbName')))    
 
-        os.system("gmx grompp -f NPT.mdp -c {0}_NVT.pdb -p topol.top -n index.ndx -o NPT.tpr -r {0}_NVT.pdb >> builder.log 2>&1".format(GET('d_pdbName')))
-        os.system("gmx mdrun -s NPT.tpr -o NPT.trr -c {0}_NPT.pdb -g NPT.log -e NPT.edr >> builder.log 2>&1".format(GET('d_pdbName')))    
+    __add_to_nameList("{0}_NPT.pdb".format(GET('d_pdbName')))
 
 # GENERATE CONSTANT-PH DATA
 ################################################################################
@@ -750,7 +784,7 @@ def generate_phdata(pH, lambdaM, nstOut, barrierE):
     BUF_dvdl  = [670.1, -674.4, 83.19, -150.21] # Orig Noora.
     #           [' OW ' , ' HW1', ' HW2']
     BUF_qqA   = [-0.0656, 0.5328, 0.5328]
-    BUF_qqB   = [-0.8476, 0.4238, 0.4328]
+    BUF_qqB   = [-0.8476, 0.4238, 0.4238]
 
     # Skip this entire step if self.d_constantpH is false.
     if (not GET('d_constantpH')):
@@ -979,8 +1013,8 @@ def restrain_dihedrals(resName, atomNameList, Type, phi, dphi, fc):
 
 # MAIN #########################################################################
 
-UPD('d_constantpH', True)
-UPD('d_restrainpH', False)
+SET('d_constantpH', True)
+SET('d_restrainpH', True)
 
 processpdb('1cvo.pdb')
 write_reset()
@@ -995,14 +1029,54 @@ protein_add_buffer("/home/anton/GIT/phbuilder/grom/buffer.pdb", "/home/anton/GIT
 protein_add_water()
 protein_add_ions()
 
-write_run(gmxPath="/usr/local/gromacs_test2", options="-pme cpu")
-write_jobscript('test', 48, 1, 32, 'lindahl')
-
-generate_mdp('MD', nsteps=50000, nstxout=10000)
-generate_phdata(2.0, 5.0, 1, 5.0)
-
 energy_minimize()
 energy_tcouple()
-energy_pcouple(skip=True)
 
-PRINT()
+generate_mdp('MD', nsteps=100000, nstxout=1000)
+generate_phdata(7.0, 5.0, 1, 5.0)
+write_run(gmxPath="/usr/local/gromacs_test2", options="-pme cpu")
+# write_jobscript('test', 48, 1, 32, 'lindahl')
+
+################################################################################
+
+import matplotlib.pyplot as plt
+import loaddata as load
+
+def plotlambdacoordinates(fileName="", plotBUF=False):
+    resNameList = []; resIdList = []
+    for residue in GET('d_residues'):
+        if (residue.d_resname == "GLU"):
+            resNameList.append("GLU")
+            resIdList.append(residue.d_resid)
+        if (residue.d_resname == "ASP"):
+            resNameList.append("ASP")
+            resIdList.append(residue.d_resid)
+
+    plt.figure()
+    for idx in range(1, len(resNameList) + 1):
+        t = load.Col("lambda_{0}.dat".format(idx), 1)
+        x = load.Col("lambda_{0}.dat".format(idx), 2)
+        
+        plt.plot(t, x, label="%s-%s" % (resNameList[idx-1], resIdList[idx - 1]), linewidth=0.5)
+
+    if (plotBUF):
+        t = load.Col("lambda_{0}.dat".format(len(resNameList) + 1), 1)
+        x = load.Col("lambda_{0}.dat".format(len(resNameList) + 1), 2)
+
+        plt.plot(t, x, label="Buffer", linewidth=0.5)
+
+    plt.xlabel("Time (ps)")
+    plt.ylabel(r"$\lambda$-coordinate")
+
+    plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
+    
+    plt.legend()
+    plt.grid()
+
+    if (not fileName == ""):
+        plt.savefig("{0}.pdf".format(fileName))
+        os.system("pdfcrop {0}.pdf {0}.pdf".format(fileName))
+    else:
+        plt.show()
+
+# plotlambdacoordinates(plotBUF=True)
