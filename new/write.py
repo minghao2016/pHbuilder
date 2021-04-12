@@ -62,8 +62,9 @@ def jobscript(jobName, jobTime, nodes, ntasks, queue):
     writeHead("job-name", jobName)
     writeHead("mail-user", "anton.jansen@scilifelab.se")
     writeHead("mail-type", "ALL")
-    writeHead("C gpu --gres", "gpu:1")
     
+    file.write("-C gpu --gres", "gpu:1")
+        
     file.write('\n')
 
     moduleLoad("cmake/latest")
@@ -75,7 +76,7 @@ def jobscript(jobName, jobTime, nodes, ntasks, queue):
         file.write("\n# compile our custom Gromacs version on cluster backend node\n")
         file.write("mkdir build\n")
         file.write("cd build\n")
-        file.write("cmake ~/gromacs-constantph -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=${PWD}/.. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA\n")
+        file.write("CC=gcc-7 CXX=g++-7 cmake ~/gromacs-constantph -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=${PWD}/.. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA\n")
         file.write("make -j 12\n")
         file.write("make install -j 12\n")
         file.write("cd ..\n")
