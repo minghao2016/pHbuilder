@@ -4,14 +4,12 @@ import matplotlib.pyplot as plt
 import loaddata as load
 import universe
 
-def plotlambdacoordinates(fileName="", plotBUF=False):
-    resnameList = []; residList = []
+def comparelambdacoordinates(fileName="", plotBUF=False):
+    resnameList = []    # Get the names and such of all the ASPs and GLUs.
+    residList   = []
     for residue in universe.get('d_residues'):
-        if (residue.d_resname == "GLU"):
-            resnameList.append("GLU")
-            residList.append(residue.d_resid)
-        if (residue.d_resname == "ASP"):
-            resnameList.append("ASP")
+        if residue.d_resname in ["ASP", "GLU"]:
+            resnameList.append(residue.d_resname)
             residList.append(residue.d_resid)
 
     plt.figure()
@@ -41,10 +39,102 @@ def plotlambdacoordinates(fileName="", plotBUF=False):
     else:
         plt.show()
 
-def glicphstates(plotBUF=False):
+# RETURNS THE DEPROTONATION
+def titrate(lambdaFileName):
+    lambda_proto   = 0
+    lambda_deproto = 0
 
-    # Get the names and such of all the ASPs and GLUs.
-    resnameList = []
+    for x in load.Col(lambdaFileName, 2):
+        if (x > 0.80):
+            lambda_deproto += 1
+        if (x < 0.20):
+            lambda_proto   += 1
+
+    fraction = float(lambda_deproto) / (lambda_proto + lambda_deproto)
+
+    return fraction
+
+# HENDERSON-HASSELBACH
+def henderson(pH, pKa):
+    return 1 / (10**(pKa - pH) + 1)
+
+expVals70 = {
+    'ASP-13'  : 1.0,
+    'ASP-31'  : 1.0,
+    'ASP-32'  : 1.0,
+    'ASP-49'  : 1.0,
+    'ASP-55'  : 1.0,
+    'ASP-86'  : 1.0,
+    'ASP-88'  : 1.0,
+    'ASP-91'  : 1.0,
+    'ASP-97'  : 1.0,
+    'ASP-115' : 1.0,
+    'ASP-122' : 1.0,
+    'ASP-136' : 1.0,
+    'ASP-145' : 1.0,
+    'ASP-153' : 1.0,
+    'ASP-154' : 1.0,
+    'ASP-161' : 1.0,
+    'ASP-178' : 1.0,
+    'ASP-185' : 1.0,
+    'GLU-14'  : 1.0,
+    'GLU-26'  : 1.0,
+    'GLU-35'  : 1.0,
+    'GLU-67'  : 1.0,
+    'GLU-69'  : 1.0,
+    'GLU-75'  : 1.0,
+    'GLU-82'  : 1.0,
+    'GLU-104' : 1.0,
+    'GLU-147' : 1.0,
+    'GLU-163' : 1.0,
+    'GLU-177' : 1.0,
+    'GLU-181' : 1.0,
+    'GLU-222' : 1.0,
+    'GLU-243' : 1.0,
+    'GLU-272' : 1.0,
+    'GLU-282' : 1.0
+}
+
+# Got this from Paul's "gethistogrambins_ASP_dist.py" scripts
+expVals46 = {
+    'ASP-13'  : 0.0,
+    'ASP-31'  : 0.0,
+    'ASP-32'  : 0.0,
+    'ASP-49'  : 0.0,
+    'ASP-55'  : 1.0,
+    'ASP-86'  : 1.0,
+    'ASP-88'  : 0.0,
+    'ASP-91'  : 0.0,
+    'ASP-97'  : 0.0,
+    'ASP-115' : 0.0,
+    'ASP-122' : 0.0,
+    'ASP-136' : 0.0,
+    'ASP-145' : 0.0,
+    'ASP-153' : 0.0,
+    'ASP-154' : 0.0,
+    'ASP-161' : 0.0,
+    'ASP-178' : 0.0,
+    'ASP-185' : 0.0,
+    'GLU-14'  : 1.0,
+    'GLU-26'  : 1.0,
+    'GLU-35'  : 1.0,
+    'GLU-67'  : 1.0,
+    'GLU-69'  : 0.0,
+    'GLU-75'  : 1.0,
+    'GLU-82'  : 1.0,
+    'GLU-104' : 0.0,
+    'GLU-147' : 0.0,
+    'GLU-163' : 0.0,
+    'GLU-177' : 1.0,
+    'GLU-181' : 0.0,
+    'GLU-222' : 0.0,
+    'GLU-243' : 1.0,
+    'GLU-272' : 0.0,
+    'GLU-282' : 0.0
+}
+
+def glicphstates(plotBUF=False):
+    resnameList = []    # Get the names and such of all the ASPs and GLUs.
     residList   = []
     chainList   = []
     for residue in universe.get('d_residues'):
@@ -61,10 +151,14 @@ def glicphstates(plotBUF=False):
     dirname = "lambdaplots" 
     if not os.path.isdir(dirname):
         os.mkdir(dirname)
+    else:
+        os.system("rm -f {0}/*.png {0}/*.pdf".format(dirname))
 
     # Loop through all the lambdas:
     for idx in range(1, len(resnameList) + 1):
         
+        plt.figure(figsize=(8, 6))
+
         # Update user
         print("plotting {}/{}".format(idx, len(resnameList)), end='\r')
         
@@ -80,12 +174,21 @@ def glicphstates(plotBUF=False):
 
         plt.plot(t, x, linewidth=0.5)
 
-        # Get/compute some additional information.
-        pH = universe.get('ph_ph')
-        nstlout = universe.get('ph_nstxout')
+        # Title
+        plt.title("{0}-{1} in chain {2} in {3}\npH={4}, nstlambda={5}, deprotonation={6:.2f}\n\
+            Experimentally determined state for {0}-{1} at this pH = {7}".format(
+            resnameList[idx-1], 
+            residList[idx-1],
+            chainList[idx-1],
+            universe.get('d_fname'),
+            universe.get('ph_ph'),
+            universe.get('ph_nstxout'),
+            titrate("lambda_{}.dat".format(idx)), 
+            expVals70["{0}-{1}".format(resnameList[idx-1], residList[idx-1])]
+            ))
 
-        # Title, axes, etc.
-        plt.title("{}-{} chain {}\npH = {}, nstlambda = {}".format(resnameList[idx-1], residList[idx-1], chainList[idx-1], pH, nstlout))
+        # Axes and stuff
+        plt.ylim(-0.1, 1.1)
         plt.xlabel("Time (ps)")
         plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
         plt.ylabel(r"$\lambda$-coordinate")
@@ -96,5 +199,15 @@ def glicphstates(plotBUF=False):
         # plt.savefig("{}.pdf".format(fileName)); os.system("pdfcrop {0}.pdf {0}.pdf >> /dev/null 2>&1".format(fileName))
         plt.savefig("{}.png".format(fileName))
 
-        # Clear the current figure
-        plt.clf()
+        # clf = clear the entire current figure. close = closes a window.
+        plt.clf(); plt.close()
+
+    # To implement:
+        # Throw away first 5-10 ns (because this is calibration)
+        # Combine latter parts of all the residues to make average over 5 chains
+        # Make a spreadsheet with correctly and incorrectly predicted and see if we can find a coincidence.
+
+    # Other stuff we need to do to improve this:
+        # Recalibrate and use higher-order polynomials.
+        # Less buffers, and put buffers farher away.
+        # Increase barrier energy from 5.0 to 7.5 kJ/mol.
