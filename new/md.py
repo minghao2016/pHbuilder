@@ -19,7 +19,7 @@ def energy_tcouple():
     utils.update("energy_tcouple", "running gmx grompp and mdrun for temperature coupling...")
 
     os.system("gmx grompp -f NVT.mdp -c {0} -p topol.top -o NVT.tpr -r {0} >> builder.log 2>&1".format(universe.get('d_nameList')[-1]))
-    os.system("gmx mdrun deffnm NVT -c {0}_NVT.pdb >> builder.log 2>&1".format(universe.get('d_pdbName')))
+    os.system("gmx mdrun -deffnm NVT -c {0}_NVT.pdb >> builder.log 2>&1".format(universe.get('d_pdbName')))
 
     utils.add_to_nameList("{0}_NVT.pdb".format(universe.get('d_pdbName')))
 
