@@ -1,8 +1,5 @@
 import os
-
-import universe
-import utils
-import topol
+import universe, utils, topol
 
 class Residue: # Stores a single residue's data.
     def __init__(self, atoms, ali, resname, chain, resid, x, y, z):
@@ -15,13 +12,12 @@ class Residue: # Stores a single residue's data.
         self.d_y       = y          # list      holds y-coordinates
         self.d_z       = z          # list      holds z-coordinatees
 
-def process(d_fname, d_model=1, d_ALI='A', d_chain=["all"], resetResId=False):
-    universe.add('d_fname', d_fname)
-    universe.add('d_pdbName', d_fname[0:len(d_fname)-4])
+def process(fname, d_model=1, d_ALI='A', d_chain=["all"], resetResId=False):
+    universe.add('d_pdbName', fname[0:len(fname)-4])
     universe.add('d_model', d_model)
     universe.add('d_ALI', d_ALI)
 
-    load(d_fname, d_model, d_ALI, d_chain)
+    load(fname, d_model, d_ALI, d_chain)
 
     # Update d_chain from ["all"] to a list of actual chains used:
     d_chain = []                                    
@@ -31,12 +27,7 @@ def process(d_fname, d_model=1, d_ALI='A', d_chain=["all"], resetResId=False):
     d_chain.sort()
     universe.add('d_chain', d_chain)
 
-    utils.update("process", 'filename = {0}, MODEL = {1}, ALI = {2}, chain(s) = {3}...'.format(d_fname, d_model, d_ALI, d_chain))
-    
-    # Some optional stuff:
-    if resetResId:
-        utils.update("process", "resetting resid order...")
-        __resetResId()
+    utils.update("process", 'file = {0}, MODEL# = {1}, ALI = {2}, chain(s) = {3}...'.format(fname, d_model, d_ALI, d_chain))
 
     # Write processed.pdb to file:
     __write("{0}_PR1.pdb".format(universe.get('d_pdbName')))
@@ -45,10 +36,10 @@ def process(d_fname, d_model=1, d_ALI='A', d_chain=["all"], resetResId=False):
     utils.generate_index()
 
 # Load a .pdb file into the universe.
-def load(d_fname, d_model=1, d_ALI='A', d_chain=["all"]):
+def load(fname, d_model=1, d_ALI='A', d_chain=["all"]):
     d_residues = []
     atomLines  = []
-    with open(d_fname) as file:     # Read .pdb line-by-line.
+    with open(fname) as file:       # Read .pdb line-by-line.
         read = True                 # True if no specific MODEL specified.
 
         for line in file.readlines():
@@ -136,26 +127,6 @@ def __write(name):
 
     utils.add_to_nameList(name)
 
-# Reset the original residue numbering.
-def __resetResId():
-    num = 1
-    for residue in universe.get('d_residues'):
-        residue.d_resid = num
-        num += 1
-
-# Inspect a specific residue.
-def inspectRes(resid, chain='A'):
-    for residue in universe.get('d_residues'):
-        if (residue.d_resid == resid and residue.d_chain == chain):
-            print("resname = {0}, resid = {1}, chain = {2}".format(residue.d_resname, residue.d_resid, residue.d_chain))
-
-            for idx in range(0, len(residue.d_atoms)):
-                print("{:^4s}{:1s}{:8.3f} {:8.3f} {:8.3f}".format(residue.d_atoms[idx], residue.d_ali[idx], residue.d_x[idx], residue.d_y[idx], residue.d_z[idx]))
-
-            return
-
-    raise Exception("Cannot find residue with resid={0} and/or chain={1}".format(resid, chain))
-
 # Count number of residues with a specific residue name.
 def countRes(resname):
     count = 0
@@ -215,22 +186,22 @@ def add_buffer(d_bufpdbName, d_bufitpName, d_bufMargin=2.0, d_bufnmol=-1, attemp
     else:
         utils.update("add_buffer", "succesfully added {0} buffer molecules...".format(actual))
 
-    # To adder buffer topology to topol.top
+    # To add buffer topology to topol.top.
     utils.update("add_buffer", "updating topology...")
     os.system("cp {} .".format(d_bufitpName))
     topol.add_mol(os.path.basename(d_bufitpName), "Include buffer topology", 'BUF', actual)
-
-    # To update d_nameList.
-    utils.add_to_nameList("{0}_BUF.pdb".format(universe.get('d_pdbName')))
-
-    # To update index.ndx.
-    utils.generate_index()
 
     # Set some parameters in the universe.
     universe.add('d_bufpdbName', d_bufpdbName)
     universe.add('d_bufitpName', d_bufitpName)
     universe.add('d_bufMargin', d_bufMargin)
     universe.add('d_bufnmol', actual)
+
+    # To update d_nameList.
+    utils.add_to_nameList("{0}_BUF.pdb".format(universe.get('d_pdbName')))
+
+    # To update index.ndx.
+    utils.generate_index()
 
 def add_water():
     utils.update("add_water", "running gmx solvate...")
