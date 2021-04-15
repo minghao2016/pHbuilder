@@ -175,12 +175,12 @@ def glicphstates(plotBUF=False):
         plt.plot(t, x, linewidth=0.5)
 
         # Title
-        plt.title("{0}-{1} in chain {2} in {3}\npH={4}, nstlambda={5}, deprotonation={6:.2f}\n\
+        plt.title("{0}-{1} in chain {2} in {3}.pdb\npH={4}, nstlambda={5}, deprotonation={6:.2f}\n\
             Experimentally determined state for {0}-{1} at this pH = {7}".format(
             resnameList[idx-1], 
             residList[idx-1],
             chainList[idx-1],
-            universe.get('d_fname'),
+            universe.get('d_pdbName'),
             universe.get('ph_ph'),
             universe.get('ph_nstxout'),
             titrate("lambda_{}.dat".format(idx)), 
