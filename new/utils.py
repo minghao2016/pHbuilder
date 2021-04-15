@@ -1,6 +1,4 @@
 import os
-import shelve
-
 import universe
 
 def update(tool, message):
