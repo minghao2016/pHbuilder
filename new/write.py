@@ -38,7 +38,7 @@ def run(gmxPath="/usr/local/gromacs", options=""):
         file.write("source {0}/bin/GMXRC\n\n".format(gmxPath))
 
         file.write("gmx grompp -f MD.mdp -c {0} -p topol.top -n index.ndx -o MD.tpr -r {0}\n".format(universe.get('d_nameList')[-1]))
-        file.write("gmx mdrun -v -s MD.tpr -x MD.xtc -c {0}_MD.pdb -g MD.log -e MD.edr {1}\n".format(universe.get('d_pdbName'), options))
+        file.write("gmx mdrun -v -deffnm -c {0}_MD.pdb -x MD.xtc {1}\n".format(universe.get('d_pdbName'), options))
 
     os.system("chmod +x run.sh")
 
@@ -88,6 +88,6 @@ def jobscript(jobName, jobTime, nodes, ntasks, queue):
     file.write("gmx grompp -f MD.mdp -c {0} -p topol.top -n index.ndx -o MD.tpr -r {0}\n".format(universe.get('d_nameList')[-1]))
     
     if universe.get('d_constantpH'):
-        file.write("gmx mdrun -s MD.tpr -x MD.xtc -c {0}_MD.pdb -g MD.log -e MD.edr -pme cpu\n".format(universe.get('d_pdbName')))
+        file.write("gmx mdrun -deffnm -c {0}_MD.pdb -x MD.xtc -pme cpu\n".format(universe.get('d_pdbName')))
     else:
-        file.write("gmx mdrun -s MD.tpr -x MD.xtc -c {0}_MD.pdb -g MD.log -e MD.edr\n".format(universe.get('d_pdbName')))
+        file.write("gmx mdrun -deffnm -c {0}_MD.pdb -x MD.xtc\n".format(universe.get('d_pdbName')))
