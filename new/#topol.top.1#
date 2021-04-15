@@ -1,0 +1,16 @@
+; Include forcefield parameters
+#include "charmm36-mar2019.ff/forcefield.itp"
+
+; Include protein topology
+#include "topol_Protein_chain_A.itp"
+
+; Include buffer topology
+#include "buffer.itp"
+
+[ system ]
+1cvo
+
+[ molecules ]
+; Compounts 		 #mols
+Protein_chain_A		1
+BUF			3
