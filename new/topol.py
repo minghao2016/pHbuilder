@@ -145,7 +145,6 @@ def restrain_dihedrals(resName, atomNameList, Type, phi, dphi, fc):
 
     # Every chain has its own .itp file, so we loop through every file:
     for letter in universe.get('d_chain'):
-        
         # This is to make sure we don't have multiple headers when we add multiple different restraints.
         first = False
         if not "[ dihedral_restraints ]" in open("topol_Protein_chain_{0}.itp".format(letter)).read():
@@ -156,23 +155,26 @@ def restrain_dihedrals(resName, atomNameList, Type, phi, dphi, fc):
             if first:
                 file.write("[ dihedral_restraints ]\n")
                 file.write("; ai aj ak al type phi dphi fc\n")
-
-            # Write the atoms as an extra comment.
+            
+            # Write atoms as extra user information.
             file.write("; {0} {1} {2} {3}\n".format(atomNameList[0], atomNameList[1], atomNameList[2], atomNameList[3]))
 
             # Atomcount resets for every separate .itp file.
-            count = 0
+            atomCount = 0
             for residue in universe.get('d_residues'):
-                idxList = []
+                # Dictionary resets for every residue, as we can of course have
+                # multiple ASPs or GLUs in one chain.
+                dictionary = {}
                 for atom in residue.d_atoms:
-                    # only increase atomcount when we read the relevant chain
+                    # Only increase atomcount when we read the relevant chain:
                     if residue.d_chain == letter:
-                        count += 1
+                        atomCount += 1
 
                         if residue.d_resname == resName and atom in atomNameList:
-                            idxList.append(count)
+                            dictionary[atom] = atomCount
 
-                # dihedrals have always four atoms so only activate if we have a length of four.                
-                if len(idxList) == 4:
+                if len(dictionary) == 4:
                     utils.update("restrain_dihedrals", "adding restraints for chain {0} {1}-{2}...".format(residue.d_chain, resName, residue.d_resid))
-                    file.write("{:<6d} {:<6d} {:<6d} {:<6d}  {}  {}  {}  {}\n".format(idxList[0], idxList[1], idxList[2], idxList[3], Type, phi, dphi, fc))
+                    for atom in atomNameList:
+                        file.write("{:<6d} ".format(dictionary[atom]))
+                    file.write(" {}  {}  {}  {}\n".format(Type, phi, dphi, fc))
