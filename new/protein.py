@@ -120,7 +120,10 @@ def load(d_fname, d_model=1, d_ALI='A', d_chain=["all"]):
 def __write(name):            
     with open(name, 'w') as file:
         file.write("TITLE {0}\n".format(universe.get('d_title')))
-        file.write("CRYST1{0}\n".format(universe.get('d_box')))
+        
+        if universe.has_key('d_box'):
+            file.write("CRYST1{0}\n".format(universe.get('d_box')))
+        
         file.write("MODEL {:8d}\n".format(universe.get('d_model')))
 
         atomNumber = 1
@@ -177,73 +180,57 @@ def add_box(d_boxMargin, d_boxType='cubic'):
     # To update d_nameList.
     utils.add_to_nameList("{0}_BOX.pdb".format(universe.get('d_pdbName')))
 
-def add_buffer(bufpdbName, bufitpname, minSep=1.5):
+def add_buffer(d_bufpdbName, d_bufitpName, d_bufMargin=2.0, d_bufnmol=-1, attempts=10000):
     if not (universe.get('d_constantpH') and universe.get('d_restrainpH')):
-        utils.update("add_buffer", "skipping this step...")
+        utils.update("add_buffer", "either d_constantpH or d_restrainpH is False --> skipping...")
         return
-    
-    utils.update("add_buffer", "adding buffer molecules...")
 
-    # Extract the required value.
-    def extractMinimum():
-        def Float(fileName, line, col):
-            for x, y in enumerate(open(fileName)):
-                if (x == line - 1):
-                    return float(y.split()[col-1])
-                                                
-        return Float("mindist.xvg", 25, 2) # Position of mindist in .xvg file.
+    # If user doesn't specified the amount, use #BUF = #ACID.
+    if (d_bufnmol == -1):
+        d_bufnmol = countRes('ASP') + countRes('GLU')
 
-    def clean():
-        os.system("rm -f \\#mindist.xvg.*\\# \\#{0}_BUF.pdb.*\\# mindist.xvg".format(universe.get('d_pdbName')))
+    utils.update("add_buffer", "will attempt to add {0} buffer molecules...".format(d_bufnmol))
 
-    countACID = countRes('ASP') + countRes('GLU')
+    # RUN GROMACS INSERT-MOLECULES COMMAND
+    os.system("touch vdwradii.dat") # we need this dummy file for this to work.
 
-    os.system("cp {0} {1}_BUF.pdb".format(universe.get('d_nameList')[-1], universe.get('d_pdbName')))
-    idx = 0
-    while (idx != countACID):
-        # insert a buffer molecule
-        os.system("gmx insert-molecules -f {0}_BUF.pdb -o {0}_BUF.pdb -ci {1} -nmol 1 >> builder.log 2>&1".format(universe.get('d_pdbName'), bufpdbName))
-        os.system("rm -f \\#{0}_BUF.pdb.*\\#".format(universe.get('d_pdbName'))) # cleanup
+    os.system("gmx insert-molecules -f {0} -o {1}_BUF.pdb -ci {2} -nmol {3} -scale 1.0 -radius {4} -try {5} >> builder.log 2>&1".format(
+        universe.get('d_nameList')[-1],
+        universe.get('d_pdbName'),
+        d_bufpdbName,
+        d_bufnmol,
+        0.5 * d_bufMargin,
+        int(attempts / d_bufnmol)))
 
-        # get the distance of the buffer molecule to protein
-        os.system("gmx mindist -f {0}_BUF.pdb -s {0}_BUF.pdb >> builder.log 2>&1 << EOF\n1\n13\nEOF".format(universe.get('d_pdbName')))
-        
-        if extractMinimum() >= minSep:
-            idx += 1
-            print(idx, end="\r")
-        else:
-            os.system("head -n -5 {0}_BUF.pdb > tmp.txt && mv tmp.txt {0}_BUF.pdb".format(universe.get('d_pdbName')))
-
-    # attempts = 0
-    # while (True):           # Randomly add the buffer molecules
-    #     os.system("gmx insert-molecules -f {0} -o {1}_BUF.pdb -ci {2} -nmol {3} >> builder.log 2>&1".format(universe.get('d_nameList')[-1], universe.get('d_pdbName'), bufpdbName, countACID))
-    #                         # Determine the minimum distance between the protein and the buffers
-    #     os.system("gmx mindist -f {0}_BUF.pdb -s {0}_BUF.pdb >> builder.log 2>&1 << EOF\n1\n13\nEOF".format(universe.get('d_pdbName')))
-
-    #     attempts += 1
-    #     if (extractMinimum() >= minSep):
-    #         break
-
-    #     if (attempts > 100):
-    #         clean()
-    #         raise Exception("Maximum number of buffer insertion attempts exceeded (100). Try decreasing minSep or increasing boxSizeMargin.")
-
-    # utils.update("add_buffer", "placing buffers took %s attempt(s) (mindist = %s)..." % (attempts, extractMinimum()))
-
-    clean()
-
-    # Add buffer topology to topol.top.
-    utils.update("add_buffer", "updating topology...")
-    topol.add_mol(bufitpname, "Include buffer topology", 'BUF', countACID)
+    os.remove("vdwradii.dat") # clean dummy file.
 
     # To update d_residues.
-    load("{0}_BUF.pdb".format(universe.get('d_pdbName')))
+    load("{0}_BUF.pdb".format(universe.get('d_pdbName')))    
+
+    # Give user a warning if there wasn't enough space.
+    actual = countRes('BUF')
+    if actual < d_bufnmol:
+        utils.update("add_buffer", "warning: only {0}/{1} requested buffer molecules inserted after {2} attempts,".format(actual, d_bufnmol, attempts))
+        utils.update("add_buffer", "warning: try decreasing d_bufMargin (={0}nm) or increasing d_boxMargin (={1}nm)...".format(d_bufMargin, universe.get('d_boxMargin')))
+    else:
+        utils.update("add_buffer", "succesfully added {0} buffer molecules...".format(actual))
+
+    # To adder buffer topology to topol.top
+    utils.update("add_buffer", "updating topology...")
+    os.system("cp {} .".format(d_bufitpName))
+    topol.add_mol(os.path.basename(d_bufitpName), "Include buffer topology", 'BUF', actual)
 
     # To update d_nameList.
     utils.add_to_nameList("{0}_BUF.pdb".format(universe.get('d_pdbName')))
 
     # To update index.ndx.
     utils.generate_index()
+
+    # Set some parameters in the universe.
+    universe.add('d_bufpdbName', d_bufpdbName)
+    universe.add('d_bufitpName', d_bufitpName)
+    universe.add('d_bufMargin', d_bufMargin)
+    universe.add('d_bufnmol', actual)
 
 def add_water():
     utils.update("add_water", "running gmx solvate...")
