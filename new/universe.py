@@ -15,7 +15,7 @@ def get(varName):
     if has_key(varName):
         return shelve.open('universe')[varName]
 
-    data = eval(input("couldn't retrieve var \"{0}\" from {1}. Enter manually: ".format(varName, 'universe')))
+    data = eval(input("couldn't retrieve var \"{0}\" from universe. Enter manually: ".format(varName)))
     print("add {0} = {1} {2}".format(varName, data, type(data)))
     add(varName, data)
     return data
