@@ -27,10 +27,9 @@ def gen_constantpH(pH, lambdaM, nstOut, barrierE):
     # Throw exception if MD.mdp does not exist.
     if (not os.path.isfile("MD.mdp")):
         raise Exception("MD.mdp does not exist! Did you generate MD.mdp before calling generate_phdata?")
-    
-    # Throw exception if index.ndx does not exist.
-    if (not os.path.isfile("index.ndx")):
-        raise Exception("index.ndx does not exist! Did you generate index.ndx before calling generate_phdata?")
+
+    # Generate default index file.
+    utils.generate_index()
 
     # Update user.
     utils.update("generate_phdata", "pH=%s, lambdaM=%s, nstOut=%s, barrierE=%s" % (pH, lambdaM, nstOut, barrierE))

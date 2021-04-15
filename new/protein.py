@@ -32,9 +32,6 @@ def process(fname, d_model=1, d_ALI='A', d_chain=["all"], resetResId=False):
     # Write processed.pdb to file:
     __write("{0}_PR1.pdb".format(universe.get('d_pdbName')))
 
-    # Update index.ndx
-    utils.generate_index()
-
 # Load a .pdb file into the universe.
 def load(fname, d_model=1, d_ALI='A', d_chain=["all"]):
     d_residues = []
@@ -200,9 +197,6 @@ def add_buffer(d_bufpdbName, d_bufitpName, d_bufMargin=2.0, d_bufnmol=-1, attemp
     # To update d_nameList.
     utils.add_to_nameList("{0}_BUF.pdb".format(universe.get('d_pdbName')))
 
-    # To update index.ndx.
-    utils.generate_index()
-
 def add_water():
     utils.update("add_water", "running gmx solvate...")
     
@@ -216,9 +210,6 @@ def add_water():
 
     # To update d_nameList.
     utils.add_to_nameList("{0}_SOL.pdb".format(universe.get('d_pdbName')))
-
-    # To update index.ndx.
-    utils.generate_index()
 
 def add_ions():
     utils.update("add_ions", "running gmx grompp and genion to add ions...")
@@ -238,6 +229,3 @@ def add_ions():
 
     # To update d_nameList.
     utils.add_to_nameList("{0}_ION.pdb".format(universe.get('d_pdbName')))
-
-    # To update index.ndx.
-    utils.generate_index()

@@ -103,9 +103,6 @@ def generate(d_modelFF, d_modelWater, d_terministring=""):
     # To update d_nameList.
     utils.add_to_nameList("{0}_PR2.pdb".format(universe.get('d_pdbName')))
 
-    # To update index.ndx.
-    utils.generate_index()
-
 def __rebuild_topol():
     # If we have only one chain, gromacs will put everything in topol.top.
     # If we have more than one chain, gromacs will do it for us.
