@@ -6,13 +6,13 @@ def add(varName, value):
         shelf[varName] = value
 
 # Check whether universe contains a certain varName
-def has_key(varName):
+def has(varName):
     with shelve.open('universe') as shelf:
         return varName in shelf
 
 # Retrieve variable from universe.
 def get(varName):
-    if has_key(varName):
+    if has(varName):
         return shelve.open('universe')[varName]
 
     data = eval(input("couldn't retrieve var \"{0}\" from universe. Enter manually: ".format(varName)))

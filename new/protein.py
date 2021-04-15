@@ -109,7 +109,7 @@ def __write(name):
     with open(name, 'w') as file:
         file.write("TITLE {0}\n".format(universe.get('d_title')))
         
-        if universe.has_key('d_box'):
+        if universe.has('d_box'):
             file.write("CRYST1{0}\n".format(universe.get('d_box')))
         
         file.write("MODEL {:8d}\n".format(universe.get('d_model')))
