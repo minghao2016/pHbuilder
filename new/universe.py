@@ -5,16 +5,20 @@ def add(varName, value):
     with shelve.open('universe') as shelf:
         shelf[varName] = value
 
+# Check whether universe contains a certain varName
+def has_key(varName):
+    with shelve.open('universe') as shelf:
+        return varName in shelf
+
 # Retrieve variable from universe.
 def get(varName):
-    with shelve.open('universe') as shelf:
-        try:
-            return shelf[varName]
-        except KeyError:
-            data = eval(input("GET couldn't retrieve var \"{0}\" from {1}. Enter manually: ".format(varName, 'universe')))
-            shelf[varName] = data
-            print("SET {0} = {1}  {2}".format(varName, shelf[varName], type(shelf[varName])))
-            return shelf[varName]
+    if has_key(varName):
+        return shelve.open('universe')[varName]
+
+    data = eval(input("couldn't retrieve var \"{0}\" from {1}. Enter manually: ".format(varName, 'universe')))
+    print("add {0} = {1} {2}".format(varName, data, type(data)))
+    add(varName, data)
+    return data
 
 # Display all variables (name, data, type) stored in the universe.
 def inspect():
@@ -30,4 +34,4 @@ def inspect():
             if (type(shelf[item]) == type([]) and len(shelf[item]) > 2):
                 print("{0:{arg}s} = [{1}, ..., {2}] ({3}) {4}".format(item, shelf[item][0], shelf[item][-1], len(shelf[item]), type([]), arg=longest).replace('\n', ''))
             else:
-                print("{0:{arg}s} = {1}  {2}".format(item, shelf[item], type(shelf[item]), arg=longest))
+                print("{0:{arg}s} = {1} {2}".format(item, shelf[item], type(shelf[item]), arg=longest))
