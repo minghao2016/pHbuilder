@@ -29,7 +29,7 @@ def inspect():
             if (len(item) > longest):
                 longest = len(item)
         
-        for item in shelf:
+        for item in sorted(shelf):
             # If item is a long list, only print first, last element (to save screen space)
             if (type(shelf[item]) == type([]) and len(shelf[item]) > 2):
                 print("{0:{arg}s} = [{1}, ..., {2}] ({3}) {4}".format(item, shelf[item][0], shelf[item][-1], len(shelf[item]), type([]), arg=longest).replace('\n', ''))
