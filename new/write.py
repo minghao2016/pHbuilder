@@ -62,12 +62,12 @@ def jobscript(jobName, jobTime, nodes, ntasks, queue):
     writeHead("job-name", jobName)
     writeHead("mail-user", "anton.jansen@scilifelab.se")
     writeHead("mail-type", "ALL")
-    
-    file.write("-C gpu --gres", "gpu:1")
+    file.write("-C gpu --gres=gpu:1\n")
         
     file.write('\n')
 
     moduleLoad("cmake/latest")
+    moduleLoad("gcc/7.4")
     moduleLoad("cuda/10.2")
 
     file.write('\n')
