@@ -1,5 +1,4 @@
-import universe
-import utils
+import universe, utils
 
 def gen_mdp(Type, nsteps=25000, nstxout=0, posres=False):
     # HEAD
