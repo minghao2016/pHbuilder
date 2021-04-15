@@ -5,11 +5,11 @@ from constantph import gen_constantpH
 
 def energy_minimize():
     gen_mdp('EM')
-
+    
     utils.update("energy_minimize", "running gmx grompp and mdrun for energy minimization...")
 
     os.system("gmx grompp -f EM.mdp -c {0} -p topol.top -o EM.tpr -r {0} >> builder.log 2>&1".format(universe.get('d_nameList')[-1]))
-    os.system("gmx mdrun -s EM.tpr -o EM.trr -c {0}_EM.pdb -g EM.log -e EM.edr >> builder.log 2>&1".format(universe.get('d_pdbName')))
+    os.system("gmx mdrun -deffnm EM -c {0}_EM.pdb >> builder.log 2>&1".format(universe.get('d_pdbName')))
 
     utils.add_to_nameList("{0}_EM.pdb".format(universe.get('d_pdbName')))
 
@@ -19,7 +19,7 @@ def energy_tcouple():
     utils.update("energy_tcouple", "running gmx grompp and mdrun for temperature coupling...")
 
     os.system("gmx grompp -f NVT.mdp -c {0} -p topol.top -o NVT.tpr -r {0} >> builder.log 2>&1".format(universe.get('d_nameList')[-1]))
-    os.system("gmx mdrun -s NVT.tpr -o NVT.trr -c {0}_NVT.pdb -g NVT.log -e NVT.edr >> builder.log 2>&1".format(universe.get('d_pdbName')))
+    os.system("gmx mdrun deffnm NVT -c {0}_NVT.pdb >> builder.log 2>&1".format(universe.get('d_pdbName')))
 
     utils.add_to_nameList("{0}_NVT.pdb".format(universe.get('d_pdbName')))
 
@@ -29,6 +29,6 @@ def energy_pcouple():
     utils.update("energy_pcouple", "running gmx grompp and mdrun for pressure coupling...")
 
     os.system("gmx grompp -f NPT.mdp -c {0} -p topol.top -o NPT.tpr -r {0} >> builder.log 2>&1".format(universe.get('d_nameList')[-1]))
-    os.system("gmx mdrun -s NPT.tpr -o NPT.trr -c {0}_NPT.pdb -g NPT.log -e NPT.edr >> builder.log 2>&1".format(universe.get('d_pdbName')))    
+    os.system("gmx mdrun -deffnm NPT -c {0}_NPT.pdb >> builder.log 2>&1".format(universe.get('d_pdbName')))    
 
     utils.add_to_nameList("{0}_NPT.pdb".format(universe.get('d_pdbName')))
