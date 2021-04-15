@@ -24,11 +24,13 @@ def add_mol(itpfname, comment, molname=None, molcount=None):
         if molname != None and molcount != None and molname not in topList[-1]:
             file.write("{0}\t\t\t{1}\n".format(molname, molcount))
 
-def generate(d_modelFF, d_modelWater, d_neutralTermini=False):
+def generate(d_modelFF, d_modelWater, d_terministring=""):
+    # ADD RELEVANT PARAMETERS TO UNIVERSE ######################################
     universe.add('d_modelFF', d_modelFF)
     universe.add('d_modelWater', d_modelWater)
-    universe.add('d_neutralTermini', d_neutralTermini)
+    universe.add('d_terministring', d_terministring)
 
+    # USER UPDATE STUFF ########################################################
     countACID = protein.countRes("ASP") + protein.countRes("GLU")
 
     # If constant-pH is on,
@@ -36,63 +38,60 @@ def generate(d_modelFF, d_modelWater, d_neutralTermini=False):
         utils.update("generate", 'constant-pH is turned on...')
         
         # and we have at least one protonatable reside,
-        if (countACID > 0):
-            utils.update("generate", "detected {0} acidic residue(s):".format(countACID))
+        if countACID > 0:
+            utils.update("generate", "detected {} acidic residue(s):".format(countACID))
 
             count = 1
             for residue in universe.get('d_residues'):
-                if (residue.d_resname in ['ASP', 'GLU']):
+                if residue.d_resname in ['ASP', 'GLU']:
                     utils.update("generate", "{:3s} {:<4d}".format(residue.d_resname, count))
                 count += 1
-            utils.update("generate", "(setting protonation state to true for all of these)")
+            utils.update("generate", "(setting protonation state to true (option 1) for all of these)")
 
         else:
-            utils.update("generate", "no acidic residues detected, turning off constant-pH...")
+            utils.update("generate", "no acidic residues detected, constant-pH is turned off...")
             universe.add('d_constantpH', False)
             universe.add('d_restrainpH', False)
 
     else:
         utils.update("generate", 'constant-pH is turned off...')
 
-    utils.update("generate", "using the %s force field with the %s water model..." % (d_modelFF, d_modelWater))
+    utils.update("generate", "using the {} force field with the {} water model...".format(d_modelFF, d_modelWater))
 
-    # Count how many different chains we have
-    listChains = []
-    # atomCount  = 1
-    for residue in universe.get('d_residues'):
-        # throw if a residue/atom does not have any chain identifier
-        # if residue.d_chain == ' ':
-            # string = "residue {} (atom {}) does not belong to any chain (does not have a chain-identifier)!".format(residue.d_resid, atomCount)
-            # raise Exception(string)
-        # for _ in residue.d_atoms:
-            # atomCount += 1
+    # CREATE EOFSTRING FOR PDB2GMX COMMAND #####################################
 
-        if residue.d_chain not in listChains:
-            listChains.append(residue.d_chain)
-
-    # Create EOF string to circumvent pd2gmx prompting for user input.
-    # The for-loop sets the protonation state of all GLUs and ASPs to 1 
-    # (True) if d_constantpH is True. The line below sets the termini
-    # to 0: NH3+, 0: COO- (charged, gmx default) if d_neutralTermini is False,
-    # and to 1: NH2, 1: COOH (neutral) if d_neutralTermini is True.
+    # Here we create EOFstring to circumvent pd2gmx prompting for user input.
     xstr = "<< EOF"
-    for _ in range(0, countACID):
-        xstr += "\n%d" % universe.get('d_constantpH')
-    for _ in range(0, len(listChains)):
-        xstr += "\n%d\n%d" % (d_neutralTermini, d_neutralTermini)
+    # The for-loop sets the protonation state of all GLUs and ASPs to 1
+    # (True) if d_constantpH is True, and to 0 (False) if d_constantpH is False.
+    for chain in universe.get('d_chain'):
+        for residue in universe.get('d_residues'):
+            if residue.d_resname in ['ASP', 'GLU'] and residue.d_chain == chain:
+                xstr += "\n{:d}".format(universe.get('d_constantpH'))
+        
+        # Furthermore, if the user specified a two-letter string for the termini,
+        # add those to the EOFstring as well:
+        if (d_terministring != ""):
+            xstr += "\n{}".format(d_terministring[0])
+            xstr += "\n{}".format(d_terministring[1])
+    # End EOFstring:
     xstr += "\nEOF"
+    # print(xstr) # Debug
 
-    if (d_neutralTermini):
-        utils.update("generate", "setting termini to neutral (NH2 and COOH)...")
+    # UPDATE USER ABOUT WHAT WE DO WITH THE TERMINI ############################
+
+    if (d_terministring != ""):
+        utils.update("generate", "Using options {} for termini...".format(d_terministring))
     else:
-        utils.update("generate", "setting termini to charged (NH3+ and COO-) (gmx default)...")
+        utils.update("generate", "No termini specified, using gmx default (00 = NH3+ and COO-)...")
     
-    utils.update("generate", "running pdb2gmx to create topol.top...")
+    utils.update("generate", "running pdb2gmx to create {}_PR2.pdb and topol.top...".format(universe.get('d_pdbName')))
 
-    # Generate topology and protonate (make neutral) all GLU and ASP:
-    if (d_neutralTermini):
+    # RUN ACTUAL PDB2GMX COMMAND ###############################################
+
+    if (d_terministring != ""):
         os.system("gmx pdb2gmx -f {0} -o {1}_PR2.pdb -asp -glu -ignh -ff {2} -water {3} -ter >> builder.log 2>&1 {4}".format(universe.get('d_nameList')[-1], universe.get('d_pdbName'), d_modelFF, d_modelWater, xstr))
-    else: # Still a bug here if we have multiple chains, so have to specify the termini multiple times
+    else:
         os.system("gmx pdb2gmx -f {0} -o {1}_PR2.pdb -asp -glu -ignh -ff {2} -water {3} >> builder.log 2>&1 {4}".format(universe.get('d_nameList')[-1], universe.get('d_pdbName'), d_modelFF, d_modelWater, xstr))
 
     # Rebuild topology.
