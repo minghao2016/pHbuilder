@@ -3,20 +3,21 @@ import os, universe, utils
 def gen_constantpH(pH, lambdaM, nstOut, barrierE, cal=False, lambdaInit=0.5):
     # Data (hardcoded, specific for CHARMM2019)
     GLU_pKa   = 4.25
-    GLU_dvdl  = [26.238, -556.92, -106.76, 230.33, -155.89, -24.96]
+    GLU_dvdl  = universe.get('ph_GLU_dvdl')
     # GLU_dvdl  = [24.685, -577.05, 137.39, -172.69] # Orig Noora.
     GLU_atoms = [' CG ', ' CD ', ' OE1', ' OE2', ' HE2'] # atoms part of model
     GLU_qqA   = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
     GLU_qqB   = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
     
     ASP_pKa   = 3.65
-    ASP_dvdl  = [37.822, -566.01, 117.97, -158.79] # Orig Noora.
+    ASP_dvdl  = universe.get('ph_ASP_dvdl')
+    # ASP_dvdl  = [37.822, -566.01, 117.97, -158.79] # Orig Noora.
     ASP_atoms = [' CB ', ' CG ', ' OD1', ' OD2', ' HD2'] # atoms part of model
     ASP_qqA   = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
     ASP_qqB   = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
 
-    BUF_dvdl  = [670.1, -674.4, 83.19, -150.21] # Orig Noora.
-    #           [' OW ' , ' HW1', ' HW2']
+    BUF_dvdl  = universe.get('ph_BUF_dvdl')
+    # BUF_dvdl  = [670.1, -674.4, 83.19, -150.21] # Orig Noora.
     BUF_qqA   = [-0.0656, 0.5328, 0.5328]
     BUF_qqB   = [-0.8476, 0.4238, 0.4238]
 
