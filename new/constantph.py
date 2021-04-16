@@ -1,9 +1,10 @@
 import os, universe, utils
 
-def gen_constantpH(pH, lambdaM, nstOut, barrierE):
+def gen_constantpH(pH, lambdaM, nstOut, barrierE, cal=False, lambdaInit=0.5):
     # Data (hardcoded, specific for CHARMM2019)
     GLU_pKa   = 4.25
-    GLU_dvdl  = [24.685, -577.05, 137.39, -172.69] # Orig Noora.
+    GLU_dvdl  = [26.238, -556.92, -106.76, 230.33, -155.89, -24.96]
+    # GLU_dvdl  = [24.685, -577.05, 137.39, -172.69] # Orig Noora.
     GLU_atoms = [' CG ', ' CD ', ' OE1', ' OE2', ' HE2'] # atoms part of model
     GLU_qqA   = [-0.21 ,  0.75 ,  -0.55,  -0.61,  0.44 ] # protonated charge
     GLU_qqB   = [-0.28 ,  0.62 ,  -0.76,  -0.76,  0.00 ] # deprotonated charge
@@ -52,6 +53,9 @@ def gen_constantpH(pH, lambdaM, nstOut, barrierE):
     addParam('lambda-dynamics-lambda-particle-mass', lambdaM)
     addParam('lambda-dynamics-update-nst', nstOut)
     addParam('lambda-dynamics-tau', 0.1) # hardcoded
+
+    if cal:
+        addParam('lambda-dynamics-calibration', 'yes')
 
     if universe.get('d_restrainpH'):
         addParam('lambda-dynamics-charge-constraints', 'yes')
@@ -129,7 +133,7 @@ def gen_constantpH(pH, lambdaM, nstOut, barrierE):
         addParam('lambda-dynamics-atom-set%s-name'                  % (number), name)
         addParam('lambda-dynamics-atom-set%s-lambda-residues-index' % (number), indexLambda)
         addParam('lambda-dynamics-atom-set%s-index-group-name'      % (number), indexName)
-        addParam('lambda-dynamics-atom-set%s-initial-lambda'        % (number), 0.5) # hardcoded
+        addParam('lambda-dynamics-atom-set%s-initial-lambda'        % (number), lambdaInit)
         
         if universe.get('d_restrainpH'):
             addParam('lambda-dynamics-atom-set%s-charge-restraint-group-index' % (number), 1)
