@@ -211,3 +211,22 @@ def glicphstates(plotBUF=False):
         # Recalibrate and use higher-order polynomials.
         # Less buffers, and put buffers farher away.
         # Increase barrier energy from 5.0 to 7.5 kJ/mol.
+
+def histogram(fname, bins=200):
+    import numpy as np
+    from scipy.stats import gaussian_kde
+    
+    data = load.Col(fname, 2)
+    
+    plt.hist(data, density=True, bins=bins)
+
+    density = gaussian_kde(data)
+    xs = np.linspace(-0.1, 1.1, bins)
+    density.covariance_factor = lambda : .25
+    density._compute_covariance()
+    plt.plot(xs, density(xs), label="10 ns test")    
+
+    plt.xlabel("Lambda-coordinate")
+    # plt.axis([-0.1, 1.1, 0, 2.5])
+    plt.xlim(-0.1, 1.1)
+    plt.show()
