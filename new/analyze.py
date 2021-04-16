@@ -1,8 +1,7 @@
 import os
 import matplotlib.pyplot as plt
-
-import loaddata as load
-import universe
+import numpy as np
+import universe, load
 
 def comparelambdacoordinates(fileName="", plotBUF=False):
     resnameList = []    # Get the names and such of all the ASPs and GLUs.
@@ -96,7 +95,7 @@ expVals70 = {
 }
 
 # Got this from Paul's "gethistogrambins_ASP_dist.py" scripts
-expVals46 = {
+expVals40 = {
     'ASP-13'  : 0.0,
     'ASP-31'  : 0.0,
     'ASP-32'  : 0.0,
@@ -184,7 +183,7 @@ def glicphstates(plotBUF=False):
             universe.get('ph_ph'),
             universe.get('ph_nstxout'),
             titrate("lambda_{}.dat".format(idx)), 
-            expVals70["{0}-{1}".format(resnameList[idx-1], residList[idx-1])]
+            expVals40["{0}-{1}".format(resnameList[idx-1], residList[idx-1])]
             ))
 
         # Axes and stuff
@@ -213,7 +212,6 @@ def glicphstates(plotBUF=False):
         # Increase barrier energy from 5.0 to 7.5 kJ/mol.
 
 def histogram(fname, bins=200):
-    import numpy as np
     from scipy.stats import gaussian_kde
     
     data = load.Col(fname, 2)
@@ -226,7 +224,32 @@ def histogram(fname, bins=200):
     density._compute_covariance()
     plt.plot(xs, density(xs), label="10 ns test")    
 
-    plt.xlabel("Lambda-coordinate")
+    plt.xlabel(r"$\lambda$-coordinate")
     # plt.axis([-0.1, 1.1, 0, 2.5])
     plt.xlim(-0.1, 1.1)
+    plt.show()
+
+def plotpotentials(pH, pKa):
+    R   = 8.3145 * 10**-3 # "kJ * mol⁻1 * K^-1"
+    T   = 300
+
+    lambda_i = load.Col("lambda_dwp.dat", 1, 942, 2062)
+    V_bias   = load.Col("lambda_dwp.dat", 0, 942, 2062)
+
+    V_pH = []
+    for i in lambda_i:
+        V_pH.append(R * T * np.log(10) * (pKa - pH) * i)
+
+    V_comb = []
+    for i in range(0, len(lambda_i)):
+        V_comb.append(V_bias[i] + V_pH[i])
+
+    plt.plot(lambda_i, V_bias, color="b", linestyle='--', label="$V_{bias}}$")
+    plt.plot(lambda_i, V_pH, color="b", linestyle = ':', label="$V_{pH}$")
+    plt.plot(lambda_i, V_comb, color="b", label="$V_{combined}$")
+
+    plt.xlabel(r"$\lambda$-coordinate")
+    plt.ylabel(r"$V$ (kJ/mol)")
+    plt.grid()
+    plt.legend()
     plt.show()
