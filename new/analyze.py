@@ -3,7 +3,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 import universe, load
 
-def comparelambdacoordinates(fileName="", plotBUF=False):
+def titrate(lambdaFileName, cutoff=0.80):
+    lambda_proto   = 0
+    lambda_deproto = 0
+    
+    for x in load.Col(lambdaFileName, 2):
+        if (x > cutoff):
+            lambda_deproto += 1
+        if (x < 1 - cutoff):
+            lambda_proto   += 1
+
+    fraction = float(lambda_deproto) / (lambda_proto + lambda_deproto)
+
+    return fraction
+
+def plotlambda(fileName="", plotBUF=False):
     resnameList = []    # Get the names and such of all the ASPs and GLUs.
     residList   = []
     for residue in universe.get('d_residues'):
@@ -38,101 +52,82 @@ def comparelambdacoordinates(fileName="", plotBUF=False):
     else:
         plt.show()
 
-# RETURNS THE DEPROTONATION
-def titrate(lambdaFileName):
-    lambda_proto   = 0
-    lambda_deproto = 0
-
-    for x in load.Col(lambdaFileName, 2):
-        if (x > 0.80):
-            lambda_deproto += 1
-        if (x < 0.20):
-            lambda_proto   += 1
-
-    fraction = float(lambda_deproto) / (lambda_proto + lambda_deproto)
-
-    return fraction
-
-# HENDERSON-HASSELBACH
-def henderson(pH, pKa):
-    return 1 / (10**(pKa - pH) + 1)
-
-expVals70 = {
-    'ASP-13'  : 1.0,
-    'ASP-31'  : 1.0,
-    'ASP-32'  : 1.0,
-    'ASP-49'  : 1.0,
-    'ASP-55'  : 1.0,
-    'ASP-86'  : 1.0,
-    'ASP-88'  : 1.0,
-    'ASP-91'  : 1.0,
-    'ASP-97'  : 1.0,
-    'ASP-115' : 1.0,
-    'ASP-122' : 1.0,
-    'ASP-136' : 1.0,
-    'ASP-145' : 1.0,
-    'ASP-153' : 1.0,
-    'ASP-154' : 1.0,
-    'ASP-161' : 1.0,
-    'ASP-178' : 1.0,
-    'ASP-185' : 1.0,
-    'GLU-14'  : 1.0,
-    'GLU-26'  : 1.0,
-    'GLU-35'  : 1.0,
-    'GLU-67'  : 1.0,
-    'GLU-69'  : 1.0,
-    'GLU-75'  : 1.0,
-    'GLU-82'  : 1.0,
-    'GLU-104' : 1.0,
-    'GLU-147' : 1.0,
-    'GLU-163' : 1.0,
-    'GLU-177' : 1.0,
-    'GLU-181' : 1.0,
-    'GLU-222' : 1.0,
-    'GLU-243' : 1.0,
-    'GLU-272' : 1.0,
-    'GLU-282' : 1.0
-}
-
-# Got this from Paul's "gethistogrambins_ASP_dist.py" scripts
-expVals40 = {
-    'ASP-13'  : 0.0,
-    'ASP-31'  : 0.0,
-    'ASP-32'  : 0.0,
-    'ASP-49'  : 0.0,
-    'ASP-55'  : 1.0,
-    'ASP-86'  : 1.0,
-    'ASP-88'  : 0.0,
-    'ASP-91'  : 0.0,
-    'ASP-97'  : 0.0,
-    'ASP-115' : 0.0,
-    'ASP-122' : 0.0,
-    'ASP-136' : 0.0,
-    'ASP-145' : 0.0,
-    'ASP-153' : 0.0,
-    'ASP-154' : 0.0,
-    'ASP-161' : 0.0,
-    'ASP-178' : 0.0,
-    'ASP-185' : 0.0,
-    'GLU-14'  : 1.0,
-    'GLU-26'  : 1.0,
-    'GLU-35'  : 1.0,
-    'GLU-67'  : 1.0,
-    'GLU-69'  : 0.0,
-    'GLU-75'  : 1.0,
-    'GLU-82'  : 1.0,
-    'GLU-104' : 0.0,
-    'GLU-147' : 0.0,
-    'GLU-163' : 0.0,
-    'GLU-177' : 1.0,
-    'GLU-181' : 0.0,
-    'GLU-222' : 0.0,
-    'GLU-243' : 1.0,
-    'GLU-272' : 0.0,
-    'GLU-282' : 0.0
-}
-
 def glicphstates(plotBUF=False):
+    expVals70 = {
+        'ASP-13'  : 1.0,
+        'ASP-31'  : 1.0,
+        'ASP-32'  : 1.0,
+        'ASP-49'  : 1.0,
+        'ASP-55'  : 1.0,
+        'ASP-86'  : 1.0,
+        'ASP-88'  : 1.0,
+        'ASP-91'  : 1.0,
+        'ASP-97'  : 1.0,
+        'ASP-115' : 1.0,
+        'ASP-122' : 1.0,
+        'ASP-136' : 1.0,
+        'ASP-145' : 1.0,
+        'ASP-153' : 1.0,
+        'ASP-154' : 1.0,
+        'ASP-161' : 1.0,
+        'ASP-178' : 1.0,
+        'ASP-185' : 1.0,
+        'GLU-14'  : 1.0,
+        'GLU-26'  : 1.0,
+        'GLU-35'  : 1.0,
+        'GLU-67'  : 1.0,
+        'GLU-69'  : 1.0,
+        'GLU-75'  : 1.0,
+        'GLU-82'  : 1.0,
+        'GLU-104' : 1.0,
+        'GLU-147' : 1.0,
+        'GLU-163' : 1.0,
+        'GLU-177' : 1.0,
+        'GLU-181' : 1.0,
+        'GLU-222' : 1.0,
+        'GLU-243' : 1.0,
+        'GLU-272' : 1.0,
+        'GLU-282' : 1.0
+    }
+
+    # Got this from Paul's "gethistogrambins_ASP_dist.py" scripts
+    expVals40 = {
+        'ASP-13'  : 0.0,
+        'ASP-31'  : 0.0,
+        'ASP-32'  : 0.0,
+        'ASP-49'  : 0.0,
+        'ASP-55'  : 1.0,
+        'ASP-86'  : 1.0,
+        'ASP-88'  : 0.0,
+        'ASP-91'  : 0.0,
+        'ASP-97'  : 0.0,
+        'ASP-115' : 0.0,
+        'ASP-122' : 0.0,
+        'ASP-136' : 0.0,
+        'ASP-145' : 0.0,
+        'ASP-153' : 0.0,
+        'ASP-154' : 0.0,
+        'ASP-161' : 0.0,
+        'ASP-178' : 0.0,
+        'ASP-185' : 0.0,
+        'GLU-14'  : 1.0,
+        'GLU-26'  : 1.0,
+        'GLU-35'  : 1.0,
+        'GLU-67'  : 1.0,
+        'GLU-69'  : 0.0,
+        'GLU-75'  : 1.0,
+        'GLU-82'  : 1.0,
+        'GLU-104' : 0.0,
+        'GLU-147' : 0.0,
+        'GLU-163' : 0.0,
+        'GLU-177' : 1.0,
+        'GLU-181' : 0.0,
+        'GLU-222' : 0.0,
+        'GLU-243' : 1.0,
+        'GLU-272' : 0.0,
+        'GLU-282' : 0.0
+    }
+
     resnameList = []    # Get the names and such of all the ASPs and GLUs.
     residList   = []
     chainList   = []
@@ -211,24 +206,6 @@ def glicphstates(plotBUF=False):
         # Less buffers, and put buffers farher away.
         # Increase barrier energy from 5.0 to 7.5 kJ/mol.
 
-def histogram(fname, bins=200):
-    from scipy.stats import gaussian_kde
-    
-    data = load.Col(fname, 2)
-    
-    plt.hist(data, density=True, bins=bins)
-
-    density = gaussian_kde(data)
-    xs = np.linspace(-0.1, 1.1, bins)
-    density.covariance_factor = lambda : .25
-    density._compute_covariance()
-    plt.plot(xs, density(xs), label="10 ns test")    
-
-    plt.xlabel(r"$\lambda$-coordinate")
-    # plt.axis([-0.1, 1.1, 0, 2.5])
-    plt.xlim(-0.1, 1.1)
-    plt.show()
-
 def plotpotentials(pH, pKa):
     R   = 8.3145 * 10**-3 # "kJ * mol⁻1 * K^-1"
     T   = 300
@@ -252,4 +229,63 @@ def plotpotentials(pH, pKa):
     plt.ylabel(r"$V$ (kJ/mol)")
     plt.grid()
     plt.legend()
+    plt.show()
+
+def plothistogram(fname, bins=200):
+    from scipy.stats import gaussian_kde
+    
+    data = load.Col(fname, 2)
+    
+    plt.hist(data, density=True, bins=bins)
+
+    density = gaussian_kde(data)
+    xs = np.linspace(-0.1, 1.1, bins)
+    density.covariance_factor = lambda : .25
+    density._compute_covariance()
+    plt.plot(xs, density(xs), label="10 ns test")    
+
+    plt.xlabel(r"$\lambda$-coordinate")
+    # plt.axis([-0.1, 1.1, 0, 2.5])
+    plt.xlim(-0.1, 1.1)
+    plt.show()
+
+def fitCalibration(order=5, compare=[]):
+    # Get relevant stuff from universe.
+    dVdlInitList = universe.get('d_dVdlInitList')
+    dVdlMeanList = universe.get('d_dVdlMeanList')
+    dVdlStdList  = universe.get('d_dVdlStdList')
+
+    # Compute dV/dl coefficients.
+    coeffs = np.polyfit(dVdlInitList, dVdlMeanList, order)[::-1]
+
+    # User update.
+    print(coeffs)
+
+    plt.scatter(dVdlInitList, dVdlMeanList, label="mean dV/dl")
+    plt.errorbar(dVdlInitList, dVdlMeanList, xerr=0, yerr=dVdlStdList, fmt='o', capsize=3, color='#1f77b4')
+
+    # Our fit
+    fit = []
+    for i in dVdlInitList:
+        value = 0
+        for j in range(0, order + 1):
+            value += coeffs[j] * i**j
+        fit.append(value)
+    plt.plot(dVdlInitList, fit, label="fit")
+
+    # Comparison
+    if len(compare) != 0:
+        fit = []
+        for i in dVdlInitList:
+            value = 0
+            for j in range(0, len(compare)):
+                value += compare[j] * i**j
+            fit.append(value)
+        plt.plot(dVdlInitList, fit, label="compare")
+
+    plt.title("Calibration for {}.pdb".format(universe.get('d_pdbName')))
+    plt.ylabel(r"dV/d$\lambda$")
+    plt.xlabel(r"$\lambda$-coordinate")
+    plt.legend()
+    plt.grid()
     plt.show()
