@@ -5,9 +5,10 @@ import phbuilder
 phbuilder.universe.add('d_constantpH', True)
 phbuilder.universe.add('d_restrainpH', False)
 
-phbuilder.universe.add('ph_GLU_dvdl', [26.238, -556.92, -106.76, 230.33, -155.89, -24.960]) # Noora new.
-phbuilder.universe.add('ph_ASP_dvdl', [44.936, -551.57, -109.62, 203.77, -127.44, -31.648]) # Noora new.
-phbuilder.universe.add('ph_BUF_dvdl', [670.1, -674.4, 83.19, -150.21]) # Noora original.
+phbuilder.universe.add('ph_GLU_dvdl', [26.238, -556.92, -106.76, 230.33, -155.89, -24.960])      # Noora new.
+phbuilder.universe.add('ph_ASP_dvdl', [44.936, -551.57, -109.62, 203.77, -127.44, -31.648])      # Noora new.
+# phbuilder.universe.add('ph_BUF_dvdl', [670.1, -674.4, 83.19, -150.21])                         # Noora original.
+phbuilder.universe.add('ph_BUF_dvdl', [672.405, -702.445, -63.104, 695.686, -1214.433, 537.137]) # Calibrated using GLU_tri_capped with syn-anti and ca-cb.
 
 phbuilder.protein.process('1cvo.pdb')
 
