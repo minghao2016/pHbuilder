@@ -157,7 +157,7 @@ def restrain_dihedrals(resName, atomNameList, Type, phi, dphi, fc):
                 file.write("; ai aj ak al type phi dphi fc\n")
             
             # Write atoms as extra user information.
-            file.write("; {0} {1} {2} {3}\n".format(atomNameList[0], atomNameList[1], atomNameList[2], atomNameList[3]))
+            # file.write("; {0} {1} {2} {3}\n".format(atomNameList[0], atomNameList[1], atomNameList[2], atomNameList[3]))
 
             # Atomcount resets for every separate .itp file.
             atomCount = 0
