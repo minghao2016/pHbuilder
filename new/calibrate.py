@@ -10,8 +10,14 @@ phbuilder.protein.process('GLU_tri.pdb')
 
 phbuilder.write.reset()
 phbuilder.topol.generate("charmm36-mar2019", "tip3p", d_terministring="34")
+
+# syn-anti
 phbuilder.topol.restrain_dihedrals('GLU', [' OE1', ' CD ', ' OE2', ' HE2'], 1,  0, 0, 10)
+phbuilder.topol.restrain_dihedrals('ASP', [' OD1', ' CG ', ' OD2', ' HD2'], 1,  0, 0, 10)
+
+# Ca-Cb
 phbuilder.topol.restrain_dihedrals('GLU', [' HA ', ' CA ', ' CB ', ' HB1'], 1, 60, 0, 10)
+phbuilder.topol.restrain_dihedrals('ASP', [' HA ', ' CA ', ' CB ', ' HB1'], 1, 60, 0, 10)
 
 phbuilder.protein.add_box(d_boxMargin=1.0)
 phbuilder.protein.add_water()
