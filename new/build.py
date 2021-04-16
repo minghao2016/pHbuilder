@@ -15,14 +15,14 @@ phbuilder.topol.restrain_dihedrals('GLU', [' HA ', ' CA ', ' CB ', ' HB1'], 1, 6
 phbuilder.protein.add_box(d_boxMargin=1.0)
 phbuilder.protein.add_buffer("/home/anton/GIT/phbuilder/grom/buffer.pdb", "/home/anton/GIT/phbuilder/grom/buffer.itp")
 phbuilder.protein.add_water()
-# phbuilder.protein.add_ions()
+phbuilder.protein.add_ions()
 
 phbuilder.md.energy_minimize()
 phbuilder.md.energy_tcouple()
-# phbuilder.md.energy_pcouple()
+phbuilder.md.energy_pcouple()
 
-phbuilder.md.gen_mdp('MD', nsteps=500000, nstxout=10000)
-phbuilder.md.gen_constantpH(4.25, 5.0, 20, barrierE=0.0)
+phbuilder.md.gen_mdp('MD', nsteps=50000, nstxout=10000)
+phbuilder.md.gen_constantpH(4.25, 5.0, 1, barrierE=5.0)
 phbuilder.write.run(gmxPath="/usr/local/gromacs_test2", options="-pme cpu")
 
 # phbuilder.write.jobscript('test', 48, 1, 32, 'lindahl')
