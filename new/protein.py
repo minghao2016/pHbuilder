@@ -200,13 +200,13 @@ def add_buffer(d_bufpdbName, d_bufitpName, d_bufMargin=2.0, d_bufnmol=-1, attemp
 def add_water():
     utils.update("add_water", "running gmx solvate...")
     
-    os.system("gmx solvate -cp {0} -o {1}_SOL.pdb -p topol.top >> builder.log 2>&1".format(universe.get('d_nameList')[-1], universe.get('d_pdbName')))
-
-    # To update topol.top.
-    topol.add_mol("{0}.ff/{1}.itp".format(universe.get('d_modelFF'), universe.get('d_modelWater')), "Include water topology", "SOL", countRes('SOL'))
+    os.system("gmx solvate -cp {0} -o {1}_SOL.pdb >> builder.log 2>&1".format(universe.get('d_nameList')[-1], universe.get('d_pdbName')))
 
     # To update d_residues.
     load("{0}_SOL.pdb".format(universe.get('d_pdbName')))
+
+    # To update topol.top.
+    topol.add_mol("{0}.ff/{1}.itp".format(universe.get('d_modelFF'), universe.get('d_modelWater')), "Include water topology", "SOL", countRes('SOL'))
 
     # To update d_nameList.
     utils.add_to_nameList("{0}_SOL.pdb".format(universe.get('d_pdbName')))
@@ -217,15 +217,21 @@ def add_ions():
     # Generate IONS.mdp (just a dummy required).
     os.system('touch IONS.mdp')
 
-    # Add ion topology to topol.top.
-    topol.add_mol("{0}.ff/ions.itp".format(universe.get('d_modelFF')), "Include ion topology")
-
     # Run gmx genion.
-    os.system("gmx grompp -f IONS.mdp -c {0} -p topol.top -o IONS.tpr >> builder.log 2>&1".format(universe.get('d_nameList')[-1]))
-    os.system("gmx genion -s IONS.tpr -o {0}_ION.pdb -p topol.top -pname NA -nname CL -neutral >> builder.log 2>&1 << EOF\nSOL\nEOF".format(universe.get('d_pdbName')))
+    os.system("gmx grompp -f IONS.mdp -c {0} -o IONS.tpr >> builder.log 2>&1".format(universe.get('d_nameList')[-1]))
+    os.system("gmx genion -s IONS.tpr -o {0}_ION.pdb -pname NA -nname CL -neutral >> builder.log 2>&1 << EOF\nSOL\nEOF".format(universe.get('d_pdbName')))
 
     # To update d_residues.
     load("{0}_ION.pdb".format(universe.get('d_pdbName')))
+
+    # Add ion topology to topol.top.
+    numPos = countRes(" NA")
+    numNeg = countRes(" CL")
+    
+    if (numPos > 0):
+        topol.add_mol("{0}.ff/ions.itp".format(universe.get('d_modelFF')), "Include ion topology", "NA", numPos)
+    elif (numNeg > 0):
+        topol.add_mol("{0}.ff/ions.itp".format(universe.get('d_modelFF')), "Include ion topology", "CL", numNeg)
 
     # To update d_nameList.
     utils.add_to_nameList("{0}_ION.pdb".format(universe.get('d_pdbName')))
