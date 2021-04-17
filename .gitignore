@@ -1,3 +1,2 @@
-benchmark
-physics_val
-pylibs/__pycache__/
+__pycache__
+old/sims
