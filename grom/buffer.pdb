@@ -1,8 +1,0 @@
-TITLE     BUFFER PARTICLE
-CRYST1   21.633   21.633   21.633  90.00  90.00  90.00 P 1           1
-MODEL        1
-ATOM      1  OW  BUF     1      11.110  10.697  10.603  1.00  0.00           O
-ATOM      2  HW1 BUF     1      10.320  11.207  10.263  1.00  0.00           H
-ATOM      3  HW2 BUF     1      11.020  10.547  11.583  1.00  0.00           H
-TER
-ENDMDL
