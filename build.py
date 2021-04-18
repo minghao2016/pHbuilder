@@ -4,7 +4,7 @@ import phbuilder
 
 # Set some pH-related data members in universe:
 phbuilder.universe.add('ph_constantpH', True)
-phbuilder.universe.add('ph_restrainpH', True)
+phbuilder.universe.add('ph_restrainpH', False)
 
 # phbuilder.universe.add('ph_GLU_dvdl', [24.685, -577.05, 137.39, -172.69])                 # Noora original.
 phbuilder.universe.add('ph_GLU_dvdl', [26.238, -556.92, -106.76, 230.33, -155.89, -24.960]) # Noora new.
@@ -16,7 +16,7 @@ phbuilder.universe.add('ph_ASP_dvdl', [44.936, -551.57, -109.62, 203.77, -127.44
 phbuilder.universe.add('ph_BUF_dvdl', [672.41, -702.45, -63.10, 695.67, -1214.43, 537.14])  # Calibrated using GLU_tri_capped with syn-anti and ca-cb.
 ################################################################################
 
-phbuilder.protein.process('proteins/1cvo.pdb')
+phbuilder.protein.process('proteins/3lr2.pdb')
 
 phbuilder.write.reset()
 phbuilder.topol.generate("charmm36-mar2019", "tip3p", d_terministring="11")
@@ -39,7 +39,7 @@ phbuilder.md.energy_tcouple()
 phbuilder.md.energy_pcouple()
 
 phbuilder.md.gen_mdp('MD', nsteps=50000, nstxout=10000)
-phbuilder.md.gen_constantpH(4.25, 5.0, 1, 5.0)
+phbuilder.md.gen_constantpH(ph_pH=4.25, ph_lambdaM=5.0, ph_nstout=1, ph_barrierE=5.0)
 phbuilder.write.run(gmxPath="/usr/local/gromacs_test2", options="-pme cpu")
 
 phbuilder.write.jobscript('test', 48, 1, 32, 'lindahl')
