@@ -150,8 +150,8 @@ def add_box(d_boxMargin, d_boxType='cubic'):
     utils.add_to_nameList("{0}_BOX.pdb".format(universe.get('d_pdbName')))
 
 def add_buffer(d_bufpdbName, d_bufitpName, d_bufMargin=2.0, d_bufnmol=-1, attempts=10000):
-    if not (universe.get('d_constantpH') and universe.get('d_restrainpH')):
-        utils.update("add_buffer", "either d_constantpH or d_restrainpH is False --> skipping...")
+    if not (universe.get('ph_constantpH') and universe.get('ph_restrainpH')):
+        utils.update("add_buffer", "either ph_constantpH or ph_restrainpH is False --> skipping...")
         return
 
     # If user doesn't specified the amount, use #BUF = #ACID.

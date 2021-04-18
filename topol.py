@@ -34,7 +34,7 @@ def generate(d_modelFF, d_modelWater, d_terministring=""):
     countACID = protein.countRes("ASP") + protein.countRes("GLU")
 
     # If constant-pH is on,
-    if universe.get('d_constantpH'):
+    if universe.get('ph_constantpH'):
         utils.update("generate", 'constant-pH is turned on...')
         
         # and we have at least one protonatable reside,
@@ -50,8 +50,8 @@ def generate(d_modelFF, d_modelWater, d_terministring=""):
 
         else:
             utils.update("generate", "no acidic residues detected, constant-pH is turned off...")
-            universe.add('d_constantpH', False)
-            universe.add('d_restrainpH', False)
+            universe.add('ph_constantpH', False)
+            universe.add('ph_restrainpH', False)
 
     else:
         utils.update("generate", 'constant-pH is turned off...')
@@ -63,11 +63,11 @@ def generate(d_modelFF, d_modelWater, d_terministring=""):
     # Here we create EOFstring to circumvent pd2gmx prompting for user input.
     xstr = "<< EOF"
     # The for-loop sets the protonation state of all GLUs and ASPs to 1
-    # (True) if d_constantpH is True, and to 0 (False) if d_constantpH is False.
+    # (True) if ph_constantpH is True, and to 0 (False) if ph_constantpH is False.
     for chain in universe.get('d_chain'):
         for residue in universe.get('d_residues'):
             if residue.d_resname in ['ASP', 'GLU'] and residue.d_chain == chain:
-                xstr += "\n{:d}".format(universe.get('d_constantpH'))
+                xstr += "\n{:d}".format(universe.get('ph_constantpH'))
         
         # Furthermore, if the user specified a two-letter string for the termini,
         # add those to the EOFstring as well:

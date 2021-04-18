@@ -72,7 +72,7 @@ def jobscript(jobName, jobTime, nodes, ntasks, queue):
 
     file.write('\n')
 
-    if universe.get('d_constantpH'):
+    if universe.get('ph_constantpH'):
         file.write("\n# compile our custom Gromacs version on cluster backend node\n")
         file.write("mkdir build\n")
         file.write("cd build\n")
@@ -87,7 +87,7 @@ def jobscript(jobName, jobTime, nodes, ntasks, queue):
 
     file.write("gmx grompp -f MD.mdp -c {0} -p topol.top -n index.ndx -o MD.tpr -r {0}\n".format(universe.get('d_nameList')[-1]))
     
-    if universe.get('d_constantpH'):
+    if universe.get('ph_constantpH'):
         file.write("gmx mdrun -deffnm MD -c {0}_MD.pdb -x MD.xtc -pme cpu\n".format(universe.get('d_pdbName')))
     else:
         file.write("gmx mdrun -deffnm MD -c {0}_MD.pdb -x MD.xtc\n".format(universe.get('d_pdbName')))

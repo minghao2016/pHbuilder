@@ -2,8 +2,8 @@
 
 import phbuilder
 
-phbuilder.universe.add('d_constantpH', True)
-phbuilder.universe.add('d_restrainpH', True)
+phbuilder.universe.add('ph_constantpH', True)
+phbuilder.universe.add('ph_restrainpH', True)
 
 phbuilder.universe.add('ph_GLU_dvdl', [26.238, -556.92, -106.76, 230.33, -155.89, -24.960])      # Noora new.
 phbuilder.universe.add('ph_ASP_dvdl', [44.936, -551.57, -109.62, 203.77, -127.44, -31.648])      # Noora new.

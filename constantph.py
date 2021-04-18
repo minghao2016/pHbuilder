@@ -21,8 +21,8 @@ def gen_constantpH(pH, lambdaM, nstOut, barrierE, cal=False, lambdaInit=0.5):
     BUF_qqA   = [-0.0656, 0.5328, 0.5328]
     BUF_qqB   = [-0.8476, 0.4238, 0.4238]
 
-    # Skip this entire step if self.d_constantpH is false.
-    if (not universe.get('d_constantpH')):
+    # Skip this entire step if ph_constantpH is false.
+    if (not universe.get('ph_constantpH')):
         utils.update("generate_phdata", "skipping this step...")
         return
 
@@ -58,7 +58,7 @@ def gen_constantpH(pH, lambdaM, nstOut, barrierE, cal=False, lambdaInit=0.5):
     if cal:
         addParam('lambda-dynamics-calibration', 'yes')
 
-    if universe.get('d_restrainpH'):
+    if universe.get('ph_restrainpH'):
         addParam('lambda-dynamics-charge-constraints', 'yes')
 
     # Compile a list of acidic residues and their ResIDs.
@@ -80,12 +80,12 @@ def gen_constantpH(pH, lambdaM, nstOut, barrierE, cal=False, lambdaInit=0.5):
     if ('ASP' in acidicResidueNameList):
         acidicResidueTypeList.append('ASP')
 
-    if universe.get('d_restrainpH'):                   # If we restrain the charge 
+    if universe.get('ph_restrainpH'):                   # If we restrain the charge 
         acidicResidueTypeList.append('BUF')   # we also have BUF.
 
     addParam('lambda-dynamics-number-lambda-residues', len(acidicResidueTypeList))
     
-    if universe.get('d_restrainpH'):
+    if universe.get('ph_restrainpH'):
         addParam('lambda-dynamics-number-atom-collections', len(acidicResidueNameList) + 1)
     else:
         addParam('lambda-dynamics-number-atom-collections', len(acidicResidueNameList))
@@ -136,7 +136,7 @@ def gen_constantpH(pH, lambdaM, nstOut, barrierE, cal=False, lambdaInit=0.5):
         addParam('lambda-dynamics-atom-set%s-index-group-name'      % (number), indexName)
         addParam('lambda-dynamics-atom-set%s-initial-lambda'        % (number), lambdaInit)
         
-        if universe.get('d_restrainpH'):
+        if universe.get('ph_restrainpH'):
             addParam('lambda-dynamics-atom-set%s-charge-restraint-group-index' % (number), 1)
 
         if (name == 'BUF'):
@@ -153,7 +153,7 @@ def gen_constantpH(pH, lambdaM, nstOut, barrierE, cal=False, lambdaInit=0.5):
                         'LAMBDA%s' % (idx + 1)
                         )
 
-    if universe.get('d_restrainpH'):
+    if universe.get('ph_restrainpH'):
         writeResBlock(
                         len(acidicResidueNameList) + 1,
                         'BUF',
@@ -195,7 +195,7 @@ def gen_constantpH(pH, lambdaM, nstOut, barrierE, cal=False, lambdaInit=0.5):
             writeTheGroup(grpNum, indexList)
             grpNum += 1
 
-    if universe.get('d_restrainpH'):
+    if universe.get('ph_restrainpH'):
 
         atomCount = 1; indexList = []
 
