@@ -3,13 +3,19 @@
 import phbuilder
 import os, numpy, matplotlib.pyplot as plt, load
 
+# Set some pH-related data members in universe:
 phbuilder.universe.add('ph_constantpH', True)
 phbuilder.universe.add('ph_restrainpH', True)
 
-phbuilder.universe.add('ph_GLU_dvdl', [26.238, -556.92, -106.76, 230.33, -155.89, -24.960])      # Noora new.
-phbuilder.universe.add('ph_ASP_dvdl', [44.936, -551.57, -109.62, 203.77, -127.44, -31.648])      # Noora new.
-# phbuilder.universe.add('ph_BUF_dvdl', [670.1, -674.4, 83.19, -150.21])                         # Noora original.
-phbuilder.universe.add('ph_BUF_dvdl', [672.405, -702.445, -63.104, 695.686, -1214.433, 537.137]) # Calibrated using GLU_tri_capped with syn-anti and ca-cb.
+# phbuilder.universe.add('ph_GLU_dvdl', [24.685, -577.05, 137.39, -172.69])                 # Noora original.
+phbuilder.universe.add('ph_GLU_dvdl', [26.238, -556.92, -106.76, 230.33, -155.89, -24.960]) # Noora new.
+
+# phbuilder.universe.add('ph_ASP_dvdl', [37.822, -566.01, 117.97, -158.79])                 # Noora original.
+phbuilder.universe.add('ph_ASP_dvdl', [44.936, -551.57, -109.62, 203.77, -127.44, -31.648]) # Noora new.
+
+# phbuilder.universe.add('ph_BUF_dvdl', [670.1, -674.4, 83.19, -150.21])                    # Noora original.
+phbuilder.universe.add('ph_BUF_dvdl', [672.41, -702.45, -63.10, 695.67, -1214.43, 537.14])  # Calibrated using GLU_tri_capped with syn-anti and ca-cb.
+################################################################################
 
 phbuilder.protein.process('proteins/GLU_tri.pdb')
 
@@ -43,7 +49,7 @@ for init in dVdlInitList:
     phbuilder.md.energy_tcouple()
     phbuilder.md.energy_pcouple()
     phbuilder.md.gen_mdp('MD', nsteps=200000, nstxout=10000)
-    phbuilder.md.gen_constantpH(pH=4.25, lambdaM=0.0, nstOut=1, barrierE=0.0, cal=True, lambdaInit=init)
+    phbuilder.md.gen_constantpH(ph_pH=4.25, ph_lambdaM=0.0, ph_nstout=1, ph_barrierE=0.0, cal=True, lambdaInit=init)
 
     os.system("./run.sh")
 

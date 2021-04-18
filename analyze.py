@@ -175,8 +175,8 @@ def glicphstates(plotBUF=False):
             residList[idx-1],
             chainList[idx-1],
             universe.get('d_pdbName'),
-            universe.get('ph_ph'),
-            universe.get('ph_nstxout'),
+            universe.get('ph_pH'),
+            universe.get('ph_nstout'),
             titrate("lambda_{}.dat".format(idx)), 
             expVals40["{0}-{1}".format(resnameList[idx-1], residList[idx-1])]
             ))
