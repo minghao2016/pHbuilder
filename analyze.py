@@ -206,12 +206,14 @@ def glicphstates(plotBUF=False):
         # Less buffers, and put buffers farher away.
         # Increase barrier energy from 5.0 to 7.5 kJ/mol.
 
-def plotpotentials(pH, pKa):
+def plotpotentials(pKa):
     R   = 8.3145 * 10**-3 # "kJ * mol⁻1 * K^-1"
     T   = 300
 
     lambda_i = load.Col("lambda_dwp.dat", 1, 942, 2062)
     V_bias   = load.Col("lambda_dwp.dat", 0, 942, 2062)
+    
+    pH = universe.get('ph_pH')
 
     V_pH = []
     for i in lambda_i:
