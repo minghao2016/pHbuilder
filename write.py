@@ -63,8 +63,6 @@ def jobscript(jobName, jobTime, nodes, ntasks, queue):
     writeHead("mail-user", "anton.jansen@scilifelab.se")
     writeHead("mail-type", "ALL")
     file.write("#SBATCH -C gpu --gres=gpu:4\n")
-        
-    file.write('\n')
 
     moduleLoad("cmake/latest")
     moduleLoad("gcc/7.4")
