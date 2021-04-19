@@ -129,6 +129,228 @@ def glicphstates(plotBUF=False):
         'GLU-282' : 0.0
     }
 
+    biophys = { # also prevost2012
+        'ASP-13'  : 1,
+        'ASP-31'  : 1,
+        'ASP-32'  : 1,
+        'ASP-49'  : 1,
+        'ASP-55'  : 1,
+        'ASP-86'  : 0,
+        'ASP-88'  : 0,
+        'ASP-91'  : 1,
+        'ASP-97'  : 1,
+        'ASP-115' : 1,
+        'ASP-122' : 1,
+        'ASP-136' : 1,
+        'ASP-145' : 1,
+        'ASP-153' : 1,
+        'ASP-154' : 1,
+        'ASP-161' : 1,
+        'ASP-178' : 1,
+        'ASP-185' : 1,
+        'GLU-14'  : 1,
+        'GLU-26'  : 0,
+        'GLU-35'  : 0,
+        'GLU-67'  : 0,
+        'GLU-69'  : 1,
+        'GLU-75'  : 0,
+        'GLU-82'  : 0,
+        'GLU-104' : 1,
+        'GLU-147' : 1,
+        'GLU-163' : 1,
+        'GLU-177' : 0,
+        'GLU-181' : 1,
+        'GLU-222' : 1,
+        'GLU-243' : 0,
+        'GLU-272' : 1,
+        'GLU-282' : 1
+    }
+
+    nury2010 = { # this is also cheng2010, calimet2013
+        'ASP-13'  : 1,
+        'ASP-31'  : 1,
+        'ASP-32'  : 1,
+        'ASP-49'  : 1,
+        'ASP-55'  : 1,
+        'ASP-86'  : 0,
+        'ASP-88'  : 0,
+        'ASP-91'  : 1,
+        'ASP-97'  : 1,
+        'ASP-115' : 1,
+        'ASP-122' : 1,
+        'ASP-136' : 1,
+        'ASP-145' : 1,
+        'ASP-153' : 1,
+        'ASP-154' : 1,
+        'ASP-161' : 1,
+        'ASP-178' : 1,
+        'ASP-185' : 1,
+        'GLU-14'  : 1,
+        'GLU-26'  : 0,
+        'GLU-35'  : 0,
+        'GLU-67'  : 0,
+        'GLU-69'  : 0,
+        'GLU-75'  : 0,
+        'GLU-82'  : 0,
+        'GLU-104' : 1,
+        'GLU-147' : 1,
+        'GLU-163' : 1,
+        'GLU-177' : 0,
+        'GLU-181' : 1,
+        'GLU-222' : 1,
+        'GLU-243' : 0,
+        'GLU-272' : 1,
+        'GLU-282' : 1
+    }
+
+    fritsch2011 = {
+        'ASP-13'  : 0,
+        'ASP-31'  : 0,
+        'ASP-32'  : 1,
+        'ASP-49'  : 1,
+        'ASP-55'  : 0,
+        'ASP-86'  : 0,
+        'ASP-88'  : 0,
+        'ASP-91'  : 0,
+        'ASP-97'  : 0,
+        'ASP-115' : 1,
+        'ASP-122' : 1,
+        'ASP-136' : 1,
+        'ASP-145' : 0,
+        'ASP-153' : 0,
+        'ASP-154' : 0,
+        'ASP-161' : 0,
+        'ASP-178' : 0,
+        'ASP-185' : 0,
+        'GLU-14'  : 0,
+        'GLU-26'  : 0,
+        'GLU-35'  : 0,
+        'GLU-67'  : 0,
+        'GLU-69'  : 0,
+        'GLU-75'  : 0,
+        'GLU-82'  : 0,
+        'GLU-104' : 1,
+        'GLU-147' : 0,
+        'GLU-163' : 0,
+        'GLU-177' : 0,
+        'GLU-181' : 0,
+        'GLU-222' : 1,
+        'GLU-243' : 0,
+        'GLU-272' : 0,
+        'GLU-282' : 0
+    }
+
+    lev2017 = {
+        'ASP-13'  : 1,
+        'ASP-31'  : 1,
+        'ASP-32'  : 1,
+        'ASP-49'  : 1,
+        'ASP-55'  : 1,
+        'ASP-86'  : 1,
+        'ASP-88'  : 1,
+        'ASP-91'  : 1,
+        'ASP-97'  : 1,
+        'ASP-115' : 1,
+        'ASP-122' : 1,
+        'ASP-136' : 1,
+        'ASP-145' : 1,
+        'ASP-153' : 1,
+        'ASP-154' : 1,
+        'ASP-161' : 1,
+        'ASP-178' : 1,
+        'ASP-185' : 1,
+        'GLU-14'  : 1,
+        'GLU-26'  : 0,
+        'GLU-35'  : 0,
+        'GLU-67'  : 0,
+        'GLU-69'  : 0,
+        'GLU-75'  : 0,
+        'GLU-82'  : 0,
+        'GLU-104' : 1,
+        'GLU-147' : 1,
+        'GLU-163' : 1,
+        'GLU-177' : 0,
+        'GLU-181' : 1,
+        'GLU-222' : 1,
+        'GLU-243' : 0,
+        'GLU-272' : 1,
+        'GLU-282' : 1
+    }
+
+    nemecz2017 = { # also Hu2018
+        'ASP-13'  : 1,
+        'ASP-31'  : 1,
+        'ASP-32'  : 1,
+        'ASP-49'  : 1,
+        'ASP-55'  : 1,
+        'ASP-86'  : 0,
+        'ASP-88'  : 0,
+        'ASP-91'  : 1,
+        'ASP-97'  : 1,
+        'ASP-115' : 1,
+        'ASP-122' : 1,
+        'ASP-136' : 1,
+        'ASP-145' : 1,
+        'ASP-153' : 1,
+        'ASP-154' : 1,
+        'ASP-161' : 1,
+        'ASP-178' : 1,
+        'ASP-185' : 1,
+        'GLU-14'  : 1,
+        'GLU-26'  : 0,
+        'GLU-35'  : 0,
+        'GLU-67'  : 1,
+        'GLU-69'  : 1,
+        'GLU-75'  : 1,
+        'GLU-82'  : 1,
+        'GLU-104' : 1,
+        'GLU-147' : 1,
+        'GLU-163' : 1,
+        'GLU-177' : 1,
+        'GLU-181' : 1,
+        'GLU-222' : 0,
+        'GLU-243' : 0,
+        'GLU-272' : 1,
+        'GLU-282' : 1
+    }
+
+    ullman = { # unpublished
+        'ASP-13'  : 1,
+        'ASP-31'  : 1,
+        'ASP-32'  : 1,
+        'ASP-49'  : 1,
+        'ASP-55'  : 1,
+        'ASP-86'  : 1,
+        'ASP-88'  : 1,
+        'ASP-91'  : 1,
+        'ASP-97'  : 1,
+        'ASP-115' : 1,
+        'ASP-122' : 1,
+        'ASP-136' : 1,
+        'ASP-145' : 1,
+        'ASP-153' : 1,
+        'ASP-154' : 1,
+        'ASP-161' : 1,
+        'ASP-178' : 1,
+        'ASP-185' : 1,
+        'GLU-14'  : 1,
+        'GLU-26'  : 0,
+        'GLU-35'  : 0,
+        'GLU-67'  : 0,
+        'GLU-69'  : 0,
+        'GLU-75'  : 0,
+        'GLU-82'  : 1,
+        'GLU-104' : 1,
+        'GLU-147' : 0,
+        'GLU-163' : 0,
+        'GLU-177' : 0,
+        'GLU-181' : 1,
+        'GLU-222' : 1,
+        'GLU-243' : 0,
+        'GLU-272' : 0,
+        'GLU-282' : 1
+    }
+
     # DIRECTORY STRUCTURE ######################################################
     dirname = "lambdaplots" 
     if not os.path.isdir(dirname):
@@ -150,52 +372,52 @@ def glicphstates(plotBUF=False):
     # CREATE LAMBDA PLOT FOR EVERY INDIVIDUAL PROTONATABLE RESIDUE #############
 
     # Loop through all the lambdas:
-    for idx in range(1, len(resnameList) + 1):
+    # for idx in range(1, len(resnameList) + 1):
         
-        plt.figure(figsize=(8, 6))
+    #     plt.figure(figsize=(8, 6))
 
-        # Update user
-        print("plotting {}/{}".format(idx, len(resnameList)), end='\r')
+    #     # Update user
+    #     print("plotting {}/{}".format(idx, len(resnameList)), end='\r')
         
-        # Load columns from .dat files
-        t = load.Col("lambda_{0}.dat".format(idx), 1)
-        x = load.Col("lambda_{0}.dat".format(idx), 2)
+    #     # Load columns from .dat files
+    #     t = load.Col("lambda_{0}.dat".format(idx), 1)
+    #     x = load.Col("lambda_{0}.dat".format(idx), 2)
         
-        # Analyze a running sim not all columns will be equal long so trim:
-        if len(t) > len(x):
-            t.pop()
-        elif len(t) < len(x):
-            x.pop()
+    #     # Analyze a running sim not all columns will be equal long so trim:
+    #     if len(t) > len(x):
+    #         t.pop()
+    #     elif len(t) < len(x):
+    #         x.pop()
 
-        plt.plot(t, x, linewidth=0.5)
+    #     plt.plot(t, x, linewidth=0.5)
 
-        # Title
-        plt.title("{0}-{1} in chain {2} in {3}.pdb\npH={4}, nstlambda={5}, deprotonation={6:.2f}\n\
-            Experimentally determined state for {0}-{1} at this pH = {7}".format(
-            resnameList[idx-1], 
-            residList[idx-1],
-            chainList[idx-1],
-            universe.get('d_pdbName'),
-            universe.get('ph_pH'),
-            universe.get('ph_nstout'),
-            titrate("lambda_{}.dat".format(idx)), 
-            expVals40["{0}-{1}".format(resnameList[idx-1], residList[idx-1])]
-            ))
+    #     # Title
+    #     plt.title("{0}-{1} in chain {2} in {3}.pdb\npH={4}, nstlambda={5}, deprotonation={6:.2f}\n\
+    #         Experimentally determined state for {0}-{1} at this pH = {7}".format(
+    #         resnameList[idx-1], 
+    #         residList[idx-1],
+    #         chainList[idx-1],
+    #         universe.get('d_pdbName'),
+    #         universe.get('ph_pH'),
+    #         universe.get('ph_nstout'),
+    #         titrate("lambda_{}.dat".format(idx)), 
+    #         expVals40["{0}-{1}".format(resnameList[idx-1], residList[idx-1])]
+    #         ))
 
-        # Axes and stuff
-        plt.ylim(-0.1, 1.1)
-        plt.xlabel("Time (ps)")
-        plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
-        plt.ylabel(r"$\lambda$-coordinate")
-        plt.grid()
+    #     # Axes and stuff
+    #     plt.ylim(-0.1, 1.1)
+    #     plt.xlabel("Time (ps)")
+    #     plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
+    #     plt.ylabel(r"$\lambda$-coordinate")
+    #     plt.grid()
 
-        # Save.
-        fileName = "{}/{}_{}-{:03d}".format(dirname, chainList[idx-1], resnameList[idx-1], residList[idx-1])
-        # plt.savefig("{}.pdf".format(fileName)); os.system("pdfcrop {0}.pdf {0}.pdf >> /dev/null 2>&1".format(fileName))
-        plt.savefig("{}.png".format(fileName))
+    #     # Save.
+    #     fileName = "{}/{}_{}-{:03d}".format(dirname, chainList[idx-1], resnameList[idx-1], residList[idx-1])
+    #     # plt.savefig("{}.pdf".format(fileName)); os.system("pdfcrop {0}.pdf {0}.pdf >> /dev/null 2>&1".format(fileName))
+    #     plt.savefig("{}.png".format(fileName))
 
-        # clf = clear the entire current figure. close = closes a window.
-        plt.clf(); plt.close()
+    #     # clf = clear the entire current figure. close = closes a window.
+    #     plt.clf(); plt.close()
 
     # CREATE HISTOGRAM PLOTS FOR COMBINED PROTO STATE OF ALL FIVE CHAINS #######
     number_of_chains   = len(set(chainList))
@@ -214,15 +436,14 @@ def glicphstates(plotBUF=False):
         plt.hist(data, density=True, bins=200)
         
         # Title
-        plt.title("{0}-{1} (all chains) in {2}.pdb\npH={3}, nstlambda={4}, deprotonation={5:.2f}\n\
-            Experimentally determined state for {0}-{1} at this pH = {6}".format(
-            resnameList[ii-1], 
+        plt.title("{0}-{1} (all chains) in {2}.pdb\npH={3}, nstlambda={4}, deprotonation={5:.2f}".format(
+            resnameList[ii-1],
             residList[ii-1],
             universe.get('d_pdbName'),
             universe.get('ph_pH'),
             universe.get('ph_nstout'),
-            titrate("lambda_{}.dat".format(ii)), 
-            expVals40["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]
+            titrate("lambda_{}.dat".format(ii))
+            # expVals40["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]
             ))
 
         # Axes and stuff
@@ -232,8 +453,14 @@ def glicphstates(plotBUF=False):
         plt.grid()
 
         # Add green vertical line indicating experimental value
-        plt.vlines(x=expVals40["{0}-{1}".format(resnameList[ii-1], residList[ii-1])], ymin=0, ymax=12, colors='g')
+        plt.vlines(x=biophys["{0}-{1}".format(resnameList[ii-1], residList[ii-1])], ymin=0, ymax=12, color='r', linewidth=4.0, label="biophysics.se/Prevost2012 = {}".format(biophys["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]))
+        plt.vlines(x=nury2010["{0}-{1}".format(resnameList[ii-1], residList[ii-1])], ymin=0, ymax=10, color='g', linewidth=4.0, label="Nury2010/Cheng2010/Calimet2013 = {}".format(nury2010["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]))
+        plt.vlines(x=fritsch2011["{0}-{1}".format(resnameList[ii-1], residList[ii-1])], ymin=0, ymax=8, color='b', linewidth=4.0, label="Fritsch2011 = {}".format(fritsch2011["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]))
+        plt.vlines(x=lev2017["{0}-{1}".format(resnameList[ii-1], residList[ii-1])], ymin=0, ymax=6, color='c', linewidth=4.0, label="Lev2017 = {}".format(lev2017["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]))
+        plt.vlines(x=nemecz2017["{0}-{1}".format(resnameList[ii-1], residList[ii-1])], ymin=0, ymax=4, color = 'm', linewidth=4.0, label="Nemecz2017/Hu2018 = {}".format(nemecz2017["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]))
+        plt.vlines(x=ullman["{0}-{1}".format(resnameList[ii-1], residList[ii-1])], ymin=0, ymax=2, color='y', linewidth=4.0, label="Ullman (unpublished) = {}".format(ullman["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]))
 
+        plt.legend()
         # Save and clear
         fileName = "{}/hist_{}-{:03d}".format(dirname, resnameList[ii-1], residList[ii-1])
         # plt.savefig("{}.pdf".format(fileName)); os.system("pdfcrop {0}.pdf {0}.pdf >> /dev/null 2>&1".format(fileName))
