@@ -53,7 +53,8 @@ def plotlambda(fileName="", plotBUF=False):
         plt.show()
 
 def glicphstates(plotBUF=False):
-    expVals70 = {
+    # EXPERIMENTAL DATA ON PROTONATION STATES AT VARIOUS PH ####################
+    expVals70 = { # Everything is deprotonated at pH=7.0.
         'ASP-13'  : 1.0,
         'ASP-31'  : 1.0,
         'ASP-32'  : 1.0,
@@ -128,7 +129,16 @@ def glicphstates(plotBUF=False):
         'GLU-282' : 0.0
     }
 
-    resnameList = []    # Get the names and such of all the ASPs and GLUs.
+    # DIRECTORY STRUCTURE ######################################################
+    dirname = "lambdaplots" 
+    if not os.path.isdir(dirname):
+        os.mkdir(dirname)
+    else:
+        os.system("rm -f {0}/*.png {0}/*.pdf".format(dirname))
+
+    # GET THE RESIDUE NUMBER, NAME, AND CHAIN OF ALL PROTO RESIDUES ############
+
+    resnameList = []
     residList   = []
     chainList   = []
     for residue in universe.get('d_residues'):
@@ -137,16 +147,7 @@ def glicphstates(plotBUF=False):
             residList.append(residue.d_resid)
             chainList.append(residue.d_chain)
 
-    # debug
-    # for idx in range(0, len(resnameList)):
-    #     print("{}-{} in chain {}".format(resnameList[idx], residList[idx], chainList[idx]))
-
-    # Make directory structure
-    dirname = "lambdaplots" 
-    if not os.path.isdir(dirname):
-        os.mkdir(dirname)
-    else:
-        os.system("rm -f {0}/*.png {0}/*.pdf".format(dirname))
+    # CREATE LAMBDA PLOT FOR EVERY INDIVIDUAL PROTONATABLE RESIDUE #############
 
     # Loop through all the lambdas:
     for idx in range(1, len(resnameList) + 1):
@@ -196,15 +197,48 @@ def glicphstates(plotBUF=False):
         # clf = clear the entire current figure. close = closes a window.
         plt.clf(); plt.close()
 
-    # To implement:
-        # Throw away first 5-10 ns (because this is calibration)
-        # Combine latter parts of all the residues to make average over 5 chains
-        # Make a spreadsheet with correctly and incorrectly predicted and see if we can find a coincidence.
+    # CREATE HISTOGRAM PLOTS FOR COMBINED PROTO STATE OF ALL FIVE CHAINS #######
+    number_of_chains   = len(set(chainList))
+    residues_per_chain = int(len(resnameList) / number_of_chains)
+    
+    for ii in range(1, residues_per_chain + 1):
+        data = []        
+        for jj in range(0, number_of_chains):
+            print(ii + residues_per_chain * jj, end=' ')
+            data += (load.Col('lambda_{}.dat'.format(ii + residues_per_chain * jj), 2, 49713, 124320))
+        print()
 
-    # Other stuff we need to do to improve this:
-        # Recalibrate and use higher-order polynomials.
-        # Less buffers, and put buffers farher away.
-        # Increase barrier energy from 5.0 to 7.5 kJ/mol.
+        # PLOTTING STUFF #######################################################
+
+        plt.figure(figsize=(8, 6))
+        plt.hist(data, density=True, bins=200)
+        
+        # Title
+        plt.title("{0}-{1} (all chains) in {2}.pdb\npH={3}, nstlambda={4}, deprotonation={5:.2f}\n\
+            Experimentally determined state for {0}-{1} at this pH = {6}".format(
+            resnameList[ii-1], 
+            residList[ii-1],
+            universe.get('d_pdbName'),
+            universe.get('ph_pH'),
+            universe.get('ph_nstout'),
+            titrate("lambda_{}.dat".format(ii)), 
+            expVals40["{0}-{1}".format(resnameList[ii-1], residList[ii-1])]
+            ))
+
+        # Axes and stuff
+        plt.axis([-0.1, 1.1, -0.1, 12])
+        plt.xlabel(r"$\lambda$-coordinate")
+        plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
+        plt.grid()
+
+        # Add green vertical line indicating experimental value
+        plt.vlines(x=expVals40["{0}-{1}".format(resnameList[ii-1], residList[ii-1])], ymin=0, ymax=12, colors='g')
+
+        # Save and clear
+        fileName = "{}/hist_{}-{:03d}".format(dirname, resnameList[ii-1], residList[ii-1])
+        # plt.savefig("{}.pdf".format(fileName)); os.system("pdfcrop {0}.pdf {0}.pdf >> /dev/null 2>&1".format(fileName))
+        plt.savefig('{}.png'.format(fileName))
+        plt.clf(); plt.close()
 
 def plotpotentials(pKa):
     R   = 8.3145 * 10**-3 # "kJ * mol⁻1 * K^-1"
