@@ -439,6 +439,7 @@ def plothistogram(fname, bins=200):
 
 def fitCalibration(order=5, compare=[]):
     # Get relevant stuff from universe.
+    # Note: these data-members are only created when calibrate.py is ran.
     dVdlInitList = universe.get('d_dVdlInitList')
     dVdlMeanList = universe.get('d_dVdlMeanList')
     dVdlStdList  = universe.get('d_dVdlStdList')
@@ -446,9 +447,10 @@ def fitCalibration(order=5, compare=[]):
     # Compute dV/dl coefficients.
     coeffs = np.polyfit(dVdlInitList, dVdlMeanList, order)[::-1]
 
-    # User update.
+    # Update user with the coefficients.
     print(coeffs)
 
+    # Plot the computed values.
     plt.scatter(dVdlInitList, dVdlMeanList, label="mean dV/dl")
     plt.errorbar(dVdlInitList, dVdlMeanList, xerr=0, yerr=dVdlStdList, fmt='o', capsize=3, color='#1f77b4')
 
