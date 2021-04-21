@@ -1,0 +1,10 @@
+1cvo.pdb        Cardiotoxin V. Small protein with three titratable groups previously used for testing.
+2gkr.pdb        Ovomucoid. Previously used for benchmarking.
+3lr2.pdb        Spider silk MaSp1 NT domain.
+4hfi.pdb        Pentameric ion channel. Each chain contains 34 titratable groups (170 total).
+ASP_tri.pdb     Capped tripeptide.
+GLU_tri.pdb     Capped tripeptide.
+GlyAspGly.dpb   Neutral tripeptide. Do-not-use. Should instead be AlaAspAla.pdb.
+GlyGluGly.dpb   Neutral tripeptide. Do-not-use. Should instead be AlaAspAla.pdb.
+buffer.itp      Buffer (just water with different name) molecule topology.
+buffer.pdb      Buffer (just water with different name) molecule structure.
