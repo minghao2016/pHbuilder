@@ -33,7 +33,7 @@ phbuilder.topol.restrain_dihedrals('GLU', [' HA ', ' CA ', ' CB ', ' HB1'], 1, 6
 phbuilder.topol.restrain_dihedrals('ASP', [' HA ', ' CA ', ' CB ', ' HB1'], 1, 60, 0, 10)
 
 phbuilder.protein.add_box(d_boxMargin=1.0)
-phbuilder.protein.add_buffer("/home/anton/GIT/phbuilder/proteins/buffer.pdb", "/home/anton/GIT/phbuilder/proteins/buffer.pdb")
+phbuilder.protein.add_buffer("/home/anton/GIT/phbuilder/proteins/buffer.pdb", "/home/anton/GIT/phbuilder/proteins/buffer.itp")
 phbuilder.protein.add_water()
 
 phbuilder.md.energy_minimize()
@@ -64,3 +64,5 @@ phbuilder.universe.add('d_dVdlMeanList', dVdlMeanList)
 phbuilder.universe.add('d_dVdlStdList', dVdlStdList)
 
 phbuilder.analyze.fitCalibration(5, compare=[26.238, -556.92, -106.76, 230.33, -155.89, -24.960])
+# 25.18146703 -553.9455324  -125.7771346 300.26656292 -255.84233913 21.28068113 GPU 1ns per point
+# 27.01924377 -544.49463842 -280.2842655   734.12463651 -705.64546141 178.84796597 CPU 0.1ns per point
