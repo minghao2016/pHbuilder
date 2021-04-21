@@ -16,10 +16,10 @@ phbuilder.universe.add('ph_ASP_dvdl', [44.936, -551.57, -109.62, 203.77, -127.44
 phbuilder.universe.add('ph_BUF_dvdl', [672.41, -702.45, -63.10, 695.67, -1214.43, 537.14])  # Calibrated using GLU_tri_capped with syn-anti and ca-cb.
 ################################################################################
 
-phbuilder.protein.process('proteins/3lr2.pdb')
+phbuilder.protein.process('/home/anton/GIT/phbuilder/proteins/ASP_tri.pdb')
 
 phbuilder.write.reset()
-phbuilder.topol.generate("charmm36-mar2019", "tip3p", d_terministring="11")
+phbuilder.topol.generate("charmm36-mar2019", "tip3p", d_terministring="34")
 
 # syn-anti
 phbuilder.topol.restrain_dihedrals('GLU', [' OE1', ' CD ', ' OE2', ' HE2'], 1,  0, 0, 10)
@@ -30,7 +30,7 @@ phbuilder.topol.restrain_dihedrals('GLU', [' HA ', ' CA ', ' CB ', ' HB1'], 1, 6
 phbuilder.topol.restrain_dihedrals('ASP', [' HA ', ' CA ', ' CB ', ' HB1'], 1, 60, 0, 10)
 
 phbuilder.protein.add_box(d_boxMargin=1.0)
-phbuilder.protein.add_buffer("proteins/buffer.pdb", "proteins/buffer.itp")
+phbuilder.protein.add_buffer("/home/anton/GIT/phbuilder/proteins/buffer.pdb", "/home/anton/GIT/phbuilder/proteins/buffer.itp")
 phbuilder.protein.add_water()
 phbuilder.protein.add_ions()
 
@@ -38,9 +38,9 @@ phbuilder.md.energy_minimize()
 phbuilder.md.energy_tcouple()
 phbuilder.md.energy_pcouple()
 
-phbuilder.md.gen_mdp('MD', nsteps=50000, nstxout=10000)
-phbuilder.md.gen_constantpH(ph_pH=4.25, ph_lambdaM=5.0, ph_nstout=1, ph_barrierE=5.0)
-phbuilder.write.run(gmxPath="/usr/local/gromacs_test2", options="-pme cpu")
+phbuilder.md.gen_mdp('MD', nsteps=200000, nstxout=10000)
+phbuilder.md.gen_constantpH(ph_pH=3.65, ph_lambdaM=5.0, ph_nstout=1, ph_barrierE=5.0)
+phbuilder.write.run(gmxPath="/usr/local/gromacs_test2", options="-pme cpu -bonded gpu -nb gpu")
 
 phbuilder.write.jobscript('test', 48, 1, 32, 'lindahl')
 phbuilder.universe.inspect()
