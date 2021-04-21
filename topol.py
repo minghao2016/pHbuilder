@@ -55,6 +55,7 @@ def generate(d_modelFF, d_modelWater, d_terministring=""):
 
     else:
         utils.update("generate", 'constant-pH is turned off...')
+        universe.add('ph_restrainpH', False) # If ph_constantpH is False then this is also False.
 
     utils.update("generate", "using the {} force field with the {} water model...".format(d_modelFF, d_modelWater))
 
