@@ -29,7 +29,16 @@ def reset():
     os.system("chmod +x reset.sh")
 
 def run(gmxPath="/usr/local/gromacs", options=""):
-    utils.update("run", "gmxPath={0}, additional options= {1}".format(gmxPath, options))
+    # If we do a non-constant-pH simulation, gen_constantph will not make index.ndx,
+    # so do it here.
+    if not os.path.isfile('index.ndx'):
+        utils.generate_index()
+
+    # User update:
+    if options == "":
+        utils.update("run", "gmxPath={0}".format(gmxPath))
+    else:
+        utils.update("run", "gmxPath={0}, additional options= {1}".format(gmxPath, options))
     
     with open("run.sh", 'w') as file:
         file.write("#!/bin/bash\n\n")
