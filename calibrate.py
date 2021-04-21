@@ -1,7 +1,7 @@
 #!/bin/python3
 
 import phbuilder
-import os, numpy, matplotlib.pyplot as plt, load
+import os, numpy, load
 
 # Set some pH-related data members in universe:
 phbuilder.universe.add('ph_constantpH', True)
@@ -64,5 +64,3 @@ phbuilder.universe.add('d_dVdlMeanList', dVdlMeanList)
 phbuilder.universe.add('d_dVdlStdList', dVdlStdList)
 
 phbuilder.analyze.fitCalibration(5, compare=[26.238, -556.92, -106.76, 230.33, -155.89, -24.960])
-# 25.18146703 -553.9455324  -125.7771346 300.26656292 -255.84233913 21.28068113 GPU 1ns per point
-# 27.01924377 -544.49463842 -280.2842655   734.12463651 -705.64546141 178.84796597 CPU 0.1ns per point
