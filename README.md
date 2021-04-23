@@ -36,7 +36,7 @@
   </tr>
   <tr>
     <td class="tg-0pky">d_dt</td>
-    <td class="tg-0pky">MD time step size. Currently hardcoded at 0.002 ps.</td>
+    <td class="tg-0pky">MD time step size (ps). Currently hardcoded at 0.002 ps.</td>
   </tr>
   <tr>
     <td class="tg-0pky">d_model</td>
@@ -92,7 +92,23 @@
   </tr>
   <tr>
     <td class="tg-0pky">ph_barrier_E</td>
-    <td class="tg-0pky">Barrier energy in kJ/mol. Good value is 5.0 or 7.5 kJ/mol.</td>
+    <td class="tg-0pky">Barrier energy (kJ/mol). Good value is 5.0 or 7.5 kJ/mol.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">ph_bufMargin</td>
+    <td class="tg-0pky">Minimum distance (nm) between the buffer molecule(s) (themselves) and the protein. This should be at least 1.5nm to avoid unphysical interactions.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">ph_bufitpname</td>
+    <td class="tg-0pky">Name of the topology file of the buffer molecule.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">ph_bufnmol</td>
+    <td class="tg-0pky">Number of buffer molecules.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">ph_pdbname</td>
+    <td class="tg-0pky">Name of the structure file of the buffer molecule.</td>
   </tr>
   <tr>
     <td class="tg-0pky">ph_constantpH</td>
@@ -112,7 +128,7 @@
   </tr>  
   <tr>
     <td class="tg-0pky">ph_lambdaM</td>
-    <td class="tg-0pky">Mass of lambda particle. Good value is 5.0 Da.</td>
+    <td class="tg-0pky">Mass (Da) of lambda particle. Good value is 5.0 Da.</td>
   </tr>
   <tr>
     <td class="tg-0pky">ph_nstout</td>
@@ -130,7 +146,7 @@
 </table>
 
 <b>Known issues</b>
-* You can currently use add_buf() to add less buffer molecules than you have titratable groups, however for some reason (either phbuilder or gromacs build), this does not work yet.
+* You can currently use `protein.add_buf()` to add less buffer molecules than you have titratable groups, however for some reason (either phbuilder or gromacs build), this will give nonsensical results.
 
 <b>To-do</b>
 * Enable the charge leveling scheme termed "charge coupling", i.e. put charge on an "ion".

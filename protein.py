@@ -149,16 +149,16 @@ def add_box(d_boxMargin, d_boxType='cubic'):
     # To update d_nameList.
     utils.add_to_nameList("{0}_BOX.pdb".format(universe.get('d_pdbName')))
 
-def add_buffer(d_bufpdbName, d_bufitpName, d_bufMargin=2.0, d_bufnmol=-1, attempts=10000):
+def add_buffer(ph_bufpdbName, ph_bufitpName, ph_bufMargin=2.0, ph_bufnmol=-1, attempts=10000):
     if not (universe.get('ph_constantpH') and universe.get('ph_restrainpH')):
         utils.update("add_buffer", "either ph_constantpH or ph_restrainpH is False --> skipping...")
         return
 
     # If user doesn't specified the amount, use #BUF = #ACID.
-    if (d_bufnmol == -1):
-        d_bufnmol = countRes('ASP') + countRes('GLU')
+    if (ph_bufnmol == -1):
+        ph_bufnmol = countRes('ASP') + countRes('GLU')
 
-    utils.update("add_buffer", "will attempt to add {0} buffer molecules...".format(d_bufnmol))
+    utils.update("add_buffer", "will attempt to add {0} buffer molecules...".format(ph_bufnmol))
 
     # RUN GROMACS INSERT-MOLECULES COMMAND
     os.system("touch vdwradii.dat") # we need this dummy file for this to work.
@@ -166,10 +166,10 @@ def add_buffer(d_bufpdbName, d_bufitpName, d_bufMargin=2.0, d_bufnmol=-1, attemp
     os.system("gmx insert-molecules -f {0} -o {1}_BUF.pdb -ci {2} -nmol {3} -scale 1.0 -radius {4} -try {5} >> builder.log 2>&1".format(
         universe.get('d_nameList')[-1],
         universe.get('d_pdbName'),
-        d_bufpdbName,
-        d_bufnmol,
-        0.5 * d_bufMargin,
-        int(attempts / d_bufnmol)))
+        ph_bufpdbName,
+        ph_bufnmol,
+        0.5 * ph_bufMargin,
+        int(attempts / ph_bufnmol)))
 
     os.remove("vdwradii.dat") # clean dummy file.
 
@@ -178,22 +178,22 @@ def add_buffer(d_bufpdbName, d_bufitpName, d_bufMargin=2.0, d_bufnmol=-1, attemp
 
     # Give user a warning if there wasn't enough space.
     actual = countRes('BUF')
-    if actual < d_bufnmol:
-        utils.update("add_buffer", "warning: only {0}/{1} requested buffer molecules inserted after {2} attempts,".format(actual, d_bufnmol, attempts))
-        utils.update("add_buffer", "warning: try decreasing d_bufMargin (={0}nm) or increasing d_boxMargin (={1}nm)...".format(d_bufMargin, universe.get('d_boxMargin')))
+    if actual < ph_bufnmol:
+        utils.update("add_buffer", "warning: only {0}/{1} requested buffer molecules inserted after {2} attempts,".format(actual, ph_bufnmol, attempts))
+        utils.update("add_buffer", "warning: try decreasing ph_bufMargin (={0}nm) or increasing d_boxMargin (={1}nm)...".format(ph_bufMargin, universe.get('d_boxMargin')))
     else:
         utils.update("add_buffer", "succesfully added {0} buffer molecules...".format(actual))
 
     # To add buffer topology to topol.top.
     utils.update("add_buffer", "updating topology...")
-    os.system("cp {} .".format(d_bufitpName))
-    topol.add_mol(os.path.basename(d_bufitpName), "Include buffer topology", 'BUF', actual)
+    os.system("cp {} .".format(ph_bufitpName))
+    topol.add_mol(os.path.basename(ph_bufitpName), "Include buffer topology", 'BUF', actual)
 
     # Set some parameters in the universe.
-    universe.add('d_bufpdbName', d_bufpdbName)
-    universe.add('d_bufitpName', d_bufitpName)
-    universe.add('d_bufMargin', d_bufMargin)
-    universe.add('d_bufnmol', actual)
+    universe.add('ph_bufpdbName', ph_bufpdbName)
+    universe.add('ph_bufitpName', ph_bufitpName)
+    universe.add('ph_bufMargin', ph_bufMargin)
+    universe.add('ph_bufnmol', actual)
 
     # To update d_nameList.
     utils.add_to_nameList("{0}_BUF.pdb".format(universe.get('d_pdbName')))
