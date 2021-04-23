@@ -54,9 +54,9 @@ for init in dVdlInitList:
     dVdlMeanList.append(numpy.mean(dVdlList))
     dVdlStdList.append(numpy.std(dVdlList))
 
-phbuilder.universe.add('d_dVdlInitList', dVdlInitList)
-phbuilder.universe.add('d_dVdlMeanList', dVdlMeanList)
-phbuilder.universe.add('d_dVdlStdList', dVdlStdList)
+phbuilder.universe.add('ph_dvdl_initList', dVdlInitList)
+phbuilder.universe.add('ph_dvdl_meanList', dVdlMeanList)
+phbuilder.universe.add('ph_dvdl_stdList', dVdlStdList)
 
 phbuilder.universe.inspect()
 phbuilder.analyze.fitCalibration(order=5)

@@ -16,23 +16,12 @@
 * All data members have either a `d_` or a `ph_` prefix to distinguish them.
 * `d_` means it's a general data member while `ph_` means it's specific to some constant-pH functionality.
 
-<style type="text/css">
-.tg  {border-collapse:collapse;border-spacing:0;}
-.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}
-.tg .tg-0lax{text-align:left;vertical-align:top}
-</style>
 <table class="tg">
-<thead>
-  <tr>
-    <th class="tg-0pky">d_ALI</th>
-    <th class="tg-0pky">Alternative Location Indicator in .pdb files. Default = 'A'.</th>
-  </tr>
-</thead>
 <tbody>
+  <tr>
+    <td class="tg-0pky">d_ALI</td>
+    <td class="tg-0pky">Alternative Location Indicator in .pdb files. Default = 'A'.</td>
+  </tr>
   <tr>
     <td class="tg-0pky">d_box</td>
     <td class="tg-0pky">The (CRYST1) line a .pdb file defining the periodic box.</td>
@@ -44,18 +33,6 @@
   <tr>
     <td class="tg-0pky">d_chain</td>
     <td class="tg-0pky">List of different chains in protein in .pdb file.</td>
-  </tr>
-  <tr>
-    <td class="tg-0pky">d_dVdlInitList</td>
-    <td class="tg-0pky">List of lambda coordinates for which to compute mean dV/dl during calibration.</td>
-  </tr>
-  <tr>
-    <td class="tg-0pky">d_dVdlMeanList</td>
-    <td class="tg-0pky">List of mean dV/dl values at said points.</td>
-  </tr>
-  <tr>
-    <td class="tg-0pky">d_dVdlStdList</td>
-    <td class="tg-0pky">List of standard deviations of dV/dl values at said points.</td>
   </tr>
   <tr>
     <td class="tg-0pky">d_dt</td>
@@ -122,6 +99,18 @@
     <td class="tg-0pky">Turn constant-pH on or off. Has to be added manually to universe before you start to build the system.</td>
   </tr>
   <tr>
+    <td class="tg-0pky">ph_dvdl_initList</td>
+    <td class="tg-0pky">List of lambda coordinates for which to compute mean dV/dl during calibration.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">ph_dvdl_meanList</td>
+    <td class="tg-0pky">List of mean dV/dl values at said points.</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">ph_dvdl_stdList</td>
+    <td class="tg-0pky">List of standard deviations of dV/dl values at said points.</td>
+  </tr>  
+  <tr>
     <td class="tg-0pky">ph_lambdaM</td>
     <td class="tg-0pky">Mass of lambda particle. Good value is 5.0 Da.</td>
   </tr>
@@ -139,6 +128,9 @@
   </tr>
 </tbody>
 </table>
+
+<b>Known issues</b>
+* You can currently use add_buf() to add less buffer molecules than you have titratable groups, however for some reason (either phbuilder or gromacs build), this does not work yet.
 
 <b>To-do</b>
 * Enable the charge leveling scheme termed "charge coupling", i.e. put charge on an "ion".
