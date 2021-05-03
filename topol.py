@@ -96,7 +96,7 @@ def generate(d_modelFF, d_modelWater, d_terministring=""):
         os.system("gmx pdb2gmx -f {0} -o {1}_PR2.pdb -asp -glu -ignh -ff {2} -water {3} >> builder.log 2>&1 {4}".format(universe.get('d_nameList')[-1], universe.get('d_pdbName'), d_modelFF, d_modelWater, xstr))
 
     # Rebuild topology.
-    __rebuild_topol()
+    rebuild_topol()
 
     # To update d_residues.
     protein.load("{0}_PR2.pdb".format(universe.get('d_pdbName')))
@@ -104,7 +104,7 @@ def generate(d_modelFF, d_modelWater, d_terministring=""):
     # To update d_nameList.
     utils.add_to_nameList("{0}_PR2.pdb".format(universe.get('d_pdbName')))
 
-def __rebuild_topol():
+def rebuild_topol():
     # If we have only one chain, gromacs will put everything in topol.top.
     # If we have more than one chain, gromacs will do it for us.
     if (len(universe.get('d_chain')) <= 1):

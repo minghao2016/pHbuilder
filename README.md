@@ -11,17 +11,24 @@
 
 <b>Design principles</b>
 <p>I hardly use classes for the developing this builder as I don't particularly like them in Python. Instead, I decided to use the shelve module, which allows for storing and loading python data structures in a binary file. Here, this binary file is called 'universe'. The idea is to just store any data structure that might be of value to other builder/analysis functions in this 'universe', whether it be a float or a long list of Residue objects.</p>
-<p>One thing I think is very useful is the ability to run any command at any stage of the building process, and if the function requires a variable that was not added to the universe yet, it will simply prompt the user to input the missing data instead of exiting.
+<p>One thing I think is very useful is the ability to run any command at any stage of the building process, and if the function requires a variable that was not added to the universe yet, it will simply prompt the user to input the missing data instead of exiting.</p>
 
-<b>Reference list of functions:</b>
+<b>Reference list of builder functions:</b>
 
-<table class="tg">
-<tbody>
-  <tr>
-    <td class="tg-0pky">to</td>
-    <td class="tg-0pky">be expanded.</td>
-</tbody>
-</table>
+| Name  | Explanation |
+| :------------- | :------------- |
+| to be | expanded |
+
+<b>Reference list of analysis functions:</b>
+
+| Name  | Explanation |
+| :------------- | :------------- |
+| `analyze.plotlambda(plotBUF=False)` | Plot lambda trajectories of all lambda coordinates. Also plot buffer trajectory if `plotBUF=True`.|
+| `analyze.glicphstates()` | Analyze pH states in GLIC. |
+| `analyze.plotpotentials(pKa)` | Plot the correction and pH potentials for given pKa. |
+| `analyze.plotforces(pKa)` | Plot the correction and pH forces for given pKa. |
+| `analyze.plothistogram(fname, bins=200)` | Plot histogram for a given lambda_xxx.dat file |
+| `analyze.fitCalibration(order=5, compare=[])` | Fit dV/dl coefficients and plot the fit. `compare` can be used to specify different dV/dl coefficients for a comparison. |
 
 <b>Reference list of data members used/stored in universe:</b>
 * All data members have either a `d_` or a `ph_` prefix to distinguish them.

@@ -17,7 +17,7 @@ def titrate(lambdaFileName, cutoff=0.80):
 
     return fraction
 
-def plotlambda(fileName="", plotBUF=False):
+def plotlambda(plotBUF=False):
     resnameList = []    # Get the names and such of all the ASPs and GLUs.
     residList   = []
     for residue in universe.get('d_residues'):
@@ -52,7 +52,7 @@ def plotlambda(fileName="", plotBUF=False):
     else:
         plt.show()
 
-def glicphstates(plotBUF=False):
+def glicphstates():
     # EXPERIMENTAL DATA ON PROTONATION STATES AT VARIOUS PH ####################
     biophys = { # also prevost2012
         'ASP-13'  : 1,
