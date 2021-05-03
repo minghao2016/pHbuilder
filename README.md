@@ -21,21 +21,21 @@
 | `universe.has(varName)` <br /> Check whether variable with varName is in universe. |
 | `universe.get(varName)` <br /> Retrieve variable with varName from universe. |
 | `universe.inspect()` <br /> Print all the data members stored in universe. This is very useful for debugging or checking the parameters used for building the simulation in question. |
-| `protein.process(fname, d_model=1, d_ALI='A', d_chain=["all"], resetResId=False):` <br /> text. |
-| `protein.countres()` <br /> text. |
-| `protein.add_box(d_boxMargin, d_boxType='cubic')` <br /> text. |
-| `protein.add_buffer(ph_bufpdbName, ph_bufitpName, ph_bufMargin=2.0, ph_bufnmol=-1, attempts=10000)` <br /> text. |
-| `protein.add_water()` <br /> text. |
-| `protein.add_ions()` <br /> text. |
-| `topol.generate(d_modelFF, d_modelWater, d_terministring="")` <br /> text. |
-| `topol.restrain_dihedrals(resName, atomNameList, Type, phi, dphi, fc)` <br /> text. |
-| `md.gen_mdp(Type, nsteps=25000, nstxout=0, posres=False)` <br /> text. |
-| `md.gen_constantpH(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE, cal=False, lambdaInit=0.5)` <br /> text. |
-| `md.energy_minimize()` <br /> text. |
-| `md.energy_tcouple()` <br /> text. |
-| `md.energy_pcouple()` <br /> text. |
-| `write.run(gmxPath="/usr/local/gromacs", options="")` <br /> text. |
-| `write.reset()` <br /> text. |
+| `protein.process(fname, d_model=1, d_ALI='A', d_chain=["all"], resetResId=False):` <br /> Processes a .pdb file. This should be the first step in building the simulation. |
+| `protein.countres(resname)` <br /> Count the number of residues of a certain `resname`. |
+| `protein.add_box(d_boxMargin, d_boxType='cubic')` <br /> Add periodic box. |
+| `protein.add_buffer(ph_bufpdbName, ph_bufitpName, ph_bufMargin=2.0, ph_bufnmol=-1, attempts=10000)` <br /> Add buffer particle(s). Will be skipped if either `ph_constantpH` or `ph_restrainpH` is False. Requires the structure (.pdb) file of the buffer particle as well as the topology (.itp) file. One can optionally set the minimum distance between the buffer particle(s) (themselves) and the protein, as well as the number of attempts. The number of buffer particles can also be set. By default, `ph_bufnmol` = #titratable groups. |
+| `protein.add_water()` <br /> Solvate the system. |
+| `protein.add_ions()` <br /> Neutralize the system using monovalent ions NA and CL. |
+| `topol.generate(d_modelFF, d_modelWater, d_terministring="")` <br /> Generate the protein topology. |
+| `topol.restrain_dihedrals(resName, atomNameList, Type, phi, dphi, fc)` <br /> Restrain dihedrals of a certain residue. This is an optional step that should be run after `topol.generate()`. |
+| `md.gen_mdp(Type, nsteps=25000, nstxout=0, posres=False)` <br /> Generate .mdp file. Possible Types are: 'EM', 'NVT', 'NPT', 'MD'. If `posres=True`, the entire protein will be position restrained (not just COM). If you use energy_minimize(), tcouple(), and pcoule(), this function only needs to be called explicitly to generate MD.mdp.
+| `md.gen_constantpH(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE, cal=False, lambdaInit=0.5)` <br /> Generate constant-pH input parameters. Will be skipped if `d_constantpH` is False. |
+| `md.energy_minimize()` <br /> Perform energy minimization. |
+| `md.energy_tcouple()` <br /> Generate NVT.mdp and perform temperature coupling. Velocities are generated in this step, and it should not be skipped. |
+| `md.energy_pcouple()` <br /> Generate NPT.mdp and perform pressure coupling. Can sometimes be skipped for small systems to save time. |
+| `write.run(gmxPath="/usr/local/gromacs", options="")` <br /> Write executable bash file called run.sh which calls grompp and mdrun for running the simulation. `options` can be used to specify a string for additional parameters for mdrun such as `-pme cpu`, which is currently required when using GPU acceleration. |
+| `write.reset()` <br /> Write executable bash file called reset.sh which can be used to clean up / delete all generate files. |
 
 <br />
 
