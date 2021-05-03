@@ -419,6 +419,34 @@ def plotpotentials(pKa):
     plt.legend()
     plt.show()
 
+def plotforces(pKa):
+    R   = 8.3145 * 10**-3 # "kJ * mol⁻1 * K^-1"
+    T   = 300
+
+    lambda_i = load.Col("lambda_dwp.dat", 1, 942, 2062)
+    V_bias   = load.Col("lambda_dwp.dat", 0, 942, 2062)
+    
+    pH = universe.get('ph_pH')
+
+    V_pH = []
+    for i in lambda_i:
+        V_pH.append(R * T * np.log(10) * (pKa - pH) * i)
+
+    V_bias = np.gradient(V_bias)    # Take derivatives.
+    V_pH   = np.gradient(V_pH)
+    V_comb = [V_bias[i] + V_pH[i] for i in range(0, len(lambda_i))]
+
+    plt.plot(lambda_i, V_bias, color="b", linestyle='--', label="$F_{bias}}$")
+    plt.plot(lambda_i, V_pH, color="b", linestyle = ':', label="$F_{pH}$")
+    plt.plot(lambda_i, V_comb, color="b", label="$F_{combined}$")
+
+    plt.ylim(-0.1, 0.1)
+    plt.xlabel(r"$\lambda$-coordinate")
+    plt.ylabel("Force")
+    plt.grid()
+    plt.legend()
+    plt.show()
+
 def plothistogram(fname, bins=200):
     from scipy.stats import gaussian_kde
     
