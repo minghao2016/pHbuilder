@@ -15,15 +15,17 @@ def gen_constantpH(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE, cal=False, lambdaI
     BUF_qqA   = [-0.0656, 0.5328, 0.5328]
     BUF_qqB   = [-0.8476, 0.4238, 0.4238]
 
-    # Load dV/dl coefficients
-    GLU_dvdl  = universe.get('ph_GLU_dvdl')
-    ASP_dvdl  = universe.get('ph_ASP_dvdl')
-    BUF_dvdl  = universe.get('ph_BUF_dvdl')
-
     # Skip this entire step if ph_constantpH is false.
     if (not universe.get('ph_constantpH')):
         utils.update("generate_phdata", "skipping this step...")
         return
+
+    # Load dV/dl coefficients
+    GLU_dvdl  = universe.get('ph_GLU_dvdl')
+    ASP_dvdl  = universe.get('ph_ASP_dvdl')
+    
+    if (universe.get('ph_restrainpH')):
+        BUF_dvdl  = universe.get('ph_BUF_dvdl')
 
     # Check if MD.mdp exists.
     if (not os.path.isfile("MD.mdp")):
