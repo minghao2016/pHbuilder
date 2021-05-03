@@ -31,7 +31,7 @@ def process(fname, d_model=1, d_ALI='A', d_chain=["all"], resetResId=False):
     utils.update("process", 'file = {0}, MODEL# = {1}, ALI = {2}, chain(s) = {3}...'.format(fname, d_model, d_ALI, d_chain))
 
     # Write processed.pdb to file:
-    __write("{0}_PR1.pdb".format(universe.get('d_pdbName')))
+    write("{0}_PR1.pdb".format(universe.get('d_pdbName')))
 
 # Load a .pdb file into the universe.
 def load(fname, d_model=1, d_ALI='A', d_chain=["all"]):
@@ -106,7 +106,7 @@ def load(fname, d_model=1, d_ALI='A', d_chain=["all"]):
     universe.add('d_residues', d_residues)
 
 # Write (modified) .pdb file.
-def __write(name):            
+def write(name):            
     with open(name, 'w') as file:
         file.write("TITLE {0}\n".format(universe.get('d_title')))
         
