@@ -12,7 +12,7 @@ class Residue: # Stores a single residue's data.
         self.d_y       = y          # list      holds y-coordinates
         self.d_z       = z          # list      holds z-coordinatees
 
-def process(fname, d_model=1, d_ALI='A', d_chain=["all"], resetResId=False):
+def process(fname, d_model=1, d_ALI='A', d_chain=[], resetResId=False):
     basename = os.path.basename(fname)
     universe.add('d_pdbName', basename[0:len(basename)-4])
     universe.add('d_model', d_model)
@@ -20,7 +20,7 @@ def process(fname, d_model=1, d_ALI='A', d_chain=["all"], resetResId=False):
 
     load(fname, d_model, d_ALI, d_chain)
 
-    # Update d_chain from ["all"] to a list of actual chains used:
+    # Update d_chain from [] to a list of actual chains used:
     d_chain = []                                    
     for residue in universe.get('d_residues'):
         d_chain.append(residue.d_chain)
@@ -34,7 +34,7 @@ def process(fname, d_model=1, d_ALI='A', d_chain=["all"], resetResId=False):
     write("{0}_PR1.pdb".format(universe.get('d_pdbName')))
 
 # Load a .pdb file into the universe.
-def load(fname, d_model=1, d_ALI='A', d_chain=["all"]):
+def load(fname, d_model=1, d_ALI='A', d_chain=[]):
     d_residues = []
     atomLines  = []
     with open(fname) as file:       # Read .pdb line-by-line.
@@ -64,7 +64,7 @@ def load(fname, d_model=1, d_ALI='A', d_chain=["all"]):
                     # location specifier (if any at all),
                     if (line[16:17] in [d_ALI, " "]):
                         # and we want all chains,
-                        if (d_chain == ["all"]):
+                        if (d_chain == []):
                             # then load the atom.
                             atomLines.append(line)
                         # or if we want a selection of chains,
@@ -126,10 +126,10 @@ def write(name):
     utils.add_to_nameList(name)
 
 # Count number of residues with a specific residue name.
-def countRes(resname):
+def countRes(resName):
     count = 0
     for residue in universe.get('d_residues'):
-        if (residue.d_resname == resname):
+        if (residue.d_resname == resName):
             count += 1
     
     return count

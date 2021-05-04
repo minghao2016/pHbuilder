@@ -25,6 +25,44 @@ def add_mol(itpfname, comment, molname=None, molcount=None):
             file.write("{0}\t\t\t{1}\n".format(molname, molcount))
 
 def generate(d_modelFF, d_modelWater, d_terministring=""):
+    # Internal helper function.
+    def rebuild_topol():
+        # If we have only one chain, gromacs will put everything in topol.top.
+        # If we have more than one chain, gromacs will do it for us.
+        if (len(universe.get('d_chain')) <= 1):
+            readingProtein = False
+            
+            file = open("topol_Protein_chain_A.itp", 'w')
+
+            for line in open("topol.top").readlines():
+                if (not readingProtein and line == "[ moleculetype ]\n"):
+                    readingProtein = True
+            
+                if (readingProtein and line == "; Include water topology\n"):
+                    readingProtein = False
+
+                if (readingProtein):
+                    file.write(line)
+    
+            file.close()
+    
+        with open('topol.top', 'w') as file:
+            file.write("; Include forcefield parameters\n")
+            file.write("#include \"{0}.ff/forcefield.itp\"\n\n".format(universe.get('d_modelFF')))
+
+            file.write("; Include protein topology\n")
+            for letter in universe.get('d_chain'):
+                file.write("#include \"topol_Protein_chain_{0}.itp\"\n".format(letter))
+            file.write('\n')
+
+            file.write('[ system ]\n')
+            file.write('{0}\n\n'.format(universe.get('d_pdbName')))
+
+            file.write('[ molecules ]\n')
+            file.write('; Compounts \t\t #mols\n')
+            for letter in universe.get('d_chain'):
+                file.write("Protein_chain_{0}\t\t1\n".format(letter))
+
     # ADD RELEVANT PARAMETERS TO UNIVERSE ######################################
     universe.add('d_modelFF', d_modelFF)
     universe.add('d_modelWater', d_modelWater)
@@ -104,43 +142,6 @@ def generate(d_modelFF, d_modelWater, d_terministring=""):
     # To update d_nameList.
     utils.add_to_nameList("{0}_PR2.pdb".format(universe.get('d_pdbName')))
 
-def rebuild_topol():
-    # If we have only one chain, gromacs will put everything in topol.top.
-    # If we have more than one chain, gromacs will do it for us.
-    if (len(universe.get('d_chain')) <= 1):
-        readingProtein = False
-        
-        file = open("topol_Protein_chain_A.itp", 'w')
-
-        for line in open("topol.top").readlines():
-            if (not readingProtein and line == "[ moleculetype ]\n"):
-                readingProtein = True
-        
-            if (readingProtein and line == "; Include water topology\n"):
-                readingProtein = False
-
-            if (readingProtein):
-                file.write(line)
-   
-        file.close()
-  
-    with open('topol.top', 'w') as file:
-        file.write("; Include forcefield parameters\n")
-        file.write("#include \"{0}.ff/forcefield.itp\"\n\n".format(universe.get('d_modelFF')))
-
-        file.write("; Include protein topology\n")
-        for letter in universe.get('d_chain'):
-            file.write("#include \"topol_Protein_chain_{0}.itp\"\n".format(letter))
-        file.write('\n')
-
-        file.write('[ system ]\n')
-        file.write('{0}\n\n'.format(universe.get('d_pdbName')))
-
-        file.write('[ molecules ]\n')
-        file.write('; Compounts \t\t #mols\n')
-        for letter in universe.get('d_chain'):
-            file.write("Protein_chain_{0}\t\t1\n".format(letter))
-
 def restrain_dihedrals(resName, atomNameList, Type, phi, dphi, fc):
     utils.update("restrain_dihedrals", "will add restraints for {0} (all chains)...".format(resName))
 
@@ -156,9 +157,6 @@ def restrain_dihedrals(resName, atomNameList, Type, phi, dphi, fc):
             if first:
                 file.write("[ dihedral_restraints ]\n")
                 file.write("; ai aj ak al type phi dphi fc\n")
-            
-            # Write atoms as extra user information.
-            # file.write("; {0} {1} {2} {3}\n".format(atomNameList[0], atomNameList[1], atomNameList[2], atomNameList[3]))
 
             # Atomcount resets for every separate .itp file.
             atomCount = 0
