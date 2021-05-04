@@ -42,15 +42,10 @@ def plotlambda(plotBUF=False):
     plt.ylabel(r"$\lambda$-coordinate")
 
     plt.ticklabel_format(axis='x', style='sci', scilimits=(0, 3))
-    
+
     plt.legend()
     plt.grid()
-
-    if (not fileName == ""):
-        plt.savefig("{0}.pdf".format(fileName))
-        os.system("pdfcrop {0}.pdf {0}.pdf".format(fileName))
-    else:
-        plt.show()
+    plt.show()
 
 def glicphstates():
     # EXPERIMENTAL DATA ON PROTONATION STATES AT VARIOUS PH ####################
