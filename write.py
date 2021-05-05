@@ -14,7 +14,7 @@ def reset():
         file.write("\trm -rf \\_\\_py* charmm*\n")
         file.write("\trm -f *.itp *.top *.mdp *.tpr *.log *.ndx *.edr *.trr *.xtc *.cpt *.dat *.pdf *.xvg\n")
         file.write("\trm -f \\#*\\#\n")
-        file.write("\trm -f buffer.pdb %s_*.pdb\n" % universe.get('d_pdbName'))
+        file.write("\trm -f step*.pdb buffer.pdb %s_*.pdb\n" % universe.get('d_pdbName'))
         file.write("\trm -f run.sh reset.sh jobscript.sh universe\n")                   
         file.write("fi\n\n")
 
@@ -22,7 +22,7 @@ def reset():
         file.write("\trm -rf \\_\\_py* charmm*\n")
         file.write("\trm -f *.itp *.top *.mdp *.tpr *.log *.ndx *.edr *.trr *.xtc *.cpt *.dat *.pdf *.xvg\n")
         file.write("\trm -f \\#*\\#\n")
-        file.write("\trm -f buffer.pdb %s_*.pdb\n" % universe.get('d_pdbName'))
+        file.write("\trm -f step*.pdb buffer.pdb %s_*.pdb\n" % universe.get('d_pdbName'))
         file.write("\trm -f run.sh reset.sh jobscript.sh universe\n")            
         file.write("fi\n\n")
 
@@ -62,16 +62,16 @@ def jobscript(jobName, jobTime, nodes, ntasks, queue):
     def moduleLoad(value):
         file.write("module load {0}\n".format(value))
 
-    file.write("#!/bin/bash\n")
+    file.write("#!/bin/bash\n\n")
 
     writeHead("time", "%d-%.2d:00:00" % (int(jobTime / 24), jobTime % 24))
     writeHead("nodes", nodes)
-    writeHead("ntasks", ntasks)
+    # writeHead("ntasks", ntasks)
     writeHead("partition", queue)
     writeHead("job-name", jobName)
     writeHead("mail-user", "anton.jansen@scilifelab.se")
     writeHead("mail-type", "ALL")
-    file.write("#SBATCH -C gpu --gres=gpu:4\n")
+    file.write("#SBATCH -C gpu --gres=gpu:1\n\n")
 
     moduleLoad("cmake/latest")
     moduleLoad("gcc/7.4")
@@ -80,7 +80,7 @@ def jobscript(jobName, jobTime, nodes, ntasks, queue):
     file.write('\n')
 
     if universe.get('ph_constantpH'):
-        file.write("\n# compile our custom Gromacs version on cluster backend node\n")
+        file.write("# compile our custom Gromacs version on cluster backend node\n")
         file.write("mkdir build\n")
         file.write("cd build\n")
         file.write("CC=gcc-7 CXX=g++-7 cmake ~/gromacs-constantph -DGMX_USE_RDTSCP=ON -DCMAKE_INSTALL_PREFIX=${PWD}/.. -DGMX_BUILD_OWN_FFTW=ON -DGMX_GPU=CUDA\n")
@@ -95,6 +95,6 @@ def jobscript(jobName, jobTime, nodes, ntasks, queue):
     file.write("gmx grompp -f MD.mdp -c {0} -p topol.top -n index.ndx -o MD.tpr -r {0}\n".format(universe.get('d_nameList')[-1]))
     
     if universe.get('ph_constantpH'):
-        file.write("gmx mdrun -deffnm MD -c {0}_MD.pdb -x MD.xtc -pme cpu\n".format(universe.get('d_pdbName')))
+        file.write("gmx mdrun -deffnm MD -c {0}_MD.pdb -x MD.xtc -pme cpu -ntmpi 1\n".format(universe.get('d_pdbName')))
     else:
         file.write("gmx mdrun -deffnm MD -c {0}_MD.pdb -x MD.xtc\n".format(universe.get('d_pdbName')))
