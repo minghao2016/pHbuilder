@@ -17,7 +17,7 @@ def gen_constantpH(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE, cal=False, lambdaI
 
     # Skip this entire step if ph_constantpH is false.
     if (not universe.get('ph_constantpH')):
-        utils.update("generate_phdata", "skipping this step...")
+        utils.update("gen_constantpH", "ph_constantpH is False --> skipping...")
         return
 
     # Load dV/dl coefficients
@@ -27,16 +27,15 @@ def gen_constantpH(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE, cal=False, lambdaI
     if (universe.get('ph_restrainpH')):
         BUF_dvdl = universe.get('ph_BUF_dvdl')
 
-    # Check if MD.mdp exists.
+    # Check whether MD.mdp exists.
     if (not os.path.isfile("MD.mdp")):
-        utils.update("generate_phdata", "MD.mdp does not exist, creating...")
+        utils.update("gen_constantpH", "MD.mdp does not exist, creating...")
         md.gen_mdp('MD', universe.get('d_nsteps'), universe.get('d_nstxout'))
 
-    # Generate default index file.
-    utils.generate_index()
-
-    # Update user.
-    utils.update("generate_phdata", "ph_pH={}, ph_lambdaM={}, ph_nstout={}, ph_barrierE={}".format(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE))
+    # Check whether index.ndx exists.
+    if (not os.path.isfile("index.ndx")):
+        utils.update("gen_constantpH", "index.ndx does not exist, creating...")
+        utils.generate_index()
 
     file = open('MD.mdp', 'a')
 
@@ -51,6 +50,10 @@ def gen_constantpH(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE, cal=False, lambdaI
 
     # PART 1 - WRITE GENERAL PARAMETERS ########################################
     
+    # Update user.
+    utils.update("gen_constantpH", "Writing general parameters:")
+    utils.update("gen_constantpH", "ph_pH={}, ph_lambdaM={}, ph_nstout={}, ph_barrierE={}...".format(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE))
+
     addParam('lambda-dynamics', 'yes')
     addParam('lambda-dynamics-simulation-ph', ph_pH)
     addParam('lambda-dynamics-lambda-particle-mass', ph_lambdaM)
@@ -100,6 +103,8 @@ def gen_constantpH(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE, cal=False, lambdaI
 
     # PART 2 - WRITE RESIDUE-TYPE SPECIFIC STUFF ###############################
 
+    utils.update("gen_constantpH", "Writing residue-type specific stuff...")
+
     def writeBlock(number, name, dvdl, pKa, ph_barrierE, qqA, qqB):
 
         def to_string(Input):
@@ -131,6 +136,8 @@ def gen_constantpH(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE, cal=False, lambdaI
             writeBlock(idx + 1, 'BUF', BUF_dvdl, 0, 0, BUF_qqA, BUF_qqB)
 
     # PART 3 - WRITE INDIVIDUAL RESIDUE/LAMBDA-GROUP STUF ######################
+
+    utils.update("gen_constantpH", "Writing individual lambda groups...")
 
     def writeResBlock(number, name, indexLambda, indexName):
         addParam('lambda-dynamics-atom-set%s-name'                  % (number), name)
@@ -166,6 +173,8 @@ def gen_constantpH(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE, cal=False, lambdaI
     file.close() # MD.mdp
 
     # PART 4 - APPEND THE LAMBDA INDEX GROUPS TO INDEX.NDX #####################
+
+    utils.update("gen_constantpH", "Writing lambda index groups to index.ndx...")
 
     file = open('index.ndx', 'a') # Append to existing index.ndx
 
