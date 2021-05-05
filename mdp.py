@@ -3,7 +3,7 @@ import universe, utils
 def gen_mdp(Type, nsteps=25000, nstxout=0, posres=False):
     # HEAD
     if (Type not in ['EM', 'NVT', 'NPT', 'MD']):
-        raise Exception("Unknown .mdp Type specified. Types are: IONS, EM, NVT, NPT, MD.")
+        raise Exception("Unknown .mdp Type specified. Types are: EM, NVT, NPT, MD.")
 
     utils.update("gen_mdp", "Type={0}, nsteps={1}, nstxout={2}, posres={3}".format(Type, nsteps, nstxout, posres))
 
@@ -93,21 +93,12 @@ def gen_mdp(Type, nsteps=25000, nstxout=0, posres=False):
         addParam('rvdw', 1.0, 'Van der Waals cut-off (nm).')
 
     # TEMPERATURE COUPLING
-    tgroups = [['SYSTEM', 0.5, 300]]
-
     if (Type in ['NVT', 'NPT', 'MD']):
         addTitle("Temperature coupling")
         addParam('tcoupl', 'v-rescale')
-
-        string1 = ""; string2 = ""; string3 = ""
-        for group in tgroups:
-            string1 += group[0]      + ' '
-            string2 += str(group[1]) + ' '
-            string3 += str(group[2]) + ' '
-
-        addParam('tc-grps', string1)
-        addParam('tau-t', string2, 'Berk: change from 0.1 to 0.5.')
-        addParam('ref-t', string3, 'Reference temp. (K) (for each group).')
+        addParam('tc-grps', 'SYSTEM')
+        addParam('tau-t', 0.5, 'Berk: change from 0.1 to 0.5.')
+        addParam('ref-t', 300, 'Reference temp. (K) (for each group).')
 
     # PRESSURE COUPLING
     if (Type in ['NPT', 'MD']):
