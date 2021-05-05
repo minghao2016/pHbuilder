@@ -1,6 +1,4 @@
-import os
-import utils
-import universe
+import os, utils, universe
 
 def reset():
     utils.update("reset", "writing reset.sh...")
