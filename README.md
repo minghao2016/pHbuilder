@@ -11,9 +11,8 @@
 
 <b>Design principles</b>
 <p>I hardly use classes for the developing this builder as I don't particularly like them in Python. Instead, I decided to use the shelve module, which allows for storing and loading python data structures in a binary file. Here, this binary file is called 'universe'. The idea is to just store any data structure that might be of value to other builder/analysis functions in this 'universe', whether it be a float or a long list of Residue objects.</p>
-<p>One thing I think is very useful is the ability to run any command at any stage of the building process, and if the function requires a variable that was not added to the universe yet, it will simply prompt the user to input the missing data instead of exiting.</p>
-
-<!-- <br /> -->
+<p>To reduce coupling, one thing I think is very useful is the ability to run any command at any stage of the building process. If a function requires a variable that was not added to the universe yet (because some other builder function was skipped), the function will simply prompt the user to input the missing data instead of exiting (any data structure except for d_residues can be manually added this way). </p>
+<p>All (encapsulated) gromacs commands executed by the various builder functions will be logged in the "builder.log" file (this is helpful for debugging purposes). </p>
 
 | Reference list of builder functions |
 | :------------- |
@@ -187,6 +186,6 @@
 * You can currently use `protein.add_buf()` to add less buffer molecules than you have titratable groups, however for some reason (either phbuilder or gromacs build), this will give nonsensical results.
 
 <b>To-do</b>
+* Change `protein.add_ions()` so that it can do more than just neutralize the system.
 * Enable the charge leveling scheme termed "charge coupling", i.e. put charge on an "ion".
-* Put the lambda charges on virtual sites instead of the actual atoms themselves.
-* Enable multistate.
+* Enable multistate and/or put the lambda charges on virtual sites instead of the actual atoms.
