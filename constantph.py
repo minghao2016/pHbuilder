@@ -55,7 +55,7 @@ def gen_constantpH(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE, cal=False, lambdaI
     addParam('lambda-dynamics-simulation-ph', ph_pH)
     addParam('lambda-dynamics-lambda-particle-mass', ph_lambdaM)
     addParam('lambda-dynamics-update-nst', ph_nstout)
-    addParam('lambda-dynamics-tau', 0.1) # hardcoded
+    addParam('lambda-dynamics-tau', 2.0) # hardcoded
 
     if cal:
         addParam('lambda-dynamics-calibration', 'yes')
