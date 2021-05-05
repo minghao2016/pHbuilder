@@ -28,9 +28,10 @@ def process(fname, d_model=1, d_ALI='A', d_chain=[], resetResId=False):
     d_chain.sort()
     universe.add('d_chain', d_chain)
 
-    utils.update("process", 'file = {0}, MODEL# = {1}, ALI = {2}, chain(s) = {3}...'.format(fname, d_model, d_ALI, d_chain))
+    utils.update("process", 'file={0}, MODEL#={1}, ALI={2}, chain(s)={3}...'.format(fname, d_model, d_ALI, d_chain))
 
     # Write processed.pdb to file:
+    utils.update("process", "writing processed .pdb file to {}_PR1.pdb...".format(universe.get('d_pdbName')))
     write("{0}_PR1.pdb".format(universe.get('d_pdbName')))
 
 # Load a .pdb file into the universe.
@@ -108,7 +109,8 @@ def load(fname, d_model=1, d_ALI='A', d_chain=[]):
 # Write (modified) .pdb file.
 def write(name):            
     with open(name, 'w') as file:
-        file.write("TITLE {0}\n".format(universe.get('d_title')))
+        if universe.has('d_title'):
+            file.write("TITLE {0}\n".format(universe.get('d_title')))
         
         if universe.has('d_box'):
             file.write("CRYST1{0}\n".format(universe.get('d_box')))
@@ -135,7 +137,7 @@ def countRes(resName):
     return count
 
 def add_box(d_boxMargin, d_boxType='cubic'):
-    utils.update("add_box", "running gmx editconf (boxMargin = {0}, boxType = {1})...".format(d_boxMargin, d_boxType))
+    utils.update("add_box", "adding box using gmx editconf (boxMargin = {0}, boxType = {1})...".format(d_boxMargin, d_boxType))
 
     os.system("gmx editconf -f {0} -o {1}_BOX.pdb -d {2} -bt {3} >> builder.log 2>&1".format(universe.get('d_nameList')[-1], universe.get('d_pdbName'), d_boxMargin, d_boxType))
 
@@ -213,6 +215,7 @@ def add_water():
     utils.add_to_nameList("{0}_SOL.pdb".format(universe.get('d_pdbName')))
 
 def add_ions():
+    utils.update("add_ions", "will add ions to neutralize the system...")
     utils.update("add_ions", "running gmx grompp and genion to add ions...")
 
     # Generate IONS.mdp (just a dummy required).
