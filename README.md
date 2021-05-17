@@ -25,7 +25,7 @@
 | `protein.add_box(d_boxMargin, d_boxType='cubic')` <br /> Add periodic box. This function encapsulates `gmx editconf`. |
 | `protein.add_buffer(ph_bufpdbName, ph_bufitpName, ph_bufMargin=2.0, ph_bufnmol=-1, attempts=10000)` <br /> Add buffer particle(s). This function encapsulates `gmx insert-molecules`. Will be skipped if either `ph_constantpH` or `ph_restrainpH` is False. Requires the structure (.pdb) file of the buffer particle as well as the topology (.itp) file. One can optionally set the minimum distance between the buffer particle(s) (themselves) and the protein, as well as the number of attempts. The number of buffer particles can also be set. By default, `ph_bufnmol` = #titratable groups. |
 | `protein.add_water()` <br /> Solvate the system. This function encapsulates `gmx solvate`. |
-| `protein.add_ions()` <br /> Neutralize the system using monovalent ions NA and CL. This function encapsulates `gmx genion`. |
+| `add_ions(neutral=True, conc=0, pname='NA', nname='CL')` <br /> Neutralize the system and/or add a specified salt concentration (`conc` in mmol/ml) using `pname` and `nname` ion types (default NA and CL). This function encapsulates `gmx genion`. |
 | `topol.generate(d_modelFF, d_modelWater, d_terministring="")` <br /> Generate the protein topology. This function encapsulates `gmx pdb2gmx`, and makes sure all protonatable residues are put in their protonated state when `ph_constantpH` is True. `d_modelFF` is the force field, while `d_modelWater` is the water model. `d_terministring` is a string consisting of two letters, specifying how `pdb2gmx` should treat the termini of the (various chains of) the protein. Commonly used: 00 = charged termini (`pdb2gmx` default), 11 = neutral termini, 34 = use this with capped tripeptide. |
 | `topol.restrain_dihedrals(resName, atomNameList, Type, phi, dphi, fc)` <br /> Restrain dihedrals of a certain residue. This is an optional step that should be run after `topol.generate()`. `resName` is the residue name, `atomNameList` is a list containing four strings, indicating with four atoms form the dihedral (e.g. `[' OE1', ' CD ', ' OE2', ' HE2']` to restrain the carboxyl dihedral of GLU), and `Type`, `phi`, `dphi`, and `fc` are restraining parameters (see Gromacs manual). |
 | `md.gen_mdp(Type, nsteps=25000, nstxout=0, posres=False)` <br /> Generate .mdp file. Possible Types are: 'EM', 'NVT', 'NPT', 'MD'. If `posres=True`, the entire protein will be position restrained (not just COM). If you use energy_minimize(), tcouple(), and pcoule(), this function only needs to be called explicitly to generate MD.mdp.
@@ -186,6 +186,5 @@
 * You can currently use `protein.add_buf()` to add less buffer molecules than you have titratable groups, however for some reason (either phbuilder or gromacs build), this will give nonsensical results.
 
 <b>To-do</b>
-* Change `protein.add_ions()` so that it can do more than just neutralize the system.
 * Enable the charge leveling scheme termed "charge coupling", i.e. put charge on an "ion".
-* Enable multistate and/or put the lambda charges on virtual sites instead of the actual atoms.
+* Enable multistate.

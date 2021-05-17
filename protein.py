@@ -160,7 +160,7 @@ def add_buffer(ph_bufpdbName, ph_bufitpName, ph_bufMargin=2.0, ph_bufnmol=-1, at
     if (ph_bufnmol == -1):
         ph_bufnmol = countRes('ASP') + countRes('GLU')
 
-    utils.update("add_buffer", "will attempt to add {0} buffer molecules...".format(ph_bufnmol))
+    utils.update("add_buffer", "will attempt to add {0} buffer molecule(s)...".format(ph_bufnmol))
 
     # RUN GROMACS INSERT-MOLECULES COMMAND
     os.system("touch vdwradii.dat") # we need this dummy file for this to work.
@@ -184,7 +184,7 @@ def add_buffer(ph_bufpdbName, ph_bufitpName, ph_bufMargin=2.0, ph_bufnmol=-1, at
         utils.update("add_buffer", "warning: only {0}/{1} requested buffer molecules inserted after {2} attempts,".format(actual, ph_bufnmol, attempts))
         utils.update("add_buffer", "warning: try decreasing ph_bufMargin (={0}nm) or increasing d_boxMargin (={1}nm)...".format(ph_bufMargin, universe.get('d_boxMargin')))
     else:
-        utils.update("add_buffer", "succesfully added {0} buffer molecules...".format(actual))
+        utils.update("add_buffer", "succesfully added {0} buffer molecule(s)...".format(actual))
 
     # To add buffer topology to topol.top.
     utils.update("add_buffer", "updating topology...")
@@ -214,9 +214,16 @@ def add_water():
     # To update d_nameList.
     utils.add_to_nameList("{0}_SOL.pdb".format(universe.get('d_pdbName')))
 
-def add_ions():
-    utils.update("add_ions", "will add ions to neutralize the system...")
-    utils.update("add_ions", "running gmx grompp and genion to add ions...")
+def add_ions(neutral=True, conc=0, pname='NA', nname='CL'):
+    if (not neutral) and (conc == 0):
+        utils.update("add_ions", "no ions will be added...")
+        return
+
+    if neutral:
+        utils.update("add_ions", "will add ions ({}/{}) to neutralize the system...".format(pname, nname))
+
+    if conc > 0:
+        utils.update("add_ions", "will add ions ({}/{}) for target concentration = {} mmol/ml...".format(pname, nname, conc))
 
     # Generate IONS.mdp (just a dummy required).
     os.system('touch IONS.mdp')
@@ -224,9 +231,15 @@ def add_ions():
     # Add ion topology to topol.top.
     topol.add_mol("{0}.ff/ions.itp".format(universe.get('d_modelFF')), "Include ion topology")
 
-    # Run gmx genion.
+    # Run gmx grompp and genion.
+    utils.update("add_ions", "running gmx grompp and genion to add ions...")
+
     os.system("gmx grompp -f IONS.mdp -c {0} -p topol.top -o IONS.tpr >> builder.log 2>&1".format(universe.get('d_nameList')[-1]))
-    os.system("gmx genion -s IONS.tpr -o {0}_ION.pdb -p topol.top -pname NA -nname CL -neutral >> builder.log 2>&1 << EOF\nSOL\nEOF".format(universe.get('d_pdbName')))
+
+    if neutral:
+        os.system("gmx genion -s IONS.tpr -o {0}_ION.pdb -p topol.top -pname {1} -nname {2} -conc {3} -neutral >> builder.log 2>&1 << EOF\nSOL\nEOF".format(universe.get('d_pdbName'), pname, nname, conc))
+    else:
+        os.system("gmx genion -s IONS.tpr -o {0}_ION.pdb -p topol.top -pname {1} -nname {2} -conc {3} >> builder.log 2>&1 << EOF\nSOL\nEOF".format(universe.get('d_pdbName'), pname, nname, conc))
 
     # To update d_residues.
     load("{0}_ION.pdb".format(universe.get('d_pdbName')))
