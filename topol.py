@@ -79,11 +79,16 @@ def generate(d_modelFF, d_modelWater, d_terministring=""):
         if countACID > 0:
             utils.update("generate", "detected {} acidic residue(s):".format(countACID))
 
-            count = 1
-            for residue in universe.get('d_residues'):
-                if residue.d_resname in ['ASP', 'GLU']:
-                    utils.update("generate", "{:3s} {:<4d}".format(residue.d_resname, count))
-                count += 1
+            for letter in universe.get('d_chain'):
+                count = 1
+
+                for residue in universe.get('d_residues'):
+                    if residue.d_chain == letter:
+                        count += 1
+
+                        if residue.d_resname in ['ASP', 'GLU']:
+                            utils.update("generate", "{:3s}-{:<4d} in chain {}".format(residue.d_resname, count, letter))
+
             utils.update("generate", "(setting protonation state to true (option 1) for all of these)")
 
         else:
