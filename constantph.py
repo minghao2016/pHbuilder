@@ -1,4 +1,4 @@
-import os, universe, utils, md
+import os, universe, utils, md, protein
 
 def gen_constantpH(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE, cal=False, lambdaInit=0.5):
     # Hardcoded stuff
@@ -110,8 +110,8 @@ def gen_constantpH(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE, cal=False, lambdaI
         def to_string(Input):
             string = ""
             for element in Input:
-                string += str(element)
-                string += " "
+                string += "{:.3f}".format(element)
+                string += ' '
             return string
 
         addParam('lambda-dynamics-residue%s-name'              % (number), name)
@@ -131,8 +131,12 @@ def gen_constantpH(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE, cal=False, lambdaI
             writeBlock(idx + 1, 'ASP', ASP_dvdl, ASP_pKa, ph_barrierE, ASP_qqA, ASP_qqB)
 
         if (acidicResidueTypeList[idx] == 'BUF'):
-            # Multiplication is no-longer necessary because of Paul's commit on January 25th:
-            # writeBlock(idx + 1, 'BUF', [i * len(acidicResidueNameList) for i in BUF_dvdl], 0, 0, BUF_qqA, BUF_qqB)
+            # If number of protonatable residues != number of buffer molecules,
+            # we need to increase buffer charge in state A by the ratio:
+            nLams   = protein.countRes('ASP') + protein.countRes('GLU')
+            nBufs   = universe.get('ph_bufnmol')
+            BUF_qqA = [(nLams/float(nBufs)) * i for i in BUF_qqA]
+
             writeBlock(idx + 1, 'BUF', BUF_dvdl, 0, 0, BUF_qqA, BUF_qqB)
 
     # PART 3 - WRITE INDIVIDUAL RESIDUE/LAMBDA-GROUP STUF ######################
@@ -150,7 +154,7 @@ def gen_constantpH(ph_pH, ph_lambdaM, ph_nstout, ph_barrierE, cal=False, lambdaI
 
         if (name == 'BUF'):
             addParam('lambda-dynamics-atom-set%s-buffer-residue' % (number), 'yes')
-            addParam('lambda-dynamics-atom-set%s-buffer-residue-multiplier' % (number), len(acidicResidueNameList))
+            addParam('lambda-dynamics-atom-set%s-buffer-residue-multiplier' % (number), universe.get('ph_bufnmol'))
 
         file.write('\n')
 
