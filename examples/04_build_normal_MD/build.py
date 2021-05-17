@@ -10,7 +10,7 @@ phbuilder.universe.add('ph_constantpH', False)
 phbuilder.protein.process('../../proteins/1cvo.pdb')
 phbuilder.topol.generate("charmm36-mar2019", "tip3p")
 
-phbuilder.protein.add_box(d_boxMargin=1.0)
+phbuilder.protein.add_box(d_boxMargin=2.0)
 phbuilder.protein.add_water()
 phbuilder.protein.add_ions()
 

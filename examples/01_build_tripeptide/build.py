@@ -25,7 +25,7 @@ phbuilder.topol.restrain_dihedrals('ASP', [' OD1', ' CG ', ' OD2', ' HD2'], 1,  
 phbuilder.topol.restrain_dihedrals('GLU', [' HA ', ' CA ', ' CB ', ' HB1'], 1, 60, 0, 10)
 phbuilder.topol.restrain_dihedrals('ASP', [' HA ', ' CA ', ' CB ', ' HB1'], 1, 60, 0, 10)
 
-phbuilder.protein.add_box(d_boxMargin=1.0)
+phbuilder.protein.add_box(d_boxMargin=2.0)
 phbuilder.protein.add_buffer("../../proteins/buffer.pdb", "../../proteins/buffer.itp")
 phbuilder.protein.add_water()
 phbuilder.protein.add_ions()
