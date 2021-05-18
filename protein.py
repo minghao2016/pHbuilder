@@ -151,7 +151,7 @@ def add_box(d_boxMargin, d_boxType='cubic'):
     # To update d_nameList.
     utils.add_to_nameList("{0}_BOX.pdb".format(universe.get('d_pdbName')))
 
-def add_buffer(ph_bufpdbName, ph_bufitpName, ph_bufMargin=2.0, ph_bufnmol=-1, attempts=10000):
+def add_buffer(ph_bufpdbName, ph_bufitpName, ph_bufMargin=2.0, ph_bufnmol=-1, attempts=100000):
     if not (universe.get('ph_constantpH') and universe.get('ph_restrainpH')):
         utils.update("add_buffer", "either ph_constantpH or ph_restrainpH is False --> skipping...")
         return
