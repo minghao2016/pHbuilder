@@ -1,0 +1,5 @@
+TITLE     BUFFER PARTICLE
+MODEL        1
+ATOM      1  NA  BUF     1     110.896   2.872  68.855  1.00  0.00            
+TER
+ENDMDL

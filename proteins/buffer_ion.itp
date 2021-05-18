@@ -1,0 +1,14 @@
+[ moleculetype ]
+; molname	nrexcl
+BUF		1
+
+[ atoms ]
+; id	at type		res nr	residu name at name  cg nr	charge	 
+1		SOD			1		   BUF			NA		   1		0.5	 
+
+#ifdef POSRES_BUF
+; Position restraint for each buffer ion
+[ position_restraints ]
+;  i funct       fcx        fcy        fcz
+   1    1       1000       1000       1000
+#endif
