@@ -182,3 +182,24 @@ def restrain_dihedrals(resName, atomNameList, Type, phi, dphi, fc):
                     for atom in atomNameList:
                         file.write("{:<6d} ".format(dictionary[atom]))
                     file.write(" {}  {}  {}  {}\n".format(Type, phi, dphi, fc))
+
+def restrain_dihedrals_by_idx(indices, Type, phi, dphi, fc):
+    utils.update("restrain_dihedrals", "will restrain dihedral {} {} {} {} (Type={}, phi={}, dphi={}, fc={})".format(indices[0], indices[1], indices[2], indices[3], Type, phi, dphi, fc))
+
+    # Every chain has its own .itp file, so we loop through every file:
+    for letter in universe.get('d_chain'):
+        # This is to make sure we don't have multiple headers when we add multiple different restraints.
+        first = False
+        if not "[ dihedral_restraints ]" in open("topol_Protein_chain_{0}.itp".format(letter)).read():
+            first = True
+
+        # Append to the end of relevant .itp file:
+        with open("topol_Protein_chain_{0}.itp".format(letter), 'a') as file:
+            if first:
+                file.write("[ dihedral_restraints ]\n")
+                file.write("; ai aj ak al type phi dphi fc\n")
+
+            for idx in indices:
+                file.write("{:<6d} ".format(idx))
+                
+            file.write(" {}  {}  {}  {}\n".format(Type, phi, dphi, fc))
