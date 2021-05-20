@@ -35,8 +35,7 @@ phbuilder.md.energy_tcouple()
 phbuilder.md.energy_pcouple()
 
 phbuilder.md.gen_mdp('MD', nsteps=25000000, nstxout=10000)
-phbuilder.md.gen_constantpH(ph_pH=4.0, ph_lambdaM=5.0, ph_nstout=200, ph_barrierE=7.5)
+phbuilder.md.gen_constantpH(ph_pH=4.0, ph_lambdaM=5.0, ph_nstout=500, ph_barrierE=7.5)
 phbuilder.write.run(gmxPath="/usr/local/gromacs_test2", options="-pme cpu")
 
-phbuilder.write.jobscript('test', 48, 1, 32, 'lindahl')
 phbuilder.universe.inspect()
